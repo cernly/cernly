@@ -168,6 +168,16 @@ func TestJSONLD(t *testing.T) {
 	}
 }
 
+// The docs point readers to the hosted product on every page.
+func TestProductLink(t *testing.T) {
+	out := mustBuild(t)
+	for _, f := range []string{"index.html", "use/scan/index.html"} {
+		if h := read(t, filepath.Join(out, f)); !strings.Contains(h, `<a href="https://cernly.eu">`) {
+			t.Errorf("%s does not link cernly.eu", f)
+		}
+	}
+}
+
 // writePages puts files under a fresh pages folder, the fixture's home and 404
 // included unless replaced.
 func writePages(t *testing.T, files map[string]string) string {
