@@ -1,0 +1,4 @@
+.git
+site/public
+*.facts.json
+/cernly

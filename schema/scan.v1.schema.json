@@ -1,0 +1,674 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cernly.dev/schema/scan.v1.schema.json",
+  "title": "Cernly scan output (facts.json) v1",
+  "description": "Output of one extractor run on one commit. Deterministic: same commit + same extractor version = byte-identical file. Serialised as canonical JSON (RFC 8785 / JCS): sorted keys, no insignificant whitespace. No timestamps of the scan itself, no hostnames, no absolute paths. Draft until the first scan is stored; from then on only additive changes in v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "repo", "commit", "extractor", "plugins", "facts"],
+  "properties": {
+    "schema": { "const": "cernly.scan/v1" },
+    "repo": {
+      "type": "string",
+      "description": "Canonical repo id, e.g. github.com/owner/name"
+    },
+    "commit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha", "committed_at"],
+      "properties": {
+        "sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "committed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Committer date from git, UTC. Comes from the commit, so it is deterministic."
+        },
+        "dirty": {
+          "const": true,
+          "description": "A checkout scan without --commit read tracked files with uncommitted changes, so the facts may not match sha. Absent when clean. Never stored."
+        }
+      }
+    },
+    "extractor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "description": "The provider catalogue is a rules input; its version is in the map (https://cernly.dev/how/catalogue/)",
+      "properties": {
+        "version": { "type": "string", "description": "Semver of the CLI binary" }
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "description": "Plugins that ran in this scan, sorted by name. An incremental scan lists only the plugins it re-ran.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "version", "source", "status"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,40}$", "description": "Open set: built-in and WebAssembly plugins (https://cernly.dev/how/plugins/)" },
+          "version": { "type": "string" },
+          "source": { "enum": ["builtin", "wasm"] },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Hash of the WebAssembly module; wasm only" },
+          "signer": { "type": "string", "description": "Key id that signed the module; wasm only" },
+          "status": { "enum": ["ok", "partial", "failed"] },
+          "errors": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/location_error" }
+          }
+        }
+      }
+    },
+    "config": {
+      "$ref": "#/$defs/scan_config"
+    },
+    "facts": {
+      "type": "array",
+      "description": "Sorted by (kind, key), then evidence by (path, line).",
+      "items": { "$ref": "#/$defs/fact" }
+    }
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "key", "attrs", "plugin", "evidence"],
+      "properties": {
+        "kind": {
+          "enum": ["dependency", "service", "datastore", "env_var", "outbound_host", "db_table", "db_column", "secret_found", "image_build", "image_recipe", "stack", "agent_config", "route", "owner", "catalog_entity", "source_size", "import", "test_suite", "test_run"]
+        },
+        "key": {
+          "type": "string",
+          "description": "Stable identity of the thing, independent of where it is written. Format <kind>:<source>:<name>; dependencies carry their manifest directory (dependency:go:worker:github.com/sashabaranov/go-openai) so two modules can pin different versions, transitive ones their lockfile folder and the lockfile's own identity (dependency:npm:.:lock:node_modules/qs, dependency:pypi:api:lock:starlette); compose services and data stores carry their stack (service:compose:production:api). Moving a line does NOT change the key."
+        },
+        "attrs": {
+          "type": "object",
+          "description": "Kind-specific attributes, see the attrs_* defs. Never contains secret or env values."
+        },
+        "plugin": { "type": "string" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Every place in the repo that proves this fact. A fact without evidence is invalid.",
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "dependency" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_dependency" } } } },
+        { "if": { "properties": { "kind": { "const": "service" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_service" } } } },
+        { "if": { "properties": { "kind": { "const": "datastore" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_datastore" } } } },
+        { "if": { "properties": { "kind": { "const": "env_var" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_env_var" } } } },
+        { "if": { "properties": { "kind": { "const": "outbound_host" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_outbound_host" } } } },
+        { "if": { "properties": { "kind": { "const": "db_table" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_db_table" } } } },
+        { "if": { "properties": { "kind": { "const": "db_column" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_db_column" } } } },
+        { "if": { "properties": { "kind": { "const": "secret_found" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_secret_found" } } } },
+        { "if": { "properties": { "kind": { "const": "image_build" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_image_build" } } } },
+        { "if": { "properties": { "kind": { "const": "image_recipe" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_image_recipe" } } } },
+        { "if": { "properties": { "kind": { "const": "stack" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_stack" } } } },
+        { "if": { "properties": { "kind": { "const": "agent_config" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_agent_config" } } } },
+        { "if": { "properties": { "kind": { "const": "route" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_route" } } } },
+        { "if": { "properties": { "kind": { "const": "owner" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_owner" } } } },
+        { "if": { "properties": { "kind": { "const": "catalog_entity" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_catalog_entity" } } } },
+        { "if": { "properties": { "kind": { "const": "source_size" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_source_size" } } } },
+        { "if": { "properties": { "kind": { "const": "import" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_import" } } } },
+        { "if": { "properties": { "kind": { "const": "test_suite" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_test_suite" } } } },
+        { "if": { "properties": { "kind": { "const": "test_run" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_test_run" } } } }
+      ]
+    },
+    "workflow_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "job", "events", "branches", "manual"],
+      "description": "A CI job that reaches a command, directly or through scripts, tasks, make targets or npm scripts. Triggers and conditions are recorded as written; which branch really deploys is decided by rules.",
+      "properties": {
+        "path": { "type": "string" },
+        "workflow": { "type": "string", "description": "The workflow's name:" },
+        "job": { "type": "string" },
+        "events": { "type": "array", "items": { "type": "string" } },
+        "after": { "type": "array", "items": { "type": "string" }, "description": "workflow_run: workflows this one follows, by name" },
+        "after_branches": { "type": "array", "items": { "type": "string" } },
+        "after_branches_ignore": { "type": "array", "items": { "type": "string" }, "description": "workflow_run branches-ignore; absent when not written" },
+        "conditions": {
+          "type": "array",
+          "description": "if: of this job, of every job it needs and of the step that reaches the command, as written; all must hold",
+          "items": { "type": "object", "additionalProperties": false, "required": ["job", "if"], "properties": {
+            "job": { "type": "string" },
+            "step": { "type": "string", "description": "Set when the if: is a step's: its name:, else its id:, else #n counting from 1" },
+            "if": { "type": "string" } } }
+        },
+        "environment": { "type": "string" },
+        "branches": { "type": "array", "items": { "type": "string" }, "description": "Push branch filters in written order; [\"*\"] = no branch or tag filter, [] = branches-ignore or tags only" },
+        "branches_ignore": { "type": "array", "items": { "type": "string" }, "description": "Push branches-ignore; absent when not written" },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Push tags; absent when not written" },
+        "tags_ignore": { "type": "array", "items": { "type": "string" }, "description": "Push tags-ignore; absent when not written" },
+        "manual": { "type": "boolean", "description": "workflow_dispatch trigger present" },
+        "job_name": { "type": "string", "description": "The job's name:, as written" },
+        "job_line": { "type": "integer", "minimum": 1, "description": "Line of the job's key in the workflow file" },
+        "step": { "$ref": "#/$defs/workflow_step", "description": "Stacks and image builds: the step that reaches the command" },
+        "steps_after": { "type": "array", "items": { "$ref": "#/$defs/workflow_step" }, "description": "Stacks and image builds: every step of the job after that step, as written" },
+        "starts": { "type": "boolean", "description": "Stacks: a command of this job starts the stack (compose up, kubectl apply, helm upgrade); false when it only renders or validates it (helm template, kustomize build, compose config). Absent in scans from before 4 Nov" }
+      }
+    },
+    "workflow_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line"],
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string" },
+        "uses": { "type": "string" },
+        "run": { "type": "string", "description": "The run: script, as written" }
+      }
+    },
+    "attrs_image_build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image_repo", "dockerfile", "dockerfile_resolved", "tool", "tags", "contexts", "ci_invoked"],
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "image_repo": { "type": "string", "description": "Last literal path segment of the image name, no tag or registry" },
+        "dockerfile": { "type": "string" },
+        "dockerfile_resolved": { "type": "boolean", "description": "The Dockerfile path points to a tracked file" },
+        "target": { "type": "string" },
+        "tool": { "enum": ["docker build", "build-push-action", "bake"] },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Image references as written, templates kept" },
+        "contexts": { "type": "array", "items": { "type": "string" } },
+        "ci_invoked": { "type": "boolean" },
+        "push": { "type": "boolean", "description": "The build command itself pushes: build-push-action push: true (the action's default is false), --push, or --output with type=registry or push=true. True when any build command of this key does; false when every one is known not to; absent when one cannot be read (a template, bake). A later docker push step is judged by the rules from steps_after" },
+        "workflows": { "type": "array", "items": { "$ref": "#/$defs/workflow_ref" } }
+      }
+    },
+    "attrs_image_recipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dockerfile", "target", "final", "base_images", "sources", "entrypoints"],
+      "description": "What one buildable Dockerfile stage contains (https://cernly.dev/how/facts/). Key image_recipe:<dockerfile>:<target or _final>.",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "dockerfile": { "type": "string" },
+        "target": { "type": "string", "description": "Stage name for --target; \"_final\" for an unnamed last stage" },
+        "final": { "type": "boolean", "description": "Last stage: what is built when no --target is given" },
+        "base_images": {
+          "type": "array",
+          "description": "Outside images this stage is built from, through FROM or COPY --from, following the stages it inherits or copies from. scratch is never listed.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ref", "role", "stage"],
+            "properties": {
+              "ref": { "type": "string", "description": "As written, ARG defaults applied" },
+              "raw": { "type": "string", "description": "As written, only when ARG substitution changed it" },
+              "role": { "enum": ["from", "copy"] },
+              "stage": { "type": "string", "description": "Stage that uses the image: its name, \"_final\" or \"#<index>\"" },
+              "artifact": { "$ref": "#/$defs/artifact_ref", "description": "ref parsed; raw and templated from the reference as written" }
+            }
+          }
+        },
+        "sources": { "type": "array", "items": { "type": "string" }, "description": "Build-context paths copied in, directly or through COPY --from stages" },
+        "remote_sources": { "type": "array", "items": { "type": "string" }, "description": "URLs fetched by ADD at build time" },
+        "entrypoints": {
+          "type": "array",
+          "description": "Builds whose output ends up in this stage. Recorded now, used by binary-level links (v2).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "raw"],
+            "properties": {
+              "kind": { "enum": ["go", "npm"] },
+              "raw": { "type": "string", "description": "The build command as written" },
+              "path": { "type": "string", "description": "go: package path, mapped to the repo when resolved" },
+              "resolved": { "type": "boolean", "description": "go: path maps back to the build context through a COPY line" },
+              "workspace": { "type": "string", "description": "npm: workspace built" }
+            },
+            "allOf": [
+              { "if": { "properties": { "kind": { "const": "go" } } }, "then": { "required": ["path", "resolved"] } },
+              { "if": { "properties": { "kind": { "const": "npm" } } }, "then": { "required": ["workspace"] } }
+            ]
+          }
+        }
+      }
+    },
+    "attrs_agent_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "name", "files"],
+      "description": "An AI coding tool the repo is set up for, from the configuration it leaves (.cursor/, AGENTS.md, CLAUDE.md,...); key agent_config:<tool>; every matching file is evidence. Repo-level proof, not proof of which commit it wrote.",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "tool": { "type": "string" },
+        "name": { "type": "string" },
+        "files": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "attrs_owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "type", "source", "file", "patterns", "default"],
+      "description": "An owner the repo names (https://cernly.dev/how/ownership/). Key owner:<owner, lower case>. From the CODEOWNERS file the forge reads (.github/CODEOWNERS, then CODEOWNERS, then docs/CODEOWNERS; only the first tracked one); evidence is every line that names the owner. GitLab section owners count for the entries without their own.",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "owner": { "type": "string", "description": "@user, @org/team or an email address, as written, lower case" },
+        "type": { "enum": ["user", "team", "email"] },
+        "source": { "enum": ["codeowners"] },
+        "file": { "type": "string" },
+        "patterns": { "type": "array", "items": { "type": "string" }, "description": "The patterns this owner owns, in file order" },
+        "default": { "type": "boolean", "description": "Owns the whole repo by a * (or /, /*, **) entry" }
+      }
+    },
+    "attrs_test_suite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "language", "framework", "files", "dirs"],
+      "description": "Test files of one module by the language's convention (https://cernly.dev/how/plugins/); key test_suite:<language>:<module folder>. Nothing is run or measured: no coverage. Evidence is the first 50 test files, sorted",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "path": { "type": "string", "description": "The module folder: go.mod, package.json, pyproject.toml / setup.py / requirements, pom.xml / build.gradle, the folder of a .NET test project (.csproj, .fsproj, .vbproj)" },
+        "language": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,30}$", "description": "Open set; known: go, javascript (TypeScript included), python, java (Kotlin included), csharp, fsharp, vb" },
+        "framework": { "type": "string", "description": "From the module's declared dependencies: go-test, vitest, jest, mocha, playwright, cypress, pytest, unittest, junit5, junit4, testng, spock, kotest, xunit, nunit, mstest, tunit; unknown when nothing declares one" },
+        "files": { "type": "integer", "minimum": 1, "description": "Number of test files" },
+        "dirs": { "type": "array", "items": { "type": "string" }, "description": "Folders that hold test files, sorted" }
+      }
+    },
+    "attrs_test_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "dir", "command", "ci_invoked"],
+      "description": "A command that runs tests (https://cernly.dev/how/plugins/), found by the command reader in workflows, scripts, Makefiles, Taskfiles and package.json scripts; key test_run:<tool>:<dir>. Whether a job ran on a change is the checks reader's (https://cernly.dev/how/catalogue/)",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "tool": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,30}$", "description": "Open set; known: go, npm, pnpm, yarn, jest, vitest, playwright, cypress, pytest, maven, gradle" },
+        "dir": { "type": "string", "description": "Folder it runs in: -C, --prefix, --dir, -f pom.xml, -p project, the folder of a package.json script, else the repo root" },
+        "command": { "type": "string", "description": "The first such command, as written, at most 200 characters" },
+        "ci_invoked": { "type": "boolean" },
+        "workflows": { "type": "array", "items": { "$ref": "#/$defs/workflow_ref" } }
+      }
+    },
+    "attrs_source_size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dir", "language", "files", "lines"],
+      "description": "Source files and physical lines of one language in one folder, not its subfolders (size as context, https://cernly.dev/how/map/). Key source_size:<folder>:<language>, and source_size:<folder>:<language>:test for its test files by the language's convention (*_test.go; *.test.*, *.spec.*, __tests__/; test_*.py, *_test.py, conftest.py; src/test/, *Test.java, *IT.java; *_spec.rb; *Tests.cs (and .fs, .vb) and a folder ending in .Tests, .UnitTests, .IntegrationTests or .Specs; any folder named test, tests, spec, e2e or testdata). The language comes from the extension (go, typescript, javascript, python, java,...); markup, styles, data and configuration are not counted, nor minified bundles. Evidence: every counted file, line 1 to its last line.",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "dir": { "type": "string" },
+        "language": { "type": "string" },
+        "test": { "type": "boolean", "description": "The files are test code; absent otherwise" },
+        "files": { "type": "integer", "minimum": 1 },
+        "lines": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "attrs_import": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "from", "to", "from_dir", "to_dir"],
+      "description": "One package of the repo importing another package of the repo (the module graph, https://cernly.dev/how/map/). Key import:<language>:<from>:<to>. Go: from the parsed import declarations of non-test files, never go tooling; the target resolves by the longest module path of a go.mod in the repo, and must be a folder with Go files. .NET (dotnet): one per ProjectReference between two project files of the repo; from and to are the project file paths, from_dir and to_dir their folders. Imports of packages outside the repo are dependencies, not imports. Evidence: every import line (.NET: every ProjectReference line).",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "language": { "enum": ["go", "dotnet"] },
+        "from": { "type": "string", "description": "The importing package, e.g. example.com/api/internal/billing" },
+        "to": { "type": "string", "description": "The imported package" },
+        "from_dir": { "type": "string" },
+        "to_dir": { "type": "string" },
+        "from_module": { "type": "string", "description": "Go: the module path of the importing package" },
+        "to_module": { "type": "string" }
+      }
+    },
+    "attrs_catalog_entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "namespace", "file"],
+      "description": "A Backstage entity a catalog-info.yaml (or.yml) in the repo describes (https://cernly.dev/how/ownership/). Key catalog_entity:<kind>:<namespace>/<name>, lower case, as Backstage writes entity references. Only backstage.io apiVersions; Location entities and scaffolder skeletons (a ${{ }} name) are left out; a field that is still a placeholder is left out. Evidence: the kind and name lines and the line of each field read.",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "kind": { "type": "string", "description": "component, system, domain, api, resource, group,..." },
+        "name": { "type": "string" },
+        "namespace": { "type": "string" },
+        "file": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "description": "spec.type, e.g. service or website" },
+        "owner": { "type": "string", "description": "spec.owner as written (an entity reference or a name)" },
+        "system": { "type": "string" },
+        "domain": { "type": "string", "description": "spec.domain, on a System" },
+        "lifecycle": { "type": "string", "description": "spec.lifecycle, e.g. production or experimental" },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "metadata.tags" }
+      }
+    },
+    "route_address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["address"],
+      "description": "A site address or upstream as written, split where it is literal. A {$VAR} host is kept as the variable's name (host_env); its value is in the deployment, not the repo",
+      "properties": {
+        "address": { "type": "string" },
+        "scheme": { "type": "string" },
+        "host": { "type": "string" },
+        "port": { "type": "string" },
+        "host_env": { "type": "string" }
+      }
+    },
+    "attrs_route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "addresses", "action"],
+      "description": "One route of a web server config (https://cernly.dev/how/plugins/): a site, a matcher and what handles it. Key route:<caddy|nginx>:<root file>:<first address>:<matcher>, route:traefik:<file>:<router>. nginx: one per server and location, the location as written with its modifier (= /x, ~ regex, ^~ /x) in paths, upstream blocks resolved to their servers, root/alias as file_server. Caddyfile snippets and imports are expanded into the root file that loads them; evidence points at the site line, any import lines, and the handler line, in the file that holds each. Global options are not read",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "file": { "type": "string", "description": "The root config file, as a compose service mounts it" },
+        "addresses": { "type": "array", "items": { "$ref": "#/$defs/route_address" } },
+        "paths": { "type": "array", "items": { "type": "string" } },
+        "methods": { "type": "array", "items": { "type": "string" } },
+        "matcher": { "type": "string", "description": "A named matcher (@name) that tests more than paths and methods" },
+        "action": { "enum": ["proxy", "fastcgi", "respond", "redirect", "file_server"] },
+        "upstreams": { "type": "array", "items": { "$ref": "#/$defs/route_address" } },
+        "status": { "type": "integer" },
+        "target": { "type": "string", "description": "redirect: the target as written" },
+        "router": { "type": "string", "description": "traefik: the router's name" },
+        "rule": { "type": "string", "description": "traefik: the router rule as written; addresses, paths (PathPrefix as /x*) and methods are its positive matchers" },
+        "labels_on": { "type": "string", "description": "A route from container labels: the compose service that carries them (and the upstream)" },
+        "proxy_image": { "type": "string", "description": "With labels_on: the image name of the proxy that reads the labels; the routes rule finds it in each stack by that name" }
+      }
+    },
+    "attrs_stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "tool", "source", "files", "default_files", "starts", "ci_invoked"],
+      "description": "A set of definition files a deploy tool combines (https://cernly.dev/how/stacks/). Emitted by invocation readers (phase 1) and, for files no invocation covers, by the tool adapter as a convention stack (https://cernly.dev/how/plugins/). Key stack:<tool>:<name>. Which stack is production is decided by rules, not here.",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "name": { "type": "string" },
+        "tool": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,30}$", "description": "Open set; known: compose" },
+        "source": { "enum": ["invocation", "convention"], "description": "convention: no invocation found, files grouped by the tool's naming rules; lower confidence" },
+        "files": { "type": "array", "items": { "type": "string" }, "description": "In -f order" },
+        "unresolved": { "type": "array", "items": { "type": "string" }, "description": "Files not found as tracked files or templated" },
+        "env_files": { "type": "array", "items": { "type": "string" }, "description": "File names only, never contents" },
+        "default_files": { "type": "boolean", "description": "No -f given; compose's default file names were used" },
+        "starts": { "type": "boolean", "description": "At least one invocation starts containers (up, create, start, restart, run)" },
+        "ci_invoked": { "type": "boolean" },
+        "workflows": { "type": "array", "items": { "$ref": "#/$defs/workflow_ref" } },
+        "conditional_files": {
+          "type": "array",
+          "description": "Files an invocation adds only under a condition the scan cannot decide (an append after `check || return 0`, or inside if, case or a loop). Not in files and not merged; recorded with the condition as written (https://cernly.dev/how/stacks/)",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file", "resolved", "condition", "condition_path", "condition_line"],
+            "properties": {
+              "file": { "type": "string" },
+              "resolved": { "type": "boolean", "description": "file is a tracked file" },
+              "path": { "type": "string", "description": "Where the -f flag is written" },
+              "line": { "type": "integer", "minimum": 1 },
+              "condition": { "type": "string", "description": "As written, whitespace collapsed" },
+              "condition_path": { "type": "string" },
+              "condition_line": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "description": "What a link in the invocation chain assumes, in words: a remote command after a cd on another host is read from the repo root, assuming the host runs a checkout of this repo (https://cernly.dev/how/stacks/)",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "line", "text"],
+            "properties": {
+              "path": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 },
+              "text": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "scan_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Present when the repo's hint file (.cernly.yml, or a fallback name the calling application passed for commits from before it renamed its own) or the operator excluded or declared something. Every exclusion and declaration is visible to readers of the scan.",
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "ignored_by_operator": { "type": "boolean" },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["pattern", "by", "files"],
+            "properties": {
+              "pattern": { "type": "string" },
+              "reason": { "type": "string" },
+              "by": { "enum": ["repo", "operator"] },
+              "line": { "type": "integer", "minimum": 1 },
+              "files": { "type": "integer", "minimum": 0, "description": "Tracked files this rule removed" },
+              "reincluded": { "type": "integer", "minimum": 0, "description": "Files this repo rule matched that the operator re-included" }
+            }
+          }
+        },
+        "include": { "type": "array", "items": { "type": "string" } },
+        "declared": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "What a person declared (https://cernly.dev/how/config/): never a fact; the rules apply it and show it as declared",
+          "properties": {
+            "own_domains": {
+              "type": "array",
+              "items": {
+                "type": "object", "additionalProperties": false, "required": ["domain", "by"],
+                "properties": { "domain": { "type": "string" }, "by": { "enum": ["repo", "operator"] }, "line": { "type": "integer", "minimum": 1 } }
+              }
+            },
+            "stacks": {
+              "type": "array",
+              "items": {
+                "type": "object", "additionalProperties": false, "required": ["stack", "by"],
+                "properties": {
+                  "stack": { "type": "string" }, "role": { "enum": ["production", "none"] }, "name": { "type": "string" },
+                  "by": { "enum": ["repo", "operator"] }, "line": { "type": "integer", "minimum": 1 }
+                }
+              }
+            },
+            "gate": {
+              "type": "array",
+              "description": "Gate levels per rule (https://cernly.dev/how/gate/), from both sides; the gate takes the stricter",
+              "items": {
+                "type": "object", "additionalProperties": false, "required": ["rule", "level", "by"],
+                "properties": {
+                  "rule": { "type": "string" }, "level": { "enum": ["off", "warn", "block"] },
+                  "by": { "enum": ["repo", "operator"] }, "line": { "type": "integer", "minimum": 1 },
+                  "licences": { "type": "array", "items": { "type": "string" }, "description": "licence_not_allowed only: the licence ids it watches (https://cernly.dev/how/sbom/)" }
+                }
+              }
+            },
+            "tags": {
+              "type": "array",
+              "description": "key:value labels on the repo (https://cernly.dev/how/ownership/); per key the operator's entry replaces the repo's",
+              "items": {
+                "type": "object", "additionalProperties": false, "required": ["key", "value", "by"],
+                "properties": {
+                  "key": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,62}$" }, "value": { "type": "string", "minLength": 1, "maxLength": 200 },
+                  "by": { "enum": ["repo", "operator"] }, "line": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "errors": { "type": "array", "items": { "$ref": "#/$defs/location_error" } }
+      }
+    },
+    "ext": {
+      "type": "object",
+      "description": "Plugin-specific detail. Never read by core rules or the map; the same no-secrets, no-values rule applies."
+    },
+    "artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw", "repository", "pinning"],
+      "description": "A parsed image or package reference (https://cernly.dev/how/facts/).",
+      "properties": {
+        "raw": { "type": "string" },
+        "registry": { "type": "string" },
+        "repository": { "type": "string" },
+        "tag": { "type": "string" },
+        "digest": { "type": "string" },
+        "templated": { "type": "array", "items": { "type": "string" }, "description": "Variable names in the raw reference" },
+        "pinning": { "enum": ["digest", "exact", "floating", "unknown"], "description": "digest: @sha256. exact: a full version (x.y.z) or a release date, variant suffix allowed. floating: latest, no tag, a major or major.minor, any other word. unknown: the tag comes from a variable without a default." }
+      }
+    },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw", "scheme"],
+      "properties": {
+        "raw": { "type": "string" },
+        "scheme": { "enum": ["semver", "calver", "date", "pseudo", "unknown"] },
+        "normalised": { "type": "string" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "line"],
+      "properties": {
+        "path": { "type": "string", "description": "Repo-relative, forward slashes" },
+        "line": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 },
+        "unit": { "type": "string", "description": "Optional: Compose service, Go package or module the evidence belongs to. Used by the rule that links facts to services." }
+      }
+    },
+    "location_error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "message"],
+      "properties": {
+        "path": { "type": "string" },
+        "line": { "type": "integer" },
+        "message": { "type": "string" }
+      }
+    },
+    "attrs_dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ecosystem", "name", "version", "direct"],
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "ecosystem": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,30}$", "description": "Open set; known: go, npm, pypi (names PEP 503-normalised), nuget" },
+        "name": { "type": "string" },
+        "version": { "type": "string", "description": "Exact version from the lockfile when available, else the declared range as written" },
+        "version_info": { "$ref": "#/$defs/version", "description": "version through the scheme parser (https://cernly.dev/how/facts/); ranges and workspace specs are unknown" },
+        "internal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "path", "spec"],
+          "description": "The dependency resolves to a folder of this repo (https://cernly.dev/how/facts/): an internal edge, never a third-party package",
+          "properties": {
+            "name": { "type": "string" },
+            "path": { "type": "string", "description": "Repo folder of the package or module" },
+            "spec": { "type": "string", "description": "How it resolves: the npm spec as written (*, workspace:*, file:../x) or replace / go.work for Go" }
+          }
+        },
+        "direct": { "type": "boolean", "description": "false: a transitive dependency from a lockfile (https://cernly.dev/how/sbom/), or a Go // indirect requirement" },
+        "scope": { "enum": ["prod", "dev", "test", "build", "unknown"], "description": "dev = devDependencies; runs in CI, not shipped. unknown until import analysis decides (Go). Transitive: the lockfile's dev flag, else prod when a prod dependency of some root reaches it" },
+        "license": { "type": "string", "description": "The licence as the lockfile declares it (npm); absent when nothing declares one. Never looked up" },
+        "lockfile": { "type": "string", "description": "Transitive only: the lockfile (or go.mod) that records it" },
+        "roots": { "type": "array", "items": { "type": "string" }, "description": "Transitive only: manifest folders that reach it through another package" },
+        "via": { "type": "array", "items": { "type": "string" }, "description": "Transitive only: names of the packages that require it, as the lockfile records; empty when the lockfile has no graph" }
+      }
+    },
+    "attrs_service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "name": { "type": "string" },
+        "stack": { "type": "string", "description": "Name of the stack this fact belongs to; the stack fact's key is stack:<tool>:<stack>" },
+        "image": { "type": "string" },
+        "image_ref": { "$ref": "#/$defs/artifact_ref" },
+        "build_context": { "type": "string", "description": "Repo-relative folder; links the service to its code" },
+        "dockerfile": { "type": "string", "description": "Repo path of the Dockerfile its build: names (default Dockerfile in the context)" },
+        "target": { "type": "string", "description": "build: target stage, when set" },
+        "depends_on": { "type": "array", "items": { "type": "string" } },
+        "mounts": {
+          "type": "array",
+          "description": "Bind mounts of tracked repo files (sources resolve against the project folder, merged by target across files). Named volumes, directories, absolute paths and untracked files are left out",
+          "items": { "type": "object", "additionalProperties": false, "required": ["source", "target"], "properties": { "source": { "type": "string" }, "target": { "type": "string" } } }
+        }
+      }
+    },
+    "attrs_datastore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "engine"],
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "name": { "type": "string" },
+        "stack": { "type": "string", "description": "Name of the stack this fact belongs to" },
+        "image_ref": { "$ref": "#/$defs/artifact_ref" },
+        "engine": { "enum": ["postgres", "mysql", "redis", "mongodb", "minio", "sqlserver", "other"] },
+        "version": { "type": "string", "description": "From the image tag: the normalised version (17, 2025-04-22T22:12:26Z)" },
+        "version_info": { "$ref": "#/$defs/version", "description": "The tag through the version scheme parser (https://cernly.dev/how/facts/); raw is the full tag" }
+      }
+    },
+    "attrs_env_var": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "origins"],
+      "description": "One fact per name across the repo; every place it appears is evidence (https://cernly.dev/how/plugins/). Compose evidence carries the service as unit, Go evidence the module folder.",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "name": { "type": "string", "description": "Name only. Values are dropped inside the plugin." },
+        "origins": { "type": "array", "minItems": 1, "items": { "enum": ["env_example", "compose", "code", "config"] }, "description": "Sorted, unique. config: a tool's config file reads it when the tool loads (Caddyfile {$VAR} and {env.VAR}, Prisma env(\"…\"))" },
+        "host_hints": { "type": "array", "items": { "type": "string" }, "description": "Host part only, from example values that are URLs with a public hostname (e.g. api.mollie.com). No scheme, credentials, port or path. Sorted, unique." }
+      }
+    },
+    "attrs_outbound_host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host", "via", "usage"],
+      "description": "One fact per public host Go code points at (https://cernly.dev/how/plugins/); every place is evidence, unit = module folder",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "host": { "type": "string", "description": "Lower-case hostname, no port, no path" },
+        "via": { "enum": ["literal_url", "sdk", "env_var"] },
+        "usage": { "enum": ["request", "default", "mention"], "description": "Strongest proven use: request = reaches a net/http request in the same package; default = a configured URL (a name ending in URL/Endpoint/Host, or an env lookup default); mention = any other literal" },
+        "sdk": { "type": "string", "description": "Module path when via = sdk" }
+      }
+    },
+    "attrs_db_table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "description": "A table a schema source declares. Prisma (https://cernly.dev/how/plugins/): key db_table:prisma:<schema folder>:<name>, one per model, named by @@map and @@schema (public for PostgreSQL when none); views and composite types are not tables. Evidence spans the model block. SQL migrations (https://cernly.dev/how/plugins/): key db_table:sql:<migration set folder>:<name>, the tables the set leaves after replaying it in order (public when unqualified only in a set the SQL or a Prisma migration_lock.toml shows to be PostgreSQL, names as written otherwise; ext.dialect, ext.dialect_signal and ext.dialect_at say which and where); evidence is the creating statement and every later statement that changed the table. EF Core migrations (https://cernly.dev/how/plugins/): key db_table:efcore:<migrations folder>:<context>:<schema.name>, the tables left after replaying the Up methods in migration id order; the schema is the schema argument, else the provider's default (dbo for SQL Server, public for PostgreSQL), else none with ext.provider_unknown; ext.context, ext.provider and ext.provider_at name the DbContext and the provider package",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "name": { "type": "string", "description": "schema.table, or table where the engine has no schemas" },
+        "model": { "type": "string", "description": "Prisma: the model name, when @@map renames the table" },
+        "rls": { "type": "boolean", "description": "Row-level security enabled in migrations (SQL: true or false after replaying the full set). Absent when the source cannot say (a Prisma schema, a MySQL set, a set of no known dialect), never false by default" }
+      }
+    },
+    "attrs_db_column": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["table", "name", "type"],
+      "description": "A column a schema source declares. Prisma: one per field the database stores (relation fields and composite types are left out), named by @map; key db_column:prisma:<schema folder>:<table>.<column>. SQL migrations: key db_column:sql:<migration set folder>:<table>.<column>; evidence is where the column got its definition and later changes. EF Core migrations: key db_column:efcore:<migrations folder>:<context>:<schema.name>.<column>; type is the CLR type of table.Column<T>, native_type the type: argument, ext.max_length the maxLength: argument",
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "table": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "description": "As the source writes it: Prisma's scalar type, an enum's name, [] for lists, Unsupported(\"…\"); SQL: the type as written, lower case with spacing normalised (varchar(320), timestamp with time zone), a quoted type name as written" },
+        "nullable": { "type": "boolean" },
+        "enum": { "type": "boolean", "description": "The type is an enum the schema declares (its values are not stored)" },
+        "primary_key": { "type": "boolean", "description": "Part of the primary key (@id or @@id)" },
+        "unique": { "type": "boolean" },
+        "native_type": { "type": "string", "description": "The database type when given (@db.VarChar(320) as VarChar(320))" }
+      }
+    },
+    "attrs_secret_found": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule"],
+      "properties": {
+        "ext": { "$ref": "#/$defs/ext" },
+        "rule": { "type": "string", "description": "Detector rule id, e.g. generic-api-key. The secret itself is never stored, hashed or fingerprinted." }
+      }
+    }
+  }
+}

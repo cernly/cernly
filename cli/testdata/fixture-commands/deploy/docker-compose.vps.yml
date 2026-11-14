@@ -1,0 +1,8 @@
+services:
+  api:
+    build:
+      context: ./backend
+      target: api
+    depends_on: [cache]
+  db:
+    image: postgres:17.2

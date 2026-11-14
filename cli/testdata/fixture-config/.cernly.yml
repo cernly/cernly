@@ -1,0 +1,7 @@
+version: 1
+exclude:
+  - path: examples
+    reason: demo apps
+tags:
+  team: shop
+  product: webshop

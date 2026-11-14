@@ -1,0 +1,13 @@
+[versions]
+spring-boot = "3.3.5"
+postgres = "42.7.4"
+
+[libraries]
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-data-jpa = { group = "org.springframework.boot", name = "spring-boot-starter-data-jpa", version.ref = "spring-boot" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
+liquibase-core = "org.liquibase:liquibase-core:4.29.2"
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+
+[bundles]
+web = ["spring-boot-starter-web", "spring-boot-starter-data-jpa"]

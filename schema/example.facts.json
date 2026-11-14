@@ -1,0 +1,57 @@
+{
+  "commit": {
+    "committed_at": "2026-10-14T16:02:11Z",
+    "sha": "a91f3c2e8b7d4f6a1c0e9b8d7f6a5c4b3e2d1f0a"
+  },
+  "extractor": {
+    "version": "0.1.0"
+  },
+  "facts": [
+    {
+      "attrs": { "engine": "postgres", "name": "postgres", "version": "16" },
+      "evidence": [ { "line": 31, "path": "docker-compose.yml" } ],
+      "key": "datastore:compose:postgres",
+      "kind": "datastore",
+      "plugin": "compose"
+    },
+    {
+      "attrs": { "direct": true, "ecosystem": "go", "name": "github.com/sashabaranov/go-openai", "scope": "prod", "version": "v1.36.0" },
+      "evidence": [ { "line": 14, "path": "worker/go.mod", "unit": "worker" } ],
+      "key": "dependency:go:worker:github.com/sashabaranov/go-openai",
+      "kind": "dependency",
+      "plugin": "deps-go"
+    },
+    {
+      "attrs": { "name": "OPENAI_API_KEY", "origins": ["code", "env_example"] },
+      "evidence": [
+        { "line": 23, "path": ".env.example" },
+        { "line": 18, "path": "worker/internal/config/config.go", "unit": "worker" }
+      ],
+      "key": "env_var:OPENAI_API_KEY",
+      "kind": "env_var",
+      "plugin": "env"
+    },
+    {
+      "attrs": { "host": "api.openai.com", "usage": "request", "via": "literal_url" },
+      "evidence": [ { "line": 42, "path": "worker/internal/summarise/client.go", "unit": "worker" } ],
+      "key": "outbound_host:api.openai.com",
+      "kind": "outbound_host",
+      "plugin": "outbound"
+    },
+    {
+      "attrs": { "build_context": "worker", "depends_on": [ "postgres", "redis" ], "name": "worker" },
+      "evidence": [ { "line": 18, "path": "docker-compose.yml" } ],
+      "key": "service:compose:worker",
+      "kind": "service",
+      "plugin": "compose"
+    }
+  ],
+  "plugins": [
+    { "name": "compose", "source": "builtin", "status": "ok", "version": "0.1.0" },
+    { "name": "deps-go", "source": "builtin", "status": "ok", "version": "0.1.0" },
+    { "name": "env", "source": "builtin", "status": "ok", "version": "0.1.0" },
+    { "name": "outbound", "source": "builtin", "status": "ok", "version": "0.1.0" }
+  ],
+  "repo": "github.com/acme/widgets",
+  "schema": "cernly.scan/v1"
+}

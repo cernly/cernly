@@ -1,0 +1,27 @@
+x-backend: &backend
+  build:
+    context: ./backend
+  restart: unless-stopped
+
+services:
+  web:
+    build: ./frontend
+    depends_on: [api]
+  api:
+    <<: *backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+  worker:
+    <<: *backend
+    depends_on: [postgres, redis]
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+  redis:
+    image: redis:7.2-alpine
+  caddy:
+    image: caddy:2
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}

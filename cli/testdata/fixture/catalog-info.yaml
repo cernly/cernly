@@ -1,0 +1,26 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: shop-backend
+  title: Shop backend
+  tags: [go, payments]
+spec:
+  type: service
+  owner: group:acme/payments
+  system: shop
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: shop
+spec:
+  owner: acme/platform
+  domain: commerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: more
+spec:
+  targets: [./frontend/catalog-info.yaml]

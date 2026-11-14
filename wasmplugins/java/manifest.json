@@ -1,0 +1,29 @@
+{
+  "name": "java",
+  "version": "0.2.1",
+  "plugin_api": 1,
+  "watches": [
+    "**/pom.xml",
+    "**/build.gradle",
+    "**/build.gradle.kts",
+    "**/settings.gradle",
+    "**/settings.gradle.kts",
+    "**/gradle/libs.versions.toml",
+    "**/application*.yml",
+    "**/application*.yaml",
+    "**/application*.properties",
+    "**/bootstrap*.yml",
+    "**/bootstrap*.yaml",
+    "**/bootstrap*.properties",
+    "**/*.java",
+    "**/*.kt",
+    "**/src/test/**/*.groovy",
+    "**/db/**/*.xml",
+    "**/db/**/*.yaml",
+    "**/db/**/*.yml",
+    "**/*changelog*.xml",
+    "**/*changelog*.yaml",
+    "**/*changelog*.yml"
+  ],
+  "emits": ["dependency", "env_var", "outbound_host", "db_table", "db_column", "test_suite"]
+}

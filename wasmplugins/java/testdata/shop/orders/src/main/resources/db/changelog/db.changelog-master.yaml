@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/001-orders.xml
+  - changeSet:
+      id: 2
+      author: example
+      changes:
+        - addColumn:
+            tableName: orders
+            columns:
+              - column:
+                  name: note
+                  type: TEXT
+        - renameColumn:
+            tableName: orders
+            oldColumnName: total
+            newColumnName: total_cents

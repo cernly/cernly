@@ -1,0 +1,6 @@
+{
+  "name": "fixture",
+  "scripts": {
+    "stack:dev": "docker-compose up -d"
+  }
+}

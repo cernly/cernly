@@ -1,0 +1,8 @@
+{
+  "target": {
+    "docs": {
+      "context": "docs",
+      "tags": ["ghcr.io/acme/docs:latest"]
+    }
+  }
+}

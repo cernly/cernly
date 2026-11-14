@@ -1,0 +1,5 @@
+blog.acme-widgets.be {
+	# {$NOT_READ} is in a comment
+	root * {env.BLOG_ROOT}
+	file_server
+}

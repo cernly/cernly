@@ -1,0 +1,21 @@
+name: cd
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        run: |
+          docker build -t ghcr.io/example/shop-api:${{ github.sha }} -f backend/Dockerfile backend
+          docker build -t ghcr.io/example/shop-web:${{ github.sha }} web
+      - name: Deploy
+        env:
+          DEPLOY_PATH: /srv/shop
+        run: |
+          ssh deploy@${{ secrets.DEPLOY_HOST }} "cd '${DEPLOY_PATH}' && export IMAGE_TAG=${{ github.sha }} APP_ENV=production && bash deploy/scripts/remote-up.sh"

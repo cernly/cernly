@@ -1,0 +1,11 @@
+version: '3'
+tasks:
+  up:
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+  images:
+    cmds:
+      - task: build
+  build:
+    cmds:
+      - make worker TAG={{.TAG}}

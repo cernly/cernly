@@ -1,0 +1,10 @@
+image:
+  repository: ghcr.io/example/web
+  tag: ""
+worker:
+  replicas: 1
+  image:
+    repository: ghcr.io/example/worker
+    tag: 2.0.1
+redis:
+  enabled: true

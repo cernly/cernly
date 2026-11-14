@@ -1,0 +1,6161 @@
+{
+ "version": "2026.11.2",
+ "entries": [
+  {
+   "id": "1password",
+   "name": "1Password",
+   "category": "other",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/1password/onepassword-sdk-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/1Password/connect-sdk-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@1password/sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@1password/connect"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "onepassword-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "OP_SERVICE_ACCOUNT_TOKEN",
+    "OP_CONNECT_"
+   ],
+   "hosts": [
+    "1password.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/1password/onepassword-sdk-go/@latest",
+    "https://proxy.golang.org/github.com/1!password/connect-sdk-go/@latest",
+    "https://registry.npmjs.org/@1password/sdk",
+    "https://registry.npmjs.org/@1password/connect",
+    "https://pypi.org/pypi/onepassword-sdk/json",
+    "https://raw.githubusercontent.com/1Password/connect-sdk-go/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; 1password.com from @1password/sdk and @1password/connect (1password.eu/.ca regions not verified); OP_SERVICE_ACCOUNT_TOKEN from @1password/sdk and OP_CONNECT_HOST/OP_CONNECT_TOKEN from the connect-sdk-go README (bare OP_ is too short)."
+  },
+  {
+   "id": "ably",
+   "name": "Ably",
+   "category": "notifications",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/ably/ably-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "ably"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "ably"
+    }
+   ],
+   "env_prefixes": [
+    "ABLY_"
+   ],
+   "hosts": [
+    "ably.io",
+    "ably.net",
+    "ably-realtime.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/ably/ably-go",
+    "https://www.npmjs.com/package/ably",
+    "https://pypi.org/project/ably/",
+    "https://ably.com/docs"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), rest.ably.io, realtime.ably.io, *.realtime.ably.net and the connectivity check host internet-up.ably-realtime.com; env prefix from convention; ably.com (marketing/docs) left out as the SDK does not call it"
+  },
+  {
+   "id": "adyen",
+   "name": "Adyen",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/adyen/adyen-go-api-library"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@adyen/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "Adyen"
+    }
+   ],
+   "env_prefixes": [
+    "ADYEN_"
+   ],
+   "hosts": [
+    "adyen.com",
+    "adyenpayments.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/adyen/adyen-go-api-library",
+    "https://pypi.org/project/Adyen/",
+    "https://www.npmjs.com/package/@adyen",
+    "https://docs.adyen.com/development-resources/live-endpoints"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), test hosts *-test.adyen.com and live {prefix}-checkout-live.adyenpayments.com, confirmed against the live-endpoints doc via web search; env prefix from convention; the @adyen npm scope holds only Adyen packages (api-library, adyen-web)"
+  },
+  {
+   "id": "aiven",
+   "name": "Aiven",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/aiven/aiven-go-client"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "aiven-client"
+    }
+   ],
+   "env_prefixes": [
+    "AIVEN_"
+   ],
+   "hosts": [
+    "aivencloud.com",
+    "api.aiven.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/aiven/aiven-go-client/@latest",
+    "https://pypi.org/pypi/aiven-client/json",
+    "https://aiven.io/docs/tools/cli/service/connection-info"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; api.aiven.io and AIVEN_ env (AIVEN_AUTH_TOKEN etc.) from aiven-client source; service hosts *.aivencloud.com per aiven.io/docs/tools/cli/service/connection-info (via web search); aiven.io itself is marketing, so only the API subdomain."
+  },
+  {
+   "id": "akamai",
+   "name": "Akamai",
+   "category": "edge",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/akamai/AkamaiOPEN-edgegrid-golang"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "akamai-edgegrid"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "edgegrid-python"
+    }
+   ],
+   "env_prefixes": [
+    "AKAMAI_"
+   ],
+   "hosts": [
+    "akamaiapis.net"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/akamai/!akamai!o!p!e!n-edgegrid-golang/@latest",
+    "https://registry.npmjs.org/akamai-edgegrid",
+    "https://pypi.org/pypi/edgegrid-python/json",
+    "https://raw.githubusercontent.com/akamai/AkamaiOPEN-edgegrid-golang/master/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; akamaiapis.net (API hosts) and AKAMAI_ env names from the EdgeGrid README and akamai-edgegrid code; edge domains (akamaized.net, edgekey.net) left out as they serve customer sites."
+  },
+  {
+   "id": "algolia",
+   "name": "Algolia",
+   "category": "search",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/algolia/algoliasearch-client-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "algoliasearch"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "algoliasearch"
+    }
+   ],
+   "env_prefixes": [
+    "ALGOLIA_"
+   ],
+   "hosts": [
+    "algolia.net",
+    "algolianet.com",
+    "algolia.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/algolia/algoliasearch-client-go/@latest",
+    "https://registry.npmjs.org/algoliasearch",
+    "https://pypi.org/pypi/algoliasearch/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); {appId}-dsn.algolia.net, {appId}-N.algolianet.com and insights.algolia.io from algoliasearch v5; ALGOLIA_APP_ID/ALGOLIA_API_KEY from the Python client."
+  },
+  {
+   "id": "amplitude",
+   "name": "Amplitude",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/amplitude/analytics-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@amplitude/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "amplitude-analytics"
+    }
+   ],
+   "env_prefixes": [
+    "AMPLITUDE_"
+   ],
+   "hosts": [
+    "amplitude.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/amplitude/analytics-go/@latest",
+    "https://pypi.org/pypi/amplitude-analytics/json",
+    "https://raw.githubusercontent.com/amplitude/analytics-go/main/amplitude/constants/constants.go",
+    "https://registry.npmjs.org/@amplitude/analytics-browser",
+    "https://registry.npmjs.org/@amplitude/analytics-node"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api2.amplitude.com, api.eu.amplitude.com and cdn.amplitude.com from analytics-go and @amplitude/analytics-core; AMPLITUDE_ is a convention."
+  },
+  {
+   "id": "anthropic",
+   "name": "Anthropic",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/anthropics/anthropic-sdk-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@anthropic-ai/sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "anthropic"
+    }
+   ],
+   "env_prefixes": [
+    "ANTHROPIC_"
+   ],
+   "hosts": [
+    "anthropic.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/anthropics/anthropic-sdk-go/@latest",
+    "https://registry.npmjs.org/@anthropic-ai/sdk",
+    "https://pypi.org/pypi/anthropic/json",
+    "https://docs.claude.com/en/api/client-sdks"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org and pypi.org; host api.anthropic.com (the only non-docs host) and the env vars ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, ANTHROPIC_BASE_URL read from the source of @anthropic-ai/sdk (npm tarball), SDK list against docs.claude.com/en/api/client-sdks; provider doc site itself was not reachable from the checking session"
+  },
+  {
+   "id": "assemblyai",
+   "name": "AssemblyAI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/AssemblyAI/assemblyai-go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "assemblyai"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "assemblyai"
+    }
+   ],
+   "env_prefixes": [
+    "ASSEMBLYAI_"
+   ],
+   "hosts": [
+    "assemblyai.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!assembly!a!i/assemblyai-go-sdk/@latest",
+    "https://registry.npmjs.org/assemblyai",
+    "https://pypi.org/pypi/assemblyai/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.assemblyai.com plus eu./us. streaming, token and tts hosts; ASSEMBLYAI_API_KEY."
+  },
+  {
+   "id": "auth0",
+   "name": "Auth0",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/auth0/go-auth0"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "auth0"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@auth0/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "auth0-python"
+    }
+   ],
+   "env_prefixes": [
+    "AUTH0_"
+   ],
+   "hosts": [
+    "auth0.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/auth0/go-auth0",
+    "https://www.npmjs.com/package/auth0",
+    "https://pypi.org/project/auth0-python/",
+    "https://www.npmjs.com/package/@auth0",
+    "https://auth0.com/docs/get-started/auth0-overview/create-tenants",
+    "https://auth0.com/docs/customize/custom-domains/configure-features-to-use-custom-domains"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), {tenant}.auth0.com and {tenant}.{region}.auth0.com, confirmed in the tenant docs via web search; env prefix from convention; tenants on a custom domain are not caught by host"
+  },
+  {
+   "id": "avalara",
+   "name": "Avalara AvaTax",
+   "category": "tax",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "avatax"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "Avalara"
+    }
+   ],
+   "env_prefixes": [
+    "AVALARA_",
+    "AVATAX_"
+   ],
+   "hosts": [
+    "avatax.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/avatax",
+    "https://pypi.org/project/Avalara/",
+    "https://developer.avalara.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), rest.avatax.com and sandbox-rest.avatax.com; env prefix from convention"
+  },
+  {
+   "id": "aws",
+   "name": "Amazon Web Services",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/aws/aws-sdk-go-v2"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/aws/aws-sdk-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@aws-sdk/"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "aws-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "boto3"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "botocore"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "AWSSDK.*"
+    }
+   ],
+   "env_prefixes": [
+    "AWS_"
+   ],
+   "hosts": [
+    "amazonaws.com"
+   ],
+   "images": [
+    "amazon/aws-cli"
+   ],
+   "sources": [
+    "https://proxy.golang.org/github.com/aws/aws-sdk-go-v2/@latest",
+    "https://proxy.golang.org/github.com/aws/aws-sdk-go/@latest",
+    "https://registry.npmjs.org/@aws-sdk/credential-provider-env",
+    "https://registry.npmjs.org/aws-sdk",
+    "https://pypi.org/pypi/boto3/json",
+    "https://pypi.org/pypi/botocore/json",
+    "https://hub.docker.com/v2/repositories/amazon/aws-cli/",
+    "https://api.nuget.org/v3-flatcontainer/awssdk.core/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org (aws-sdk-go v1 last release 2025-07, end of support but still widely used), registry.npmjs.org (@aws-sdk scope published by amzn-oss from aws/aws-sdk-js-v3; aws-sdk v2 deprecated but still widely used) and pypi.org; env vars AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN read from @aws-sdk/credential-provider-env source; host amazonaws.com is a convention not checked against AWS docs (unreachable); image checked on Docker Hub; SDK and env overlap with the s3 protocol entry is intentional, see notes NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "axiom",
+   "name": "Axiom",
+   "category": "observability",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/axiomhq/axiom-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@axiomhq/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "axiom-py"
+    }
+   ],
+   "env_prefixes": [
+    "AXIOM_"
+   ],
+   "hosts": [
+    "axiom.co"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/axiomhq/axiom-go/@latest",
+    "https://pypi.org/pypi/axiom-py/json",
+    "https://raw.githubusercontent.com/axiomhq/axiom-go/main/axiom/client.go",
+    "https://registry.npmjs.org/@axiomhq/js"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.axiom.co / *.edge.axiom.co and AXIOM_TOKEN, AXIOM_ORG_ID, AXIOM_DATASET from axiom-go source and README."
+  },
+  {
+   "id": "azure",
+   "name": "Microsoft Azure",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/Azure/azure-sdk-for-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@azure/"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@azure-rest/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "azure-core"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "azure-identity"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "azure-storage-blob"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Azure.*"
+    }
+   ],
+   "env_prefixes": [
+    "AZURE_"
+   ],
+   "hosts": [
+    "azure.com",
+    "azure.net",
+    "core.windows.net"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!azure/azure-sdk-for-go/@latest",
+    "https://pypi.org/pypi/azure-core/json",
+    "https://pypi.org/pypi/azure-identity/json",
+    "https://pypi.org/pypi/azure-storage-blob/json",
+    "https://proxy.golang.org/github.com/!azure/azure-sdk-for-go/sdk/azcore/@latest",
+    "https://proxy.golang.org/github.com/!azure/azure-sdk-for-go/sdk/ai/azopenai/@latest",
+    "https://registry.npmjs.org/@azure/identity",
+    "https://registry.npmjs.org/@azure/openai",
+    "https://raw.githubusercontent.com/Azure/azure-sdk-for-js/main/sdk/storage/storage-blob/README.md",
+    "https://raw.githubusercontent.com/Azure/azure-sdk-for-python/main/sdk/keyvault/azure-keyvault-secrets/README.md",
+    "https://raw.githubusercontent.com/Azure/azure-sdk-for-python/main/sdk/identity/azure-identity/README.md",
+    "https://api.nuget.org/v3-flatcontainer/azure.core/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; hosts from Azure's own SDK code and READMEs (openai.azure.com in azopenai, management.azure.com in azcore, vault.azure.net and blob.core.windows.net in SDK READMEs); AZURE_ env names (AZURE_CLIENT_ID, AZURE_TENANT_ID) from @azure/identity; includes Azure OpenAI; Entra ID login.microsoftonline.com deliberately left out (shared with Microsoft 365). NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "backblaze",
+   "name": "Backblaze B2",
+   "category": "storage",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/Backblaze/blazer"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "b2sdk"
+    }
+   ],
+   "env_prefixes": [
+    "B2_APPLICATION_KEY",
+    "BACKBLAZE_"
+   ],
+   "hosts": [
+    "backblazeb2.com",
+    "backblaze.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!backblaze/blazer/@latest",
+    "https://pypi.org/pypi/b2sdk/json",
+    "https://raw.githubusercontent.com/Backblaze/blazer/master/README.md",
+    "https://raw.githubusercontent.com/Backblaze/B2_Command_Line_Tool/master/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy and PyPI (blazer is maintained by Backblaze per its README); api.backblazeb2.com and s3.<region>.backblazeb2.com from b2sdk; B2_APPLICATION_KEY(_ID) from b2sdk and the B2 CLI README; BACKBLAZE_ is a convention."
+  },
+  {
+   "id": "bancontact-payconiq",
+   "name": "Bancontact Payconiq",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "PAYCONIQ_",
+    "BANCONTACT_"
+   ],
+   "hosts": [
+    "bancontact.net",
+    "payconiq.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://docs.payconiq.be/",
+    "https://docs.payconiq.be/apis/merchant-payment.openapi",
+    "https://pypi.org/project/pyconiq/"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts merchant.api.bancontact.net (current v3 merchant API) from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); payconiq.com from the legacy api.payconiq.com host named by a third-party client only; env prefix from convention; no official SDK; the Payconiq brand was retired in 2026, payconiq.com kept for older code"
+  },
+  {
+   "id": "betterstack",
+   "name": "Better Stack",
+   "category": "observability",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@logtail/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "logtail-python"
+    }
+   ],
+   "env_prefixes": [
+    "LOGTAIL_",
+    "BETTER_STACK_"
+   ],
+   "hosts": [
+    "betterstack.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pypi.org/pypi/logtail-python/json",
+    "https://raw.githubusercontent.com/logtail/logtail-js/master/packages/core/src/base.ts",
+    "https://registry.npmjs.org/@logtail/node"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm and PyPI; in.logs.betterstack.com from logtail-js source; betterstackdata.com ingest hosts and logtail.com not verified from a primary source (betterstack.com docs not reachable); env prefixes are conventions."
+  },
+  {
+   "id": "billit",
+   "name": "Billit",
+   "category": "accounting",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "BILLIT_"
+   ],
+   "hosts": [
+    "billit.be"
+   ],
+   "images": [],
+   "sources": [
+    "https://docs.billit.be/docs/sandbox-vs-production-1",
+    "https://docs.billit.be/docs/authentication"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.billit.be and api.sandbox.billit.be from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch) (the official page text did not show the host in the search result; Chift and Nango connector docs do); env prefix from convention; also a Peppol access point (docs.accesspoint.billit.eu); its API host not verified"
+  },
+  {
+   "id": "brevo",
+   "name": "Brevo (ex Sendinblue)",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/getbrevo/brevo-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/sendinblue/APIv3-go-library"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@getbrevo/brevo"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "sib-api-v3-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "brevo-python"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "sib-api-v3-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "BREVO_",
+    "SENDINBLUE_"
+   ],
+   "hosts": [
+    "brevo.com",
+    "sendinblue.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/getbrevo/brevo-go",
+    "https://pkg.go.dev/github.com/sendinblue/APIv3-go-library",
+    "https://www.npmjs.com/package/@getbrevo/brevo",
+    "https://www.npmjs.com/package/sib-api-v3-sdk",
+    "https://pypi.org/project/brevo-python/",
+    "https://pypi.org/project/sib-api-v3-sdk/",
+    "https://developers.brevo.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.brevo.com (current) and api.sendinblue.com (sib-api-v3-sdk); env prefix from convention; sib-api-v3-sdk is deprecated on npm but still widely used"
+  },
+  {
+   "id": "buckaroo",
+   "name": "Buckaroo",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@buckaroo/buckaroo_sdk"
+    }
+   ],
+   "env_prefixes": [
+    "BUCKAROO_"
+   ],
+   "hosts": [
+    "buckaroo.nl"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/@buckaroo/buckaroo_sdk",
+    "https://docs.buckaroo.io/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), checkout.buckaroo.nl and testcheckout.buckaroo.nl; env prefix from convention; npm package published from the buckaroo-it GitHub org"
+  },
+  {
+   "id": "bugsnag",
+   "name": "Bugsnag (SmartBear)",
+   "category": "error tracking",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/bugsnag/bugsnag-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@bugsnag/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "bugsnag"
+    }
+   ],
+   "env_prefixes": [
+    "BUGSNAG_"
+   ],
+   "hosts": [
+    "bugsnag.com",
+    "bugsnag.smartbear.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/bugsnag/bugsnag-go/@latest",
+    "https://pypi.org/pypi/bugsnag/json",
+    "https://raw.githubusercontent.com/bugsnag/bugsnag-go/master/v2/configuration.go",
+    "https://registry.npmjs.org/@bugsnag/core"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; notify./sessions.bugsnag.com from bugsnag-go and @bugsnag/core, notify./sessions.bugsnag.smartbear.com from @bugsnag/core (given as a specific subdomain because smartbear.com is the parent company); BUGSNAG_API_KEY from bugsnag-go."
+  },
+  {
+   "id": "buildkite",
+   "name": "Buildkite",
+   "category": "code hosting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/buildkite/go-buildkite"
+    }
+   ],
+   "env_prefixes": [
+    "BUILDKITE_"
+   ],
+   "hosts": [
+    "buildkite.com"
+   ],
+   "images": [
+    "buildkite/agent"
+   ],
+   "sources": [
+    "https://proxy.golang.org/github.com/buildkite/go-buildkite/@latest",
+    "https://hub.docker.com/v2/repositories/buildkite/agent/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against the Go proxy; api.buildkite.com from go-buildkite source; image buildkite/agent checked on Docker Hub (Buildkite namespace); BUILDKITE_ is the agent's documented env prefix by convention (docs not reachable)."
+  },
+  {
+   "id": "bunny",
+   "name": "Bunny.net",
+   "category": "edge",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@bunny.net/storage-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "BUNNY_"
+   ],
+   "hosts": [
+    "bunnycdn.com",
+    "bunny.net"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@bunny.net/storage-sdk"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against npm; storage.bunnycdn.com (and regional storage hosts) and bunny.net from the official storage SDK; api.bunny.net not verified from a primary source (docs.bunny.net not reachable); b-cdn.net left out; BUNNY_ is a convention."
+  },
+  {
+   "id": "cal-com",
+   "name": "Cal.com",
+   "category": "scheduling",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "cal.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://cal.com/docs/api-reference/v2/introduction"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.cal.com/v2 from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix left empty: CAL_ is generic; SDKs (@calcom/*) left out because they also serve self-hosted Cal.com"
+  },
+  {
+   "id": "calendly",
+   "name": "Calendly",
+   "category": "scheduling",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "CALENDLY_"
+   ],
+   "hosts": [
+    "calendly.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://developer.calendly.com/getting-started"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.calendly.com from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix from convention; no official SDK"
+  },
+  {
+   "id": "cerebras",
+   "name": "Cerebras Inference",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@cerebras/cerebras_cloud_sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "cerebras-cloud-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "CEREBRAS_"
+   ],
+   "hosts": [
+    "cerebras.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@cerebras/cerebras_cloud_sdk",
+    "https://pypi.org/pypi/cerebras-cloud-sdk/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.cerebras.ai; CEREBRAS_API_KEY, CEREBRAS_BASE_URL."
+  },
+  {
+   "id": "checkout-com",
+   "name": "Checkout.com",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/checkout/checkout-sdk-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "checkout-sdk-node"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "checkout-sdk"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "checkout.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/checkout/checkout-sdk-go",
+    "https://www.npmjs.com/package/checkout-sdk-node",
+    "https://pypi.org/project/checkout-sdk/",
+    "https://api-reference.checkout.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.checkout.com, {prefix}.api.checkout.com, access.checkout.com and their sandbox variants; env prefix left empty: CHECKOUT_ is generic (the SDK's own tests use CKO_*, not documented)"
+  },
+  {
+   "id": "chift",
+   "name": "Chift",
+   "category": "accounting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@chift/chift-nodejs"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "chift"
+    }
+   ],
+   "env_prefixes": [
+    "CHIFT_"
+   ],
+   "hosts": [
+    "chift.eu",
+    "chift.app"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@chift/chift-nodejs",
+    "https://pypi.org/pypi/chift/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against registry.npmjs.org (repo chift-oneapi/chift-nodejs-sdk) and pypi.org (author at chift.eu, repo chift-oneapi/chift-python-sdk), no Go SDK on proxy.golang.org; host api.chift.eu read from both SDKs' source, chift.app (auth.chift.app) only seen in a dogfooding repo's client code and kept on the user's word; CHIFT_ env names seen in the Node SDK's tests; docs.chift.eu was not reachable from the checking session"
+  },
+  {
+   "id": "circleci",
+   "name": "CircleCI",
+   "category": "code hosting",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "CIRCLECI_",
+    "CIRCLE_TOKEN"
+   ],
+   "hosts": [
+    "circleci.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!circle!c!i-!public/circleci-cli/@latest"
+   ],
+   "checked": "2026-10-29",
+   "review": "No runtime SDK; circleci.com (app., cli., API) and CIRCLE_TOKEN from CircleCI's own CLI source; the CIRCLE_ prefix is not used because CIRCLE is a common word; circleci.com docs not reachable."
+  },
+  {
+   "id": "clerk",
+   "name": "Clerk",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/clerk/clerk-sdk-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@clerk/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "clerk-backend-api"
+    }
+   ],
+   "env_prefixes": [
+    "CLERK_SECRET_KEY",
+    "CLERK_PUBLISHABLE_KEY",
+    "CLERK_JWT_KEY",
+    "CLERK_WEBHOOK_SIGNING_SECRET",
+    "NEXT_PUBLIC_CLERK_"
+   ],
+   "hosts": [
+    "clerk.com",
+    "clerk.accounts.dev"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/clerk/clerk-sdk-go",
+    "https://pypi.org/project/clerk-backend-api/",
+    "https://www.npmjs.com/package/@clerk",
+    "https://clerk.com/docs"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.clerk.com and development instances on *.clerk.accounts.dev; env prefix only the full variable names read by @clerk/backend and @clerk/nextjs (CLERK is a common word); production frontend API on the customer's own domain is not caught by host"
+  },
+  {
+   "id": "clickhouse-cloud",
+   "name": "ClickHouse Cloud",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "clickhouse.cloud"
+   ],
+   "images": [],
+   "sources": [
+    "https://raw.githubusercontent.com/ClickHouse/clickhouse-js/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "Host clickhouse.cloud (console.clickhouse.cloud, service hosts) from the official clickhouse-js README (2026-10-29); SDKs and CLICKHOUSE_ env left out because ClickHouse is also self-hosted."
+  },
+  {
+   "id": "cloudflare",
+   "name": "Cloudflare",
+   "category": "edge",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/cloudflare/cloudflare-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "cloudflare"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "cloudflare"
+    }
+   ],
+   "env_prefixes": [
+    "CLOUDFLARE_"
+   ],
+   "hosts": [
+    "cloudflare.com",
+    "cloudflarestorage.com"
+   ],
+   "images": [
+    "cloudflare/cloudflared"
+   ],
+   "sources": [
+    "https://proxy.golang.org/github.com/cloudflare/cloudflare-go/@latest",
+    "https://registry.npmjs.org/cloudflare",
+    "https://pypi.org/pypi/cloudflare/json",
+    "https://developers.cloudflare.com/r2/get-started/s3/",
+    "https://developers.cloudflare.com/turnstile/get-started/server-side-validation/",
+    "https://hub.docker.com/v2/repositories/cloudflare/cloudflared/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org and pypi.org; base URL api.cloudflare.com/client/v4 and env vars CLOUDFLARE_API_TOKEN, CLOUDFLARE_API_KEY, CLOUDFLARE_EMAIL, CLOUDFLARE_BASE_URL read from the cloudflare npm SDK source; challenges.cloudflare.com (Turnstile) and <account>.r2.cloudflarestorage.com (R2) from Cloudflare developer docs as quoted by web search (pages not fetched directly); image checked on Docker Hub"
+  },
+  {
+   "id": "cloudinary",
+   "name": "Cloudinary",
+   "category": "storage",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/cloudinary/cloudinary-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "cloudinary"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "cloudinary"
+    }
+   ],
+   "env_prefixes": [
+    "CLOUDINARY_"
+   ],
+   "hosts": [
+    "cloudinary.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/cloudinary/cloudinary-go/@latest",
+    "https://registry.npmjs.org/cloudinary",
+    "https://pypi.org/pypi/cloudinary/json",
+    "https://raw.githubusercontent.com/cloudinary/cloudinary_npm/master/README.md",
+    "https://raw.githubusercontent.com/cloudinary/cloudinary-go/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.cloudinary.com and res.cloudinary.com from the cloudinary npm code and cloudinary-go README; CLOUDINARY_URL from the npm README."
+  },
+  {
+   "id": "cockroachdb-cloud",
+   "name": "CockroachDB Cloud",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "cockroachlabs.cloud"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.cockroachlabs.com/docs/stable/connect-to-the-database.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "Host *.cockroachlabs.cloud (cluster hosts and the Cloud API/console) from cockroachlabs.com connect-to-the-database docs as shown by web search on 2026-10-29 (not fetched directly); drivers are plain Postgres and left out."
+  },
+  {
+   "id": "cohere",
+   "name": "Cohere",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/cohere-ai/cohere-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "cohere-ai"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "cohere"
+    }
+   ],
+   "env_prefixes": [
+    "COHERE_",
+    "CO_API_KEY",
+    "CO_API_URL"
+   ],
+   "hosts": [
+    "cohere.com",
+    "cohere.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/cohere-ai/cohere-go/@latest",
+    "https://registry.npmjs.org/cohere-ai",
+    "https://pypi.org/pypi/cohere/json",
+    "https://pypi.org/pypi/cohere/4.57/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.cohere.com in current SDKs, api.cohere.ai in cohere 4.57 (legacy); CO_API_KEY/CO_API_URL are the SDK's own variables."
+  },
+  {
+   "id": "configcat",
+   "name": "ConfigCat",
+   "category": "feature flags",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/configcat/go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@configcat/sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "configcat-node"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "configcat-js"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "configcat-client"
+    }
+   ],
+   "env_prefixes": [
+    "CONFIGCAT_"
+   ],
+   "hosts": [
+    "configcat.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/configcat/go-sdk/@latest",
+    "https://registry.npmjs.org/@configcat/sdk",
+    "https://registry.npmjs.org/configcat-node",
+    "https://registry.npmjs.org/configcat-js",
+    "https://pypi.org/pypi/configcat-client/json",
+    "https://raw.githubusercontent.com/configcat/go-sdk/master/config_fetcher.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI (configcat-node and configcat-js ended support in 2025 in favour of @configcat/sdk, kept as still widely used); cdn-global.configcat.com and cdn-eu.configcat.com from go-sdk and @configcat/sdk; CONFIGCAT_ is a convention."
+  },
+  {
+   "id": "contentful",
+   "name": "Contentful",
+   "category": "CMS",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "contentful"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "contentful-management"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "contentful"
+    }
+   ],
+   "env_prefixes": [
+    "CONTENTFUL_"
+   ],
+   "hosts": [
+    "contentful.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/contentful",
+    "https://registry.npmjs.org/contentful-management",
+    "https://pypi.org/pypi/contentful/json",
+    "https://raw.githubusercontent.com/contentful/contentful.js/master/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm and PyPI; cdn.contentful.com, preview.contentful.com and api.contentful.com from contentful and contentful-management; ctfassets.net (asset CDN) not verified from a primary source, left out; CONTENTFUL_ is a convention."
+  },
+  {
+   "id": "convex",
+   "name": "Convex",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "convex"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "convex"
+    }
+   ],
+   "env_prefixes": [
+    "CONVEX_URL",
+    "CONVEX_DEPLOYMENT",
+    "CONVEX_DEPLOY_KEY",
+    "CONVEX_SITE_URL"
+   ],
+   "hosts": [
+    "convex.cloud",
+    "convex.site"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/convex",
+    "https://pypi.org/pypi/convex/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); deployment hosts *.convex.cloud and HTTP actions on *.convex.site; full env names because 'convex' is a common word."
+  },
+  {
+   "id": "crisp",
+   "name": "Crisp",
+   "category": "support",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/crisp-im/go-crisp-api"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "crisp-api"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "crisp-api"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "crisp.chat"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/crisp-im/go-crisp-api",
+    "https://www.npmjs.com/package/crisp-api",
+    "https://pypi.org/project/crisp-api/",
+    "https://docs.crisp.chat/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.crisp.chat; env prefix left empty: CRISP is a common word"
+  },
+  {
+   "id": "customer-io",
+   "name": "Customer.io",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/customerio/go-customerio"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "customerio-node"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@customerio/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "customerio"
+    }
+   ],
+   "env_prefixes": [
+    "CUSTOMERIO_"
+   ],
+   "hosts": [
+    "customer.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/customerio/go-customerio",
+    "https://www.npmjs.com/package/customerio-node",
+    "https://pypi.org/project/customerio/",
+    "https://www.npmjs.com/package/@customerio",
+    "https://docs.customer.io/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), track.customer.io, track-eu.customer.io, cdp.customer.io; env prefix from convention"
+  },
+  {
+   "id": "databricks",
+   "name": "Databricks",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/databricks/databricks-sdk-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@databricks/sql"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "databricks-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "databricks-sql-connector"
+    }
+   ],
+   "env_prefixes": [
+    "DATABRICKS_"
+   ],
+   "hosts": [
+    "cloud.databricks.com",
+    "gcp.databricks.com",
+    "azuredatabricks.net"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/databricks/databricks-sdk-go/@latest",
+    "https://registry.npmjs.org/@databricks/sql",
+    "https://pypi.org/pypi/databricks-sdk/json",
+    "https://pypi.org/pypi/databricks-sql-connector/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); workspace hosts *.cloud.databricks.com, *.gcp.databricks.com, *.azuredatabricks.net from @databricks/sql; DATABRICKS_HOST/DATABRICKS_TOKEN from databricks-sdk."
+  },
+  {
+   "id": "datadog",
+   "name": "Datadog",
+   "category": "observability",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/DataDog/datadog-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/DataDog/dd-trace-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "gopkg.in/DataDog/dd-trace-go.v1"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/DataDog/datadog-api-client-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "dd-trace"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@datadog/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "ddtrace"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "datadog"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "datadog-api-client"
+    }
+   ],
+   "env_prefixes": [
+    "DATADOG_",
+    "DD_API_KEY",
+    "DD_APP_KEY",
+    "DD_SITE",
+    "DD_AGENT_HOST",
+    "DD_TRACE_"
+   ],
+   "hosts": [
+    "datadoghq.com",
+    "datadoghq.eu",
+    "ddog-gov.com",
+    "browser-intake-datadoghq.com"
+   ],
+   "images": [
+    "datadog/agent"
+   ],
+   "sources": [
+    "https://proxy.golang.org/github.com/!data!dog/datadog-go/@latest",
+    "https://proxy.golang.org/github.com/!data!dog/dd-trace-go/@latest",
+    "https://proxy.golang.org/gopkg.in/!data!dog/dd-trace-go.v1/@latest",
+    "https://proxy.golang.org/github.com/!data!dog/datadog-api-client-go/@latest",
+    "https://registry.npmjs.org/dd-trace",
+    "https://pypi.org/pypi/ddtrace/json",
+    "https://pypi.org/pypi/datadog/json",
+    "https://pypi.org/pypi/datadog-api-client/json",
+    "https://registry.npmjs.org/@datadog/browser-rum",
+    "https://hub.docker.com/v2/repositories/datadog/agent/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; datadoghq.com/.eu, ddog-gov.com and browser-intake-datadoghq.com from datadog-api-client-go, ddtrace and @datadog/browser-rum; DD_API_KEY, DD_APP_KEY, DD_SITE, DD_AGENT_HOST and DD_TRACE_* from ddtrace (bare DD_ avoided as too short); datadog/agent on Docker Hub (gcr.io/datadoghq/agent not verified, docs page did not render)."
+  },
+  {
+   "id": "deepgram",
+   "name": "Deepgram",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/deepgram/deepgram-go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@deepgram/sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "deepgram-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "DEEPGRAM_"
+   ],
+   "hosts": [
+    "deepgram.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/deepgram/deepgram-go-sdk/@latest",
+    "https://registry.npmjs.org/@deepgram/sdk",
+    "https://pypi.org/pypi/deepgram-sdk/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.deepgram.com and agent.deepgram.com (https and wss); DEEPGRAM_API_KEY."
+  },
+  {
+   "id": "deepseek",
+   "name": "DeepSeek",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "DEEPSEEK_"
+   ],
+   "hosts": [
+    "deepseek.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://api-docs.deepseek.com/",
+    "https://raw.githubusercontent.com/deepseek-ai/DeepSeek-R1/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "No official SDK (used through the openai SDK with base_url https://api.deepseek.com, per api-docs.deepseek.com as shown by web search on 2026-10-29); deepseek.com domains confirmed in deepseek-ai's GitHub READMEs; DEEPSEEK_API_KEY from the official quickstart."
+  },
+  {
+   "id": "descope",
+   "name": "Descope",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/descope/go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@descope/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "descope"
+    }
+   ],
+   "env_prefixes": [
+    "DESCOPE_"
+   ],
+   "hosts": [
+    "descope.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/descope/go-sdk",
+    "https://pypi.org/project/descope/",
+    "https://www.npmjs.com/package/@descope",
+    "https://docs.descope.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.descope.com; env prefix from convention"
+  },
+  {
+   "id": "digitalocean",
+   "name": "DigitalOcean",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/digitalocean/godo"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@digitalocean/dots"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "pydo"
+    }
+   ],
+   "env_prefixes": [
+    "DIGITALOCEAN_"
+   ],
+   "hosts": [
+    "digitalocean.com",
+    "digitaloceanspaces.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/digitalocean/godo/@latest",
+    "https://registry.npmjs.org/@digitalocean/dots",
+    "https://pypi.org/pypi/pydo/json",
+    "https://proxy.golang.org/github.com/digitalocean/doctl/@latest",
+    "https://raw.githubusercontent.com/digitalocean/godo/main/godo.go",
+    "https://raw.githubusercontent.com/digitalocean/doctl/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.digitalocean.com in godo/dots/pydo, digitaloceanspaces.com (Spaces) and DIGITALOCEAN_ACCESS_TOKEN in DigitalOcean's doctl source; ondigitalocean.app left out (customer apps)."
+  },
+  {
+   "id": "discord",
+   "name": "Discord",
+   "category": "messaging",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/bwmarrin/discordgo"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "discord.js"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@discordjs/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "discord.py"
+    }
+   ],
+   "env_prefixes": [
+    "DISCORD_"
+   ],
+   "hosts": [
+    "discord.com",
+    "discordapp.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/bwmarrin/discordgo",
+    "https://www.npmjs.com/package/discord.js",
+    "https://pypi.org/project/discord.py/",
+    "https://www.npmjs.com/package/@discordjs",
+    "https://docs.discord.com/developers/reference"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), discord.com/api (discord.js); discordapp.com is the retired API domain still found in older code; confirmed against the API reference via web search; env prefix from convention; all SDKs are community libraries but each dominates its ecosystem"
+  },
+  {
+   "id": "docusign",
+   "name": "Docusign",
+   "category": "e-signature",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "docusign-esign"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "docusign-esign"
+    }
+   ],
+   "env_prefixes": [
+    "DOCUSIGN_"
+   ],
+   "hosts": [
+    "docusign.net",
+    "docusign.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/docusign-esign",
+    "https://pypi.org/project/docusign-esign/",
+    "https://developers.docusign.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), www.docusign.net, demo.docusign.net and account.docusign.com; env prefix from convention"
+  },
+  {
+   "id": "doppler",
+   "name": "Doppler",
+   "category": "other",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@dopplerhq/node-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "doppler-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "DOPPLER_"
+   ],
+   "hosts": [
+    "doppler.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@dopplerhq/node-sdk",
+    "https://pypi.org/pypi/doppler-sdk/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm and PyPI; api.doppler.com from both SDKs (docs.doppler.com not reachable); DOPPLER_ (DOPPLER_TOKEN) is a convention."
+  },
+  {
+   "id": "dropbox-sign",
+   "name": "Dropbox Sign (ex HelloSign)",
+   "category": "e-signature",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@dropbox/sign"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "dropbox-sign"
+    }
+   ],
+   "env_prefixes": [
+    "HELLOSIGN_",
+    "DROPBOX_SIGN_"
+   ],
+   "hosts": [
+    "hellosign.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/@dropbox/sign",
+    "https://pypi.org/project/dropbox-sign/",
+    "https://developers.hellosign.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.hellosign.com; env prefix from convention; sign.dropbox.com left out: dropbox.com belongs to Dropbox storage; DROPBOX_SIGN_ would overlap a DROPBOX_ prefix if one is added"
+  },
+  {
+   "id": "dynatrace",
+   "name": "Dynatrace",
+   "category": "observability",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@dynatrace/oneagent-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "oneagent-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "DYNATRACE_"
+   ],
+   "hosts": [
+    "dynatrace.com"
+   ],
+   "images": [
+    "dynatrace/oneagent"
+   ],
+   "sources": [
+    "https://registry.npmjs.org/@dynatrace/oneagent-sdk",
+    "https://pypi.org/pypi/oneagent-sdk/json",
+    "https://hub.docker.com/v2/repositories/dynatrace/oneagent/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm and PyPI (they talk to the local OneAgent); dynatrace.com from the SDKs' docs links only, tenant hosts <id>.live.dynatrace.com not verified from a primary source (docs.dynatrace.com not reachable); dynatrace/oneagent image on Docker Hub; DT_ avoided as too short, DYNATRACE_ is a convention."
+  },
+  {
+   "id": "elevenlabs",
+   "name": "ElevenLabs",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@elevenlabs/elevenlabs-js"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "elevenlabs"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "elevenlabs"
+    }
+   ],
+   "env_prefixes": [
+    "ELEVENLABS_"
+   ],
+   "hosts": [
+    "elevenlabs.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@elevenlabs/elevenlabs-js",
+    "https://registry.npmjs.org/elevenlabs",
+    "https://pypi.org/pypi/elevenlabs/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.elevenlabs.io plus regional/residency hosts; npm 'elevenlabs' is deprecated (moved to @elevenlabs/elevenlabs-js, last release 2025-05) but kept because older code still pins it."
+  },
+  {
+   "id": "exact-online",
+   "name": "Exact Online",
+   "category": "accounting",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "EXACT_ONLINE_",
+    "EXACTONLINE_"
+   ],
+   "hosts": [
+    "exactonline.be",
+    "exactonline.nl",
+    "exactonline.com",
+    "exactonline.co.uk",
+    "exactonline.de"
+   ],
+   "images": [],
+   "sources": [
+    "https://start.exactonline.nl/docs/HlpRestAPIResources.aspx?SourceAction=10",
+    "https://developers.exactonline.com/Content/RestIntro.html",
+    "https://apideck.com/blog/guide-to-exact-online-api-integration"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts regional start.exactonline.{be,nl,com,co.uk,de}/api/v1 from secondary sources (API catalogue, client libraries) found by web search; Exact's own reference was not reachable; env prefix from convention; DOUBT: hosts not confirmed on a primary Exact page; no official SDK"
+  },
+  {
+   "id": "exoscale",
+   "name": "Exoscale",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/exoscale/egoscale"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "exoscale"
+    }
+   ],
+   "env_prefixes": [
+    "EXOSCALE_"
+   ],
+   "hosts": [
+    "exoscale.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/exoscale/egoscale/@latest",
+    "https://pypi.org/pypi/exoscale/json",
+    "https://raw.githubusercontent.com/exoscale/cli/master/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy and PyPI; api.exoscale.com from egoscale source; EXOSCALE_ (EXOSCALE_API_KEY) from Exoscale's CLI README."
+  },
+  {
+   "id": "expo",
+   "name": "Expo (push service)",
+   "category": "notifications",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "expo-server-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "exponent-server-sdk"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "exp.host",
+    "expo.dev"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/expo-server-sdk",
+    "https://pypi.org/project/exponent-server-sdk/",
+    "https://docs.expo.dev/push-notifications/sending-notifications/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), exp.host/--/api/v2/push/send and expo.dev; env prefix left empty: EXPO_PUBLIC_ is a bundler convention in any Expo app, not a sign of calling Expo's servers"
+  },
+  {
+   "id": "fastly",
+   "name": "Fastly",
+   "category": "edge",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/fastly/go-fastly"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "fastly"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "fastly"
+    }
+   ],
+   "env_prefixes": [
+    "FASTLY_"
+   ],
+   "hosts": [
+    "fastly.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/fastly/go-fastly/@latest",
+    "https://registry.npmjs.org/fastly",
+    "https://pypi.org/pypi/fastly/json",
+    "https://raw.githubusercontent.com/fastly/go-fastly/main/fastly/client.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.fastly.com and FASTLY_API_KEY/FASTLY_API_URL from go-fastly source; fastly.net/fastlylb.net edge domains left out (serve customer sites)."
+  },
+  {
+   "id": "fathom",
+   "name": "Fathom Analytics",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "fathom-client"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "usefathom.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/fathom-client"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against npm (fathom-client is a community client that clearly dominates); cdn.usefathom.com from its code; no env prefix because Fathom is also an unrelated AI note-taker."
+  },
+  {
+   "id": "firebase",
+   "name": "Firebase",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "firebase.google.com/go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "firebase"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "firebase-admin"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "firebase-admin"
+    }
+   ],
+   "env_prefixes": [
+    "FIREBASE_"
+   ],
+   "hosts": [
+    "firebaseio.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/firebase.google.com/go/@latest",
+    "https://registry.npmjs.org/firebase",
+    "https://registry.npmjs.org/firebase-admin",
+    "https://pypi.org/pypi/firebase-admin/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); *.firebaseio.com (Realtime Database) and *.firebaseapp.com (auth domain / hosting) from the firebase and firebase-admin SDKs; Firestore/Auth use *.googleapis.com, which stays with the google entry; no overlap with google's SDKs."
+  },
+  {
+   "id": "fireworks",
+   "name": "Fireworks AI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "pypi",
+     "name": "fireworks-ai"
+    }
+   ],
+   "env_prefixes": [
+    "FIREWORKS_API_KEY",
+    "FIREWORKS_BASE_URL",
+    "FIREWORKS_ACCOUNT_ID"
+   ],
+   "hosts": [
+    "fireworks.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://pypi.org/pypi/fireworks-ai/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.fireworks.ai; no official npm or Go SDK found (usually used through the openai SDK with this host); full env names because 'fireworks' is a common word."
+  },
+  {
+   "id": "flagsmith",
+   "name": "Flagsmith",
+   "category": "feature flags",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/Flagsmith/flagsmith-go-client"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@flagsmith/"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "flagsmith"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "flagsmith-nodejs"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "flagsmith"
+    }
+   ],
+   "env_prefixes": [
+    "FLAGSMITH_"
+   ],
+   "hosts": [
+    "flagsmith.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!flagsmith/flagsmith-go-client/@latest",
+    "https://registry.npmjs.org/flagsmith",
+    "https://registry.npmjs.org/flagsmith-nodejs",
+    "https://pypi.org/pypi/flagsmith/json",
+    "https://raw.githubusercontent.com/Flagsmith/flagsmith-go-client/main/config.go",
+    "https://registry.npmjs.org/@flagsmith/flagsmith",
+    "https://registry.npmjs.org/@flagsmith/nodejs"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI (flagsmith and flagsmith-nodejs were renamed to @flagsmith/flagsmith and @flagsmith/nodejs, old names kept as still widely used); edge.api.flagsmith.com and realtime.flagsmith.com from the SDK code; self-hosted Flagsmith uses the customer's own host."
+  },
+  {
+   "id": "fly",
+   "name": "Fly.io",
+   "category": "hosting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/superfly/fly-go"
+    }
+   ],
+   "env_prefixes": [
+    "FLY_API_TOKEN",
+    "FLY_ACCESS_TOKEN"
+   ],
+   "hosts": [
+    "fly.io",
+    "machines.dev"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/superfly/fly-go/@latest",
+    "https://proxy.golang.org/github.com/superfly/flyctl/@latest"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against the Go proxy; api.machines.dev and api.fly.io from fly-go and flyctl source, FLY_API_TOKEN and FLY_ACCESS_TOKEN from flyctl (FLY is a common word, so full variable names only); fly.dev left out (customer apps)."
+  },
+  {
+   "id": "fullstory",
+   "name": "Fullstory",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@fullstory/browser"
+    }
+   ],
+   "env_prefixes": [
+    "FULLSTORY_"
+   ],
+   "hosts": [
+    "fullstory.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@fullstory/browser",
+    "https://raw.githubusercontent.com/fullstorydev/fullstory-browser-sdk/master/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against npm; edge.fullstory.com and edge.eu1.fullstory.com from @fullstory/browser; FULLSTORY_ is a convention."
+  },
+  {
+   "id": "github",
+   "name": "GitHub",
+   "category": "code hosting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/google/go-github"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@octokit/"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "octokit"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "PyGithub"
+    }
+   ],
+   "env_prefixes": [
+    "GITHUB_TOKEN",
+    "GH_TOKEN",
+    "GITHUB_CLIENT_",
+    "GITHUB_APP_"
+   ],
+   "hosts": [
+    "github.com",
+    "githubusercontent.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/google/go-github/v76/@latest",
+    "https://registry.npmjs.org/@octokit/request",
+    "https://registry.npmjs.org/@octokit/endpoint",
+    "https://registry.npmjs.org/octokit",
+    "https://pypi.org/pypi/PyGithub/json",
+    "https://cli.github.com/manual/gh_help_environment",
+    "https://docs.github.com/en/actions/reference/workflows-and-actions/variables"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org (go-github is Google-maintained, community but dominant), registry.npmjs.org (octokit org, official) and pypi.org (PyGithub, community but dominant); api.github.com read from @octokit/endpoint source; env narrowed to GITHUB_TOKEN and GH_TOKEN as named by the gh CLI environment page (via web search) because GitHub Actions sets GITHUB_* on every run"
+  },
+  {
+   "id": "gitlab",
+   "name": "GitLab",
+   "category": "code hosting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "gitlab.com/gitlab-org/api/client-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/xanzy/go-gitlab"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@gitbeaker/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "python-gitlab"
+    }
+   ],
+   "env_prefixes": [
+    "GITLAB_"
+   ],
+   "hosts": [
+    "gitlab.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/gitlab.com/gitlab-org/api/client-go/@latest",
+    "https://proxy.golang.org/github.com/xanzy/go-gitlab/@latest",
+    "https://pypi.org/pypi/python-gitlab/json",
+    "https://gitlab.com/gitlab-org/api/client-go/-/raw/main/gitlab.go",
+    "https://registry.npmjs.org/@gitbeaker/rest"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; client-go is GitLab's official Go client (xanzy/go-gitlab is its deprecated predecessor, still widely used), gitbeaker and python-gitlab are community clients that clearly dominate; gitlab.com from client-go source; SDK matches also fire for self-managed GitLab."
+  },
+  {
+   "id": "gocardless",
+   "name": "GoCardless (incl. Bank Account Data, ex Nordigen)",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/gocardless/gocardless-pro-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "gocardless-nodejs"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "nordigen-node"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@gocardless/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "gocardless_pro"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "nordigen"
+    }
+   ],
+   "env_prefixes": [
+    "GOCARDLESS_",
+    "NORDIGEN_"
+   ],
+   "hosts": [
+    "gocardless.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/gocardless/gocardless-pro-go",
+    "https://www.npmjs.com/package/gocardless-nodejs",
+    "https://www.npmjs.com/package/nordigen-node",
+    "https://pypi.org/project/gocardless_pro/",
+    "https://pypi.org/project/nordigen/",
+    "https://www.npmjs.com/package/@gocardless",
+    "https://developer.gocardless.com/api-reference"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.gocardless.com, api-sandbox.gocardless.com and bankaccountdata.gocardless.com (in nordigen-node); env prefix from convention; Bank Account Data (Nordigen) is a GoCardless product, kept in this entry"
+  },
+  {
+   "id": "google",
+   "name": "Google APIs",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "google.golang.org/api"
+    },
+    {
+     "ecosystem": "go",
+     "name": "cloud.google.com/go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "google.golang.org/genai"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/google/generative-ai-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "googleapis"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@google-cloud/"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@google/genai"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@google/generative-ai"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "google-auth-library"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "google-api-python-client"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "google-genai"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "google-generativeai"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Google.Cloud.*"
+    }
+   ],
+   "env_prefixes": [
+    "GOOGLE_",
+    "GEMINI_API_KEY",
+    "GCLOUD_PROJECT"
+   ],
+   "hosts": [
+    "googleapis.com",
+    "accounts.google.com"
+   ],
+   "images": [
+    "google/cloud-sdk"
+   ],
+   "sources": [
+    "https://proxy.golang.org/google.golang.org/api/@latest",
+    "https://proxy.golang.org/cloud.google.com/go/@latest",
+    "https://proxy.golang.org/google.golang.org/genai/@latest",
+    "https://proxy.golang.org/github.com/google/generative-ai-go/@latest",
+    "https://registry.npmjs.org/googleapis",
+    "https://registry.npmjs.org/@google-cloud/storage",
+    "https://registry.npmjs.org/@google/genai",
+    "https://registry.npmjs.org/@google/generative-ai",
+    "https://registry.npmjs.org/google-auth-library",
+    "https://pypi.org/pypi/google-api-python-client/json",
+    "https://pypi.org/pypi/google-genai/json",
+    "https://pypi.org/pypi/google-generativeai/json",
+    "https://hub.docker.com/v2/repositories/google/cloud-sdk/",
+    "https://api.nuget.org/v3-flatcontainer/google.cloud.storage.v1/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org (published by google-wombot) and pypi.org, legacy Gemini SDKs (generative-ai-go, @google/generative-ai, google-generativeai marked Inactive) kept as still widely used; hosts generativelanguage.googleapis.com, aiplatform.googleapis.com and env GEMINI_API_KEY, GOOGLE_API_KEY, GOOGLE_CLOUD_PROJECT read from @google/genai source; oauth2.googleapis.com, accounts.google.com and GOOGLE_APPLICATION_CREDENTIALS, GCLOUD_PROJECT from google-auth-library source; image checked on Docker Hub NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "grafana-cloud",
+   "name": "Grafana Cloud",
+   "category": "observability",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "grafana.net"
+   ],
+   "images": [],
+   "sources": [
+    "https://raw.githubusercontent.com/grafana/alloy/main/docs/sources/reference/components/otelcol/otelcol.exporter.otlphttp.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "Hosts only: otlp-gateway-*.grafana.net from Grafana's own Alloy docs; no SDK or env prefix, because Faro, Alloy and GRAFANA_ variables work equally with self-hosted Grafana."
+  },
+  {
+   "id": "groq",
+   "name": "Groq",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "groq-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "groq"
+    }
+   ],
+   "env_prefixes": [
+    "GROQ_API_KEY",
+    "GROQ_BASE_URL"
+   ],
+   "hosts": [
+    "groq.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/groq-sdk",
+    "https://pypi.org/pypi/groq/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.groq.com; env given as full names because npm 'groq' and GROQ_ also refer to Sanity's query language (npm 'groq' deliberately not listed)."
+  },
+  {
+   "id": "hcaptcha",
+   "name": "hCaptcha",
+   "category": "captcha",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@hcaptcha/"
+    }
+   ],
+   "env_prefixes": [
+    "HCAPTCHA_"
+   ],
+   "hosts": [
+    "hcaptcha.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@hcaptcha/loader",
+    "https://registry.npmjs.org/@hcaptcha/react-hcaptcha"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm (the PyPI 'hcaptcha' package is a third-party one, left out); js.hcaptcha.com from @hcaptcha/loader and react-hcaptcha; api.hcaptcha.com (siteverify) not verified from a primary source but falls under hcaptcha.com; HCAPTCHA_ is a convention."
+  },
+  {
+   "id": "hcp",
+   "name": "HashiCorp Cloud Platform",
+   "category": "other",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/hashicorp/hcp-sdk-go"
+    }
+   ],
+   "env_prefixes": [
+    "HCP_"
+   ],
+   "hosts": [
+    "hashicorp.cloud",
+    "cloud.hashicorp.com",
+    "idp.hashicorp.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/hashicorp/hcp-sdk-go/@latest",
+    "https://raw.githubusercontent.com/hashicorp/hcp-sdk-go/main/config/env.go",
+    "https://raw.githubusercontent.com/hashicorp/hcp-sdk-go/main/config/hcp.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against the Go proxy; api.cloud.hashicorp.com, auth.idp.hashicorp.com and *.hashicorp.cloud from hcp-sdk-go, HCP_ env names (HCP_CLIENT_ID, HCP_PROJECT_ID) from its config/env.go; given as subdomains because hashicorp.com is also the marketing site; Vault/Terraform clients left out (usually self-hosted)."
+  },
+  {
+   "id": "heroku",
+   "name": "Heroku",
+   "category": "hosting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "heroku-client"
+    }
+   ],
+   "env_prefixes": [
+    "HEROKU_"
+   ],
+   "hosts": [
+    "heroku.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/heroku-client"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against npm (heroku-client, maintained by Heroku/Salesforce); api.heroku.com and HEROKU_API_TOKEN from its code; herokuapp.com left out (customer apps)."
+  },
+  {
+   "id": "hetzner",
+   "name": "Hetzner",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/hetznercloud/hcloud-go"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "hcloud"
+    }
+   ],
+   "env_prefixes": [
+    "HCLOUD_",
+    "HETZNER_"
+   ],
+   "hosts": [
+    "hetzner.cloud",
+    "hetzner.com",
+    "your-storagebox.de"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/hetznercloud/hcloud-go/@latest",
+    "https://pypi.org/pypi/hcloud/json",
+    "https://raw.githubusercontent.com/hetznercloud/hcloud-go/main/hcloud/client.go",
+    "https://proxy.golang.org/github.com/hetznercloud/cli/@latest"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy and PyPI; api.hetzner.cloud, api.hetzner.com, your-storagebox.de and HCLOUD_TOKEN from Hetzner's hcloud-go and hcloud CLI source (docs.hetzner.cloud not reachable from the session); HETZNER_ is a convention."
+  },
+  {
+   "id": "highlight",
+   "name": "Highlight.io (LaunchDarkly)",
+   "category": "error tracking",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "highlight.run"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@highlight-run/"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "highlight.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/highlight.run",
+    "https://registry.npmjs.org/@highlight-run/node"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm (now published from LaunchDarkly's observability-sdk repo); pub.highlight.io and otel.highlight.io from highlight.run and @highlight-run/node; HIGHLIGHT is a common word, so no env prefix; self-hosted Highlight uses the customer's own host."
+  },
+  {
+   "id": "honeycomb",
+   "name": "Honeycomb",
+   "category": "observability",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/honeycombio/beeline-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/honeycombio/libhoney-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/honeycombio/otel-config-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@honeycombio/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "honeycomb-beeline"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "libhoney"
+    }
+   ],
+   "env_prefixes": [
+    "HONEYCOMB_"
+   ],
+   "hosts": [
+    "honeycomb.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/honeycombio/beeline-go/@latest",
+    "https://proxy.golang.org/github.com/honeycombio/libhoney-go/@latest",
+    "https://proxy.golang.org/github.com/honeycombio/otel-config-go/@latest",
+    "https://pypi.org/pypi/honeycomb-beeline/json",
+    "https://pypi.org/pypi/libhoney/json",
+    "https://raw.githubusercontent.com/honeycombio/libhoney-go/main/libhoney.go",
+    "https://registry.npmjs.org/@honeycombio/opentelemetry-node",
+    "https://registry.npmjs.org/@honeycombio/opentelemetry-web"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI (beeline is in maintenance but still used); api.honeycomb.io and HONEYCOMB_API_KEY from libhoney-go; EU host api.eu1.honeycomb.io falls under honeycomb.io."
+  },
+  {
+   "id": "hotjar",
+   "name": "Hotjar",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@hotjar/browser"
+    }
+   ],
+   "env_prefixes": [
+    "HOTJAR_"
+   ],
+   "hosts": [
+    "hotjar.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@hotjar/browser",
+    "https://raw.githubusercontent.com/hotjar/hotjar-js/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against npm; static.hotjar.com and insights.hotjar.com from @hotjar/browser; hotjar.io not verified; HOTJAR_ is a convention."
+  },
+  {
+   "id": "hubspot",
+   "name": "HubSpot",
+   "category": "CRM",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@hubspot/api-client"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "hubspot-api-client"
+    }
+   ],
+   "env_prefixes": [
+    "HUBSPOT_"
+   ],
+   "hosts": [
+    "hubapi.com",
+    "hubspot.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/@hubspot/api-client",
+    "https://pypi.org/project/hubspot-api-client/",
+    "https://developers.hubspot.com/docs/api/overview"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.hubapi.com and app.hubspot.com; env prefix from convention"
+  },
+  {
+   "id": "huggingface",
+   "name": "Hugging Face",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@huggingface/inference"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@huggingface/hub"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "huggingface-hub"
+    }
+   ],
+   "env_prefixes": [
+    "HF_TOKEN",
+    "HF_ENDPOINT",
+    "HUGGINGFACE_",
+    "HUGGING_FACE_"
+   ],
+   "hosts": [
+    "huggingface.co",
+    "hf.co"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@huggingface/inference",
+    "https://registry.npmjs.org/@huggingface/hub",
+    "https://pypi.org/pypi/huggingface-hub/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); huggingface.co (router., endpoints., api-inference.) and hf.co; npm scope @huggingface/ not used because it holds offline packages (e.g. jinja); env from the SDKs (HF_TOKEN, HF_ENDPOINT, HUGGINGFACE_HUB_CACHE)."
+  },
+  {
+   "id": "ibanity",
+   "name": "Ibanity / Ponto (Isabel Group)",
+   "category": "banking",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "IBANITY_",
+    "PONTO_"
+   ],
+   "hosts": [
+    "ibanity.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://documentation.myponto.com/developers/custom-integrations",
+    "https://packagist.org/packages/chuckbe/ponto-connect-laravel-sdk",
+    "https://www.nuget.org/packages/ibanity"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.ibanity.com from third-party Ponto Connect and Ibanity clients found by web search; env prefix from convention; DOUBT: host not confirmed on Ibanity's own docs; covers Ponto Connect, Isabel Connect and Ibanity e-invoicing"
+  },
+  {
+   "id": "ibm-cloud",
+   "name": "IBM Cloud",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/IBM/go-sdk-core"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "ibm-cloud-sdk-core"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "ibm-cloud-sdk-core"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "ibm-cos-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "ibm-cos-sdk"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "cloud.ibm.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!i!b!m/go-sdk-core/@latest",
+    "https://registry.npmjs.org/ibm-cloud-sdk-core",
+    "https://pypi.org/pypi/ibm-cloud-sdk-core/json",
+    "https://registry.npmjs.org/ibm-cos-sdk",
+    "https://pypi.org/pypi/ibm-cos-sdk/json",
+    "https://raw.githubusercontent.com/IBM/go-sdk-core/main/core/iam_authenticator.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; iam.cloud.ibm.com from go-sdk-core and ibm-cloud-sdk-core, host given as the cloud.ibm.com subdomain because ibm.com is far broader; appdomain.cloud (COS) not verified; no env prefix verified."
+  },
+  {
+   "id": "imgix",
+   "name": "imgix",
+   "category": "storage",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/imgix/imgix-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@imgix/js-core"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "imgix"
+    }
+   ],
+   "env_prefixes": [
+    "IMGIX_"
+   ],
+   "hosts": [
+    "imgix.com",
+    "imgix.net"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/imgix/imgix-go/@latest",
+    "https://registry.npmjs.org/@imgix/js-core",
+    "https://pypi.org/pypi/imgix/json",
+    "https://raw.githubusercontent.com/imgix/js-core/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; imgix.net (image delivery) and imgix.com from the official SDKs; IMGIX_ is a convention."
+  },
+  {
+   "id": "infisical",
+   "name": "Infisical",
+   "category": "other",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/infisical/go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@infisical/sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "infisicalsdk"
+    }
+   ],
+   "env_prefixes": [
+    "INFISICAL_"
+   ],
+   "hosts": [
+    "infisical.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/infisical/go-sdk/@latest",
+    "https://registry.npmjs.org/@infisical/sdk",
+    "https://pypi.org/pypi/infisicalsdk/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; app.infisical.com from @infisical/sdk (infisical.com docs not reachable); INFISICAL_ env names from @infisical/sdk; self-hosted Infisical uses the customer's own host."
+  },
+  {
+   "id": "intercom",
+   "name": "Intercom",
+   "category": "support",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "intercom-client"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@intercom/messenger-js-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "python-intercom"
+    }
+   ],
+   "env_prefixes": [
+    "INTERCOM_"
+   ],
+   "hosts": [
+    "intercom.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/intercom-client",
+    "https://www.npmjs.com/package/@intercom/messenger-js-sdk",
+    "https://pypi.org/project/python-intercom/",
+    "https://developers.intercom.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.intercom.io, api.eu.intercom.io, api.au.intercom.io; env prefix from convention"
+  },
+  {
+   "id": "jina",
+   "name": "Jina AI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "jina.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://raw.githubusercontent.com/jina-ai/meta-prompt/main/README.md",
+    "https://raw.githubusercontent.com/jina-ai/reader/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "No official API SDK (PyPI 'jina' is the self-hosted framework, left out); api.jina.ai, r.jina.ai and s.jina.ai from jina-ai's own GitHub READMEs; env left empty (JINA_ is also used by the self-hosted framework, and JINA_API_KEY vs JINA_AI_API_KEY varies by integration)."
+  },
+  {
+   "id": "kinde",
+   "name": "Kinde",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/kinde-oss/kinde-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@kinde-oss/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "kinde-python-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "KINDE_"
+   ],
+   "hosts": [
+    "kinde.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/kinde-oss/kinde-go",
+    "https://pypi.org/project/kinde-python-sdk/",
+    "https://www.npmjs.com/package/@kinde-oss",
+    "https://docs.kinde.com/manage-your-account/your-data/kinde-domains/",
+    "https://docs.kinde.com/developer-tools/kinde-api/management-api-js/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts business subdomains *.kinde.com from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch) and app.kinde.com in the TypeScript SDK; env prefix KINDE_CLIENT_ID etc. read by @kinde-oss/kinde-auth-nextjs"
+  },
+  {
+   "id": "klarna",
+   "name": "Klarna",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "KLARNA_"
+   ],
+   "hosts": [
+    "klarna.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://docs.klarna.com/api/api-urls/"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.klarna.com, api-na.klarna.com, api-oc.klarna.com and *.playground.klarna.com from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix from convention; no official server SDK on npm/PyPI/Go"
+  },
+  {
+   "id": "knock",
+   "name": "Knock",
+   "category": "notifications",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/knocklabs/knock-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@knocklabs/node"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "knockapi"
+    }
+   ],
+   "env_prefixes": [
+    "KNOCK_API_KEY",
+    "KNOCK_SIGNING_KEY"
+   ],
+   "hosts": [
+    "knock.app"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/knocklabs/knock-go",
+    "https://www.npmjs.com/package/@knocklabs/node",
+    "https://pypi.org/project/knockapi/",
+    "https://docs.knock.app/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.knock.app; env prefix only KNOCK_API_KEY and KNOCK_SIGNING_KEY, read by the official Node SDK (KNOCK is a common word)"
+  },
+  {
+   "id": "langsmith",
+   "name": "LangSmith",
+   "category": "observability",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/langchain-ai/langsmith-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "langsmith"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "langsmith"
+    }
+   ],
+   "env_prefixes": [
+    "LANGSMITH_",
+    "LANGCHAIN_API_KEY",
+    "LANGCHAIN_ENDPOINT",
+    "LANGCHAIN_TRACING"
+   ],
+   "hosts": [
+    "smith.langchain.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/langchain-ai/langsmith-go/@latest",
+    "https://registry.npmjs.org/langsmith",
+    "https://pypi.org/pypi/langsmith/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.smith.langchain.com, eu.api.smith.langchain.com (langchain.com itself is marketing/docs); LangChain the library is open source and not listed."
+  },
+  {
+   "id": "launchdarkly",
+   "name": "LaunchDarkly",
+   "category": "feature flags",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/launchdarkly/go-server-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@launchdarkly/"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "launchdarkly-js-client-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "launchdarkly-node-server-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "launchdarkly-server-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "LAUNCHDARKLY_"
+   ],
+   "hosts": [
+    "launchdarkly.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/launchdarkly/go-server-sdk/@latest",
+    "https://registry.npmjs.org/launchdarkly-js-client-sdk",
+    "https://registry.npmjs.org/launchdarkly-node-server-sdk",
+    "https://pypi.org/pypi/launchdarkly-server-sdk/json",
+    "https://registry.npmjs.org/@launchdarkly/js-server-sdk-common",
+    "https://registry.npmjs.org/@launchdarkly/js-client-sdk"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI (launchdarkly-node-server-sdk is deprecated in favour of @launchdarkly/node-server-sdk, kept as still widely used); sdk., stream., events., clientsdk. and clientstream.launchdarkly.com from the JS SDK code; LD_ avoided as too short."
+  },
+  {
+   "id": "lemon-squeezy",
+   "name": "Lemon Squeezy",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@lemonsqueezy/lemonsqueezy.js"
+    }
+   ],
+   "env_prefixes": [
+    "LEMONSQUEEZY_",
+    "LEMON_SQUEEZY_"
+   ],
+   "hosts": [
+    "lemonsqueezy.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/@lemonsqueezy/lemonsqueezy.js",
+    "https://docs.lemonsqueezy.com/api"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.lemonsqueezy.com; env prefix from convention; official npm SDK last released 2024-11"
+  },
+  {
+   "id": "linode",
+   "name": "Linode (Akamai Cloud)",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/linode/linodego"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@linode/api-v4"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "linode_api4"
+    }
+   ],
+   "env_prefixes": [
+    "LINODE_"
+   ],
+   "hosts": [
+    "linode.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/linode/linodego/@latest",
+    "https://registry.npmjs.org/@linode/api-v4",
+    "https://pypi.org/pypi/linode_api4/json",
+    "https://raw.githubusercontent.com/linode/linodego/main/client.go",
+    "https://raw.githubusercontent.com/linode/linodego/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.linode.com and LINODE_TOKEN from linodego; linodeobjects.com (Object Storage) not verified, left out."
+  },
+  {
+   "id": "logrocket",
+   "name": "LogRocket",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "logrocket"
+    }
+   ],
+   "env_prefixes": [
+    "LOGROCKET_"
+   ],
+   "hosts": [
+    "logrocket.com",
+    "logrocket.io",
+    "lr-ingest.io",
+    "lr-ingest.com",
+    "lr-in.com",
+    "lr-intake.com",
+    "lrkt-in.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/logrocket"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against npm; r./cdn. hosts on logrocket.io, lr-ingest.io, lr-ingest.com, lr-in.com, lr-intake.com and lrkt-in.com found in the logrocket package code; LOGROCKET_ is a convention."
+  },
+  {
+   "id": "loops",
+   "name": "Loops",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "loops"
+    }
+   ],
+   "env_prefixes": [
+    "LOOPS_API_KEY"
+   ],
+   "hosts": [
+    "loops.so"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/loops",
+    "https://loops.so/docs/api-reference"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), app.loops.so/api; env prefix only the full variable LOOPS_API_KEY, which the official SDK documents (LOOPS is a common word)"
+  },
+  {
+   "id": "mailchimp",
+   "name": "Mailchimp (incl. Mandrill transactional)",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@mailchimp/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "mailchimp-transactional"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "mailchimp-marketing"
+    }
+   ],
+   "env_prefixes": [
+    "MAILCHIMP_",
+    "MANDRILL_"
+   ],
+   "hosts": [
+    "mailchimp.com",
+    "mandrillapp.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pypi.org/project/mailchimp-transactional/",
+    "https://pypi.org/project/mailchimp-marketing/",
+    "https://www.npmjs.com/package/@mailchimp",
+    "https://mailchimp.com/developer/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), mandrillapp.com/api and {server}.api.mailchimp.com; env prefix from convention; Mailchimp is owned by Intuit but has its own domains, so kept apart from the quickbooks entry"
+  },
+  {
+   "id": "mailgun",
+   "name": "Mailgun",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/mailgun/mailgun-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "mailgun.js"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "mailgun"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Mailgun"
+    }
+   ],
+   "env_prefixes": [
+    "MAILGUN_"
+   ],
+   "hosts": [
+    "mailgun.net"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/mailgun/mailgun-go",
+    "https://www.npmjs.com/package/mailgun.js",
+    "https://pypi.org/project/mailgun/",
+    "https://documentation.mailgun.com/",
+    "https://api.nuget.org/v3-flatcontainer/mailgun/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.mailgun.net and api.eu.mailgun.net; env prefix from convention; mailgun-js (npm) is deprecated and left out NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "mailjet",
+   "name": "Mailjet",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/mailjet/mailjet-apiv3-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "node-mailjet"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "mailjet_rest"
+    }
+   ],
+   "env_prefixes": [
+    "MAILJET_"
+   ],
+   "hosts": [
+    "mailjet.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/mailjet/mailjet-apiv3-go",
+    "https://www.npmjs.com/package/node-mailjet",
+    "https://pypi.org/project/mailjet_rest/",
+    "https://dev.mailjet.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.mailjet.com; env prefix from convention"
+  },
+  {
+   "id": "mapbox",
+   "name": "Mapbox",
+   "category": "maps",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "mapbox-gl"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@mapbox/mapbox-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "MAPBOX_"
+   ],
+   "hosts": [
+    "mapbox.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/mapbox-gl",
+    "https://registry.npmjs.org/@mapbox/mapbox-sdk"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm (not the @mapbox/ scope: it holds generic geometry utilities used by other map libraries); api.mapbox.com and events.mapbox.com from mapbox-gl and @mapbox/mapbox-sdk; MAPBOX_ is a convention (mapbox.com docs not reachable)."
+  },
+  {
+   "id": "messagebird",
+   "name": "MessageBird (Bird)",
+   "category": "messaging",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/messagebird/go-rest-api"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "messagebird"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "messagebird"
+    }
+   ],
+   "env_prefixes": [
+    "MESSAGEBIRD_"
+   ],
+   "hosts": [
+    "messagebird.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/messagebird/go-rest-api",
+    "https://www.npmjs.com/package/messagebird",
+    "https://pypi.org/project/messagebird/",
+    "https://developers.messagebird.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), rest.messagebird.com and conversations.messagebird.com; env prefix from convention; the newer Bird platform host (bird.com) is not added: not verified"
+  },
+  {
+   "id": "mistral",
+   "name": "Mistral AI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/gage-technologies/mistral-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@mistralai/mistralai"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "mistralai"
+    }
+   ],
+   "env_prefixes": [
+    "MISTRAL_"
+   ],
+   "hosts": [
+    "mistral.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/gage-technologies/mistral-go/@latest",
+    "https://registry.npmjs.org/@mistralai/mistralai",
+    "https://pypi.org/pypi/mistralai/json",
+    "https://docs.mistral.ai/getting-started/clients/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org and pypi.org; Mistral has official clients only for Python and TypeScript, the Go module is a community client listed on Mistral's client page (via web search, last release 2024-06); hosts api.mistral.ai, api.eu.mistral.ai, api.us.mistral.ai and env MISTRAL_API_KEY read from the @mistralai/mistralai source"
+  },
+  {
+   "id": "mixpanel",
+   "name": "Mixpanel",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/mixpanel/mixpanel-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "mixpanel"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "mixpanel-browser"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "mixpanel"
+    }
+   ],
+   "env_prefixes": [
+    "MIXPANEL_"
+   ],
+   "hosts": [
+    "mixpanel.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/mixpanel/mixpanel-go/@latest",
+    "https://registry.npmjs.org/mixpanel",
+    "https://registry.npmjs.org/mixpanel-browser",
+    "https://pypi.org/pypi/mixpanel/json",
+    "https://raw.githubusercontent.com/mixpanel/mixpanel-go/main/mixpanel.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.mixpanel.com, api-js.mixpanel.com and data-eu.mixpanel.com from mixpanel-go and mixpanel-browser; MIXPANEL_ is a convention."
+  },
+  {
+   "id": "mollie",
+   "name": "Mollie",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/VictorAvelar/mollie-api-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@mollie/api-client"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "mollie-api-python"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Mollie.Api"
+    }
+   ],
+   "env_prefixes": [
+    "MOLLIE_"
+   ],
+   "hosts": [
+    "mollie.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!victor!avelar/mollie-api-go/v4/@latest",
+    "https://registry.npmjs.org/@mollie/api-client",
+    "https://pypi.org/pypi/mollie-api-python/json",
+    "https://docs.mollie.com/docs/libraries",
+    "https://api.nuget.org/v3-flatcontainer/mollie.api/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org and pypi.org (mollie-api-python, repo mollie/mollie-api-python, is the official Python package); Go client is community, listed under community libraries on docs.mollie.com/docs/libraries (via web search) and the only maintained Go client; host api.mollie.com read from @mollie/api-client source; MOLLIE_ env prefix is a convention, the SDKs read no env vars NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "moneybird",
+   "name": "Moneybird",
+   "category": "accounting",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "MONEYBIRD_"
+   ],
+   "hosts": [
+    "moneybird.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://developer.moneybird.com/integration/getting-started",
+    "https://developer.moneybird.com/introduction"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts moneybird.com/api/v2 from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix from convention; no official SDK"
+  },
+  {
+   "id": "mongodb-atlas",
+   "name": "MongoDB Atlas",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "go.mongodb.org/atlas-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "MONGODB_ATLAS_"
+   ],
+   "hosts": [
+    "mongodb.net",
+    "cloud.mongodb.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/go.mongodb.org/atlas-sdk/@latest",
+    "https://raw.githubusercontent.com/mongodb/atlas-sdk-go/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); cloud.mongodb.com is the Atlas Admin API default in atlas-sdk-go, *.mongodb.net is listed as an Atlas host in the official pymongo and node drivers; drivers themselves and MONGODB_ env are generic (self-hosted) and left out."
+  },
+  {
+   "id": "multisafepay",
+   "name": "MultiSafepay",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@multisafepay/api-wrapper"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "multisafepay"
+    }
+   ],
+   "env_prefixes": [
+    "MULTISAFEPAY_"
+   ],
+   "hosts": [
+    "multisafepay.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/@multisafepay/api-wrapper",
+    "https://pypi.org/project/multisafepay/",
+    "https://docs.multisafepay.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.multisafepay.com and testapi.multisafepay.com; env prefix from convention; npm wrapper is official but last released 2020"
+  },
+  {
+   "id": "mux",
+   "name": "Mux",
+   "category": "video",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/muxinc/mux-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@mux/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "mux_python"
+    }
+   ],
+   "env_prefixes": [
+    "MUX_"
+   ],
+   "hosts": [
+    "mux.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/muxinc/mux-go/@latest",
+    "https://pypi.org/pypi/mux_python/json",
+    "https://raw.githubusercontent.com/muxinc/mux-go/master/configuration.go",
+    "https://raw.githubusercontent.com/muxinc/mux-ts/main/README.md",
+    "https://registry.npmjs.org/@mux/ts",
+    "https://registry.npmjs.org/@mux/mux-node"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI (@mux/mux-node renamed to @mux/ts, both under the @mux/ scope); api.mux.com, stream.mux.com, image.mux.com and MUX_TOKEN_ID/MUX_TOKEN_SECRET from mux-go and @mux/ts."
+  },
+  {
+   "id": "neon",
+   "name": "Neon",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@neondatabase/serverless"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "neon.tech"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@neondatabase/serverless"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); *.neon.tech endpoint hosts (README example host.neon.tech, console.neon.tech); neon.com is the marketing/docs site; env left empty (the driver reads DATABASE_URL, generic)."
+  },
+  {
+   "id": "netlify",
+   "name": "Netlify",
+   "category": "hosting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "netlify"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@netlify/blobs"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@netlify/functions"
+    }
+   ],
+   "env_prefixes": [
+    "NETLIFY_"
+   ],
+   "hosts": [
+    "netlify.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/netlify",
+    "https://registry.npmjs.org/@netlify/blobs",
+    "https://registry.npmjs.org/@netlify/functions"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm; api.netlify.com and NETLIFY_AUTH_TOKEN from the code of Netlify's own netlify and @netlify/blobs packages (docs.netlify.com not reachable); netlify.app left out (customer sites)."
+  },
+  {
+   "id": "newrelic",
+   "name": "New Relic",
+   "category": "observability",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/newrelic/go-agent"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "newrelic"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@newrelic/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "newrelic"
+    }
+   ],
+   "env_prefixes": [
+    "NEW_RELIC_"
+   ],
+   "hosts": [
+    "newrelic.com",
+    "nr-data.net"
+   ],
+   "images": [
+    "newrelic/infrastructure"
+   ],
+   "sources": [
+    "https://proxy.golang.org/github.com/newrelic/go-agent/@latest",
+    "https://registry.npmjs.org/newrelic",
+    "https://pypi.org/pypi/newrelic/json",
+    "https://raw.githubusercontent.com/newrelic/go-agent/master/v3/newrelic/config.go",
+    "https://hub.docker.com/v2/repositories/newrelic/infrastructure/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; collector.newrelic.com from go-agent, bam.nr-data.net and csec.nr-data.net from the browser and Node agents; NEW_RELIC_ env names from the newrelic npm agent; newrelic/infrastructure image on Docker Hub."
+  },
+  {
+   "id": "novu",
+   "name": "Novu",
+   "category": "notifications",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/novuhq/go-novu"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@novu/api"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@novu/node"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "novu-py"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "novu"
+    }
+   ],
+   "env_prefixes": [
+    "NOVU_"
+   ],
+   "hosts": [
+    "novu.co"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/novuhq/go-novu",
+    "https://www.npmjs.com/package/@novu/api",
+    "https://www.npmjs.com/package/@novu/node",
+    "https://pypi.org/project/novu-py/",
+    "https://pypi.org/project/novu/",
+    "https://docs.novu.co/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.novu.co and eu.api.novu.co; env prefix from convention; Novu can be self-hosted, so an SDK hit can also mean a self-hosted Novu; @novu/node is deprecated but still widely used"
+  },
+  {
+   "id": "okta",
+   "name": "Okta",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/okta/okta-sdk-golang"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/okta/okta-jwt-verifier-golang"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@okta/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "okta"
+    }
+   ],
+   "env_prefixes": [
+    "OKTA_"
+   ],
+   "hosts": [
+    "okta.com",
+    "oktapreview.com",
+    "okta-emea.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/okta/okta-sdk-golang",
+    "https://pkg.go.dev/github.com/okta/okta-jwt-verifier-golang",
+    "https://pypi.org/project/okta/",
+    "https://www.npmjs.com/package/@okta",
+    "https://developer.okta.com/docs/concepts/okta-organizations/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts org domains *.okta.com, *.okta-emea.com, *.oktapreview.com from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch) and in @okta/okta-sdk-nodejs; env prefix from convention"
+  },
+  {
+   "id": "onesignal",
+   "name": "OneSignal",
+   "category": "notifications",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/OneSignal/onesignal-go-api"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@onesignal/node-onesignal"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "onesignal-python-api"
+    }
+   ],
+   "env_prefixes": [
+    "ONESIGNAL_"
+   ],
+   "hosts": [
+    "onesignal.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/OneSignal/onesignal-go-api",
+    "https://www.npmjs.com/package/@onesignal/node-onesignal",
+    "https://pypi.org/project/onesignal-python-api/",
+    "https://documentation.onesignal.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.onesignal.com; env prefix from convention"
+  },
+  {
+   "id": "onfido",
+   "name": "Onfido",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@onfido/api"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "onfido-python"
+    }
+   ],
+   "env_prefixes": [
+    "ONFIDO_"
+   ],
+   "hosts": [
+    "onfido.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/@onfido/api",
+    "https://pypi.org/project/onfido-python/",
+    "https://documentation.onfido.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.eu.onfido.com; env prefix from convention; identity verification (KYC); deprecated npm package onfido left out"
+  },
+  {
+   "id": "openai",
+   "name": "OpenAI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/openai/openai-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/sashabaranov/go-openai"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "openai"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "openai"
+    }
+   ],
+   "env_prefixes": [
+    "OPENAI_"
+   ],
+   "hosts": [
+    "openai.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/openai/openai-go/v3/@latest",
+    "https://proxy.golang.org/github.com/sashabaranov/go-openai/@latest",
+    "https://registry.npmjs.org/openai",
+    "https://pypi.org/pypi/openai/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org (sashabaranov/go-openai is community but dominant), registry.npmjs.org and pypi.org; hosts api.openai.com, us.api.openai.com, mtls.api.openai.com and env OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_ORG_ID, OPENAI_PROJECT_ID, OPENAI_WEBHOOK_SECRET read from the openai npm source; note the same SDK and OPENAI_BASE_URL also serve Azure, Bedrock and OpenAI-compatible endpoints"
+  },
+  {
+   "id": "openrouter",
+   "name": "OpenRouter",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@openrouter/sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "openrouter"
+    }
+   ],
+   "env_prefixes": [
+    "OPENROUTER_"
+   ],
+   "hosts": [
+    "openrouter.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@openrouter/sdk",
+    "https://pypi.org/pypi/openrouter/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); openrouter.ai/api plus us./eu. regional hosts; OPENROUTER_API_KEY."
+  },
+  {
+   "id": "oracle-cloud",
+   "name": "Oracle Cloud Infrastructure",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/oracle/oci-go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "oci-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "oci"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "oraclecloud.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/oracle/oci-go-sdk/@latest",
+    "https://registry.npmjs.org/oci-sdk",
+    "https://pypi.org/pypi/oci/json",
+    "https://raw.githubusercontent.com/oracle/oci-go-sdk/master/common/common.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; *.oraclecloud.com endpoints from oci-go-sdk source; OCI_ env names exist in the SDK but are left out because OCI_ also means Open Container Initiative."
+  },
+  {
+   "id": "ovhcloud",
+   "name": "OVHcloud",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/ovh/go-ovh"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@ovhcloud/node-ovh"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "ovh"
+    }
+   ],
+   "env_prefixes": [
+    "OVH_"
+   ],
+   "hosts": [
+    "ovh.com",
+    "ovhcloud.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/ovh/go-ovh/@latest",
+    "https://registry.npmjs.org/@ovhcloud/node-ovh",
+    "https://pypi.org/pypi/ovh/json",
+    "https://raw.githubusercontent.com/ovh/go-ovh/master/ovh/ovh.go",
+    "https://raw.githubusercontent.com/ovh/go-ovh/master/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; eu.api.ovh.com, ca.api.ovh.com, api.us.ovhcloud.com and OVH_ENDPOINT/OVH_APPLICATION_KEY from OVH's go-ovh and python-ovh source."
+  },
+  {
+   "id": "paddle",
+   "name": "Paddle",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/PaddleHQ/paddle-go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@paddle/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "paddle-python-sdk"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "paddle.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/PaddleHQ/paddle-go-sdk",
+    "https://pypi.org/project/paddle-python-sdk/",
+    "https://www.npmjs.com/package/@paddle",
+    "https://developer.paddle.com/api-reference/overview"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.paddle.com and sandbox-api.paddle.com; env prefix left empty: PADDLE_ is also used by the unrelated PaddlePaddle ML framework"
+  },
+  {
+   "id": "pay-nl",
+   "name": "Pay.nl",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "paynl-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "PAYNL_"
+   ],
+   "hosts": [
+    "pay.nl"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/paynl-sdk",
+    "https://developer.pay.nl/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), rest.pay.nl and connect.pay.nl; env prefix from convention; npm package published from the paynl GitHub org"
+  },
+  {
+   "id": "paypal",
+   "name": "PayPal (incl. Braintree)",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/plutov/paypal"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@paypal/"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "braintree"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "braintree-web"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "paypal-server-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "paypalrestsdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "braintree"
+    }
+   ],
+   "env_prefixes": [
+    "PAYPAL_",
+    "BRAINTREE_"
+   ],
+   "hosts": [
+    "paypal.com",
+    "braintreegateway.com",
+    "braintree-api.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/plutov/paypal",
+    "https://www.npmjs.com/package/braintree",
+    "https://www.npmjs.com/package/braintree-web",
+    "https://pypi.org/project/paypal-server-sdk/",
+    "https://pypi.org/project/paypalrestsdk/",
+    "https://pypi.org/project/braintree/",
+    "https://www.npmjs.com/package/@paypal",
+    "https://developer.paypal.com/api/rest/",
+    "https://developer.paypal.com/braintree/docs/reference/overview"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api-m.paypal.com, api.braintreegateway.com, payments.braintree-api.com; env prefix from convention; Braintree is a PayPal service with its own SDKs and hosts, kept in this entry; github.com/plutov/paypal is community but the dominant Go client; paypalrestsdk is archived but still widely used"
+  },
+  {
+   "id": "perplexity",
+   "name": "Perplexity",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@perplexity-ai/perplexity_ai"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "perplexityai"
+    }
+   ],
+   "env_prefixes": [
+    "PERPLEXITY_API_KEY",
+    "PERPLEXITY_BASE_URL"
+   ],
+   "hosts": [
+    "perplexity.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@perplexity-ai/perplexity_ai",
+    "https://pypi.org/pypi/perplexityai/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.perplexity.ai; full env names because 'perplexity' is also an ML metric name."
+  },
+  {
+   "id": "pinecone",
+   "name": "Pinecone",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/pinecone-io/go-pinecone"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@pinecone-database/pinecone"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "pinecone"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "pinecone-client"
+    }
+   ],
+   "env_prefixes": [
+    "PINECONE_"
+   ],
+   "hosts": [
+    "pinecone.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/pinecone-io/go-pinecone/@latest",
+    "https://registry.npmjs.org/@pinecone-database/pinecone",
+    "https://pypi.org/pypi/pinecone/json",
+    "https://pypi.org/pypi/pinecone-client/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.pinecone.io and *.pinecone.io data hosts; pypi pinecone-client is deprecated (renamed to pinecone) but kept because many projects still pin it."
+  },
+  {
+   "id": "pipedrive",
+   "name": "Pipedrive",
+   "category": "CRM",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "pipedrive"
+    }
+   ],
+   "env_prefixes": [
+    "PIPEDRIVE_"
+   ],
+   "hosts": [
+    "pipedrive.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/pipedrive",
+    "https://developers.pipedrive.com/docs/api/v1"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.pipedrive.com and oauth.pipedrive.com; env prefix from convention"
+  },
+  {
+   "id": "plaid",
+   "name": "Plaid",
+   "category": "banking",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/plaid/plaid-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "plaid"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "plaid-python"
+    }
+   ],
+   "env_prefixes": [
+    "PLAID_"
+   ],
+   "hosts": [
+    "plaid.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/plaid/plaid-go",
+    "https://www.npmjs.com/package/plaid",
+    "https://pypi.org/project/plaid-python/",
+    "https://plaid.com/docs/api/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), production.plaid.com and sandbox.plaid.com; env prefix from convention"
+  },
+  {
+   "id": "planetscale",
+   "name": "PlanetScale",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/planetscale/planetscale-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@planetscale/database"
+    }
+   ],
+   "env_prefixes": [
+    "PLANETSCALE_"
+   ],
+   "hosts": [
+    "psdb.cloud",
+    "api.planetscale.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/planetscale/planetscale-go/@latest",
+    "https://registry.npmjs.org/@planetscale/database",
+    "https://raw.githubusercontent.com/planetscale/planetscale-go/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); *.connect.psdb.cloud and api.planetscale.com from planetscale-go source; PLANETSCALE_TOKEN/PLANETSCALE_ORG from planetscale-go."
+  },
+  {
+   "id": "plausible",
+   "name": "Plausible Analytics",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@plausible-analytics/tracker"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "plausible-tracker"
+    }
+   ],
+   "env_prefixes": [
+    "PLAUSIBLE_"
+   ],
+   "hosts": [
+    "plausible.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@plausible-analytics/tracker",
+    "https://registry.npmjs.org/plausible-tracker"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm (plausible-tracker is deprecated, kept as still widely used); plausible.io/api/event from @plausible-analytics/tracker; matches only the hosted service, self-hosted Plausible uses the customer's own host; PLAUSIBLE_ is a convention."
+  },
+  {
+   "id": "plivo",
+   "name": "Plivo",
+   "category": "messaging",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/plivo/plivo-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "plivo"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "plivo"
+    }
+   ],
+   "env_prefixes": [
+    "PLIVO_"
+   ],
+   "hosts": [
+    "plivo.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/plivo/plivo-go",
+    "https://www.npmjs.com/package/plivo",
+    "https://pypi.org/project/plivo/",
+    "https://www.plivo.com/docs/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.plivo.com; env prefix PLIVO_AUTH_ID/PLIVO_AUTH_TOKEN read by the official Node SDK"
+  },
+  {
+   "id": "posthog",
+   "name": "PostHog",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/posthog/posthog-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "posthog-js"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "posthog-node"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "posthog"
+    }
+   ],
+   "env_prefixes": [
+    "POSTHOG_"
+   ],
+   "hosts": [
+    "posthog.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/posthog/posthog-go/@latest",
+    "https://registry.npmjs.org/posthog-js",
+    "https://registry.npmjs.org/posthog-node",
+    "https://pypi.org/pypi/posthog/json",
+    "https://raw.githubusercontent.com/PostHog/posthog-go/master/config.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; us.i.posthog.com and app.posthog.com from posthog-go, posthog-js and posthog-node; POSTHOG_ is a convention."
+  },
+  {
+   "id": "postmark",
+   "name": "Postmark",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/mrz1836/postmark"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/keighl/postmark"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "postmark"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "postmark-python"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "postmarker"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Postmark"
+    }
+   ],
+   "env_prefixes": [
+    "POSTMARK_"
+   ],
+   "hosts": [
+    "postmarkapp.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/mrz1836/postmark/@latest",
+    "https://proxy.golang.org/github.com/keighl/postmark/@latest",
+    "https://registry.npmjs.org/postmark",
+    "https://pypi.org/pypi/postmark-python/json",
+    "https://pypi.org/pypi/postmarker/json",
+    "https://postmarkapp.com/developer/integration/official-libraries",
+    "https://postmarkapp.com/developer/integration/community-libraries",
+    "https://api.nuget.org/v3-flatcontainer/postmark/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org (ActiveCampaign/postmark.js, official) and pypi.org (postmark-python is the official SDK by ActiveCampaign; postmarker and both Go modules are community, on Postmark's community libraries page via web search; keighl/postmark last release 2019, mrz1836 is its maintained fork); host api.postmarkapp.com read from the postmark npm source; POSTMARK_ env prefix is a convention NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "prismic",
+   "name": "Prismic",
+   "category": "CMS",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@prismicio/"
+    }
+   ],
+   "env_prefixes": [
+    "PRISMIC_"
+   ],
+   "hosts": [
+    "prismic.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://raw.githubusercontent.com/prismicio/prismic-client/master/src/getRepositoryEndpoint.ts",
+    "https://registry.npmjs.org/@prismicio/client"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm; <repo>.cdn.prismic.io and images.prismic.io from @prismicio/client; PRISMIC_ is a convention."
+  },
+  {
+   "id": "pusher",
+   "name": "Pusher",
+   "category": "notifications",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/pusher/pusher-http-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "pusher"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "pusher-js"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "pusher"
+    }
+   ],
+   "env_prefixes": [
+    "PUSHER_"
+   ],
+   "hosts": [
+    "pusher.com",
+    "pusherapp.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/pusher/pusher-http-go",
+    "https://www.npmjs.com/package/pusher",
+    "https://www.npmjs.com/package/pusher-js",
+    "https://pypi.org/project/pusher/",
+    "https://pusher.com/docs/channels/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.pusherapp.com and api-{cluster}.pusher.com; env prefix from convention"
+  },
+  {
+   "id": "qdrant-cloud",
+   "name": "Qdrant Cloud",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "cloud.qdrant.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://raw.githubusercontent.com/qdrant/qdrant-client/master/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "Host *.cloud.qdrant.io from the official qdrant-client README (2026-10-29); SDKs and env left out because Qdrant is also self-hosted."
+  },
+  {
+   "id": "quickbooks",
+   "name": "QuickBooks Online (Intuit)",
+   "category": "accounting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "intuit-oauth"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "node-quickbooks"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "intuit-oauth"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "python-quickbooks"
+    }
+   ],
+   "env_prefixes": [
+    "QUICKBOOKS_",
+    "INTUIT_"
+   ],
+   "hosts": [
+    "intuit.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/intuit-oauth",
+    "https://www.npmjs.com/package/node-quickbooks",
+    "https://pypi.org/project/intuit-oauth/",
+    "https://pypi.org/project/python-quickbooks/",
+    "https://developer.intuit.com/app/developer/qbo/docs/develop"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), quickbooks.api.intuit.com, sandbox-quickbooks.api.intuit.com, oauth.platform.intuit.com (intuit-oauth); env prefix from convention; node-quickbooks and python-quickbooks are community but the dominant clients; intuit-oauth is Intuit's own"
+  },
+  {
+   "id": "railway",
+   "name": "Railway",
+   "category": "hosting",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "RAILWAY_"
+   ],
+   "hosts": [
+    "railway.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://raw.githubusercontent.com/railwayapp/cli/master/src/config.rs",
+    "https://raw.githubusercontent.com/railwayapp/cli/master/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "No official SDK; backboard.railway.com (GraphQL API) and RAILWAY_TOKEN / RAILWAY_API_TOKEN from Railway's own CLI source; railway.app left out (customer apps)."
+  },
+  {
+   "id": "raygun",
+   "name": "Raygun",
+   "category": "error tracking",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/MindscapeHQ/raygun4go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "raygun"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "raygun4js"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "raygun4py"
+    }
+   ],
+   "env_prefixes": [
+    "RAYGUN_"
+   ],
+   "hosts": [
+    "raygun.io",
+    "raygun.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!mindscape!h!q/raygun4go/@latest",
+    "https://registry.npmjs.org/raygun",
+    "https://registry.npmjs.org/raygun4js",
+    "https://pypi.org/pypi/raygun4py/json",
+    "https://raw.githubusercontent.com/MindscapeHQ/raygun4node/master/lib/raygun.transport.ts"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.raygun.io from raygun4node and raygun4js, raygun.com from the SDK READMEs and code; RAYGUN_ is a convention."
+  },
+  {
+   "id": "render",
+   "name": "Render",
+   "category": "hosting",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "RENDER_API_KEY"
+   ],
+   "hosts": [
+    "render.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/render-oss/cli/@latest"
+   ],
+   "checked": "2026-10-29",
+   "review": "No official SDK; api.render.com and RENDER_API_KEY from Render's own CLI (render-oss/cli) source; RENDER is a common word, so the full variable name only; onrender.com left out (customer apps)."
+  },
+  {
+   "id": "replicate",
+   "name": "Replicate",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/replicate/replicate-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "replicate"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "replicate"
+    }
+   ],
+   "env_prefixes": [
+    "REPLICATE_API_TOKEN",
+    "REPLICATE_BASE_URL",
+    "REPLICATE_WEBHOOK_SIGNING_SECRET"
+   ],
+   "hosts": [
+    "replicate.com",
+    "replicate.delivery"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/replicate/replicate-go/@latest",
+    "https://registry.npmjs.org/replicate",
+    "https://pypi.org/pypi/replicate/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.replicate.com, streaming.api.replicate.com and replicate.delivery (output files); full env names because 'replicate' is a common word."
+  },
+  {
+   "id": "resend",
+   "name": "Resend",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/resend/resend-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "resend"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "resend"
+    }
+   ],
+   "env_prefixes": [
+    "RESEND_API_KEY"
+   ],
+   "hosts": [
+    "resend.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/resend/resend-go",
+    "https://www.npmjs.com/package/resend",
+    "https://pypi.org/project/resend/",
+    "https://resend.com/docs"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.resend.com; env prefix only the full variable RESEND_API_KEY, which the official Node SDK reads (RESEND is a common word)"
+  },
+  {
+   "id": "rollbar",
+   "name": "Rollbar",
+   "category": "error tracking",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/rollbar/rollbar-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "rollbar"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "rollbar"
+    }
+   ],
+   "env_prefixes": [
+    "ROLLBAR_"
+   ],
+   "hosts": [
+    "rollbar.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/rollbar/rollbar-go/@latest",
+    "https://registry.npmjs.org/rollbar",
+    "https://pypi.org/pypi/rollbar/json",
+    "https://raw.githubusercontent.com/rollbar/rollbar-go/master/rollbar.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.rollbar.com from rollbar-go and the rollbar npm code; ROLLBAR_ is a convention."
+  },
+  {
+   "id": "s3",
+   "name": "S3-compatible storage",
+   "category": "storage",
+   "kind": "protocol",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/aws/aws-sdk-go-v2/service/s3"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/minio/minio-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@aws-sdk/client-s3"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@aws-sdk/lib-storage"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@aws-sdk/s3-request-presigner"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "minio"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "minio"
+    }
+   ],
+   "env_prefixes": [
+    "S3_"
+   ],
+   "hosts": [],
+   "images": [],
+   "internal_engines": [
+    "minio"
+   ],
+   "resolved_by": [
+    "aws"
+   ],
+   "sources": [
+    "https://proxy.golang.org/github.com/aws/aws-sdk-go-v2/service/s3/@latest",
+    "https://proxy.golang.org/github.com/minio/minio-go/v7/@latest",
+    "https://registry.npmjs.org/@aws-sdk/client-s3",
+    "https://registry.npmjs.org/@aws-sdk/lib-storage",
+    "https://registry.npmjs.org/@aws-sdk/s3-request-presigner",
+    "https://registry.npmjs.org/minio",
+    "https://pypi.org/pypi/minio/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org and pypi.org (MinIO's own JS and Python S3 clients added, S3-only AWS JS helpers added); S3_ prefix is a convention; these SDK names overlap with the aws entry by design, see notes"
+  },
+  {
+   "id": "salesforce",
+   "name": "Salesforce",
+   "category": "CRM",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "jsforce"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "simple-salesforce"
+    }
+   ],
+   "env_prefixes": [
+    "SALESFORCE_"
+   ],
+   "hosts": [
+    "salesforce.com",
+    "force.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/jsforce",
+    "https://pypi.org/project/simple-salesforce/",
+    "https://developer.salesforce.com/docs/atlas.en-us.identityImplGuide.meta/identityImplGuide/domain_name_app_url_changes.htm"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts MyDomainName.my.salesforce.com, login.salesforce.com and *.force.com from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch) and in simple-salesforce; env prefix from convention; jsforce and simple-salesforce are community but the dominant clients"
+  },
+  {
+   "id": "sanity",
+   "name": "Sanity",
+   "category": "CMS",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@sanity/client"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "sanity.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@sanity/client",
+    "https://raw.githubusercontent.com/sanity-io/client/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against npm (not the @sanity/ scope: it includes UI and tooling packages that do not call Sanity); api.sanity.io and apicdn.sanity.io from @sanity/client; SANITY is a common word and no specific variable was verified, so no env prefix."
+  },
+  {
+   "id": "scaleway",
+   "name": "Scaleway",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/scaleway/scaleway-sdk-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@scaleway/sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@scaleway/sdk-client"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "scaleway"
+    }
+   ],
+   "env_prefixes": [
+    "SCW_"
+   ],
+   "hosts": [
+    "scaleway.com",
+    "scw.cloud"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/scaleway/scaleway-sdk-go/@latest",
+    "https://registry.npmjs.org/@scaleway/sdk",
+    "https://registry.npmjs.org/@scaleway/sdk-client",
+    "https://pypi.org/pypi/scaleway/json",
+    "https://raw.githubusercontent.com/scaleway/scaleway-sdk-go/master/README.md",
+    "https://raw.githubusercontent.com/scaleway/scaleway-sdk-go/master/scw/client.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; api.scaleway.com and s3.fr-par.scw.cloud from scaleway-sdk-go source; SCW_ (SCW_ACCESS_KEY, SCW_SECRET_KEY) from the scaleway-sdk-go README."
+  },
+  {
+   "id": "segment",
+   "name": "Segment (Twilio)",
+   "category": "analytics",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/segmentio/analytics-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@segment/analytics-node"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@segment/analytics-next"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "segment-analytics-python"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "analytics-python"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "segment.io",
+    "segment.com",
+    "segmentapis.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/segmentio/analytics-go/@latest",
+    "https://registry.npmjs.org/@segment/analytics-node",
+    "https://registry.npmjs.org/@segment/analytics-next",
+    "https://pypi.org/pypi/segment-analytics-python/json",
+    "https://pypi.org/pypi/analytics-python/json",
+    "https://raw.githubusercontent.com/segmentio/analytics-go/master/analytics.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI (exact names only: the segmentio org also publishes unrelated libraries such as kafka-go; analytics-python is the deprecated name, still widely used); api.segment.io, cdn.segment.com and events.eu1.segmentapis.com from the SDK code; SEGMENT is a common word, so no env prefix."
+  },
+  {
+   "id": "sendgrid",
+   "name": "SendGrid",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/sendgrid/sendgrid-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@sendgrid/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "sendgrid"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "SendGrid"
+    }
+   ],
+   "env_prefixes": [
+    "SENDGRID_"
+   ],
+   "hosts": [
+    "sendgrid.com",
+    "sendgrid.net"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/sendgrid/sendgrid-go/@latest",
+    "https://registry.npmjs.org/@sendgrid/client",
+    "https://pypi.org/pypi/sendgrid/json",
+    "https://www.twilio.com/docs/sendgrid/for-developers/sending-email/integrating-with-the-smtp-api",
+    "https://api.nuget.org/v3-flatcontainer/sendgrid/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org and pypi.org; hosts api.sendgrid.com and api.eu.sendgrid.com and env SENDGRID_API_KEY read from @sendgrid/client source; smtp.sendgrid.net from SendGrid's SMTP integration docs (via web search); the SDK's Twilio auth mode uses email.twilio.com, left to the twilio entry NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "sentry",
+   "name": "Sentry",
+   "category": "error tracking",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/getsentry/sentry-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@sentry/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "sentry-sdk"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Sentry"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Sentry.*"
+    }
+   ],
+   "env_prefixes": [
+    "SENTRY_"
+   ],
+   "hosts": [
+    "sentry.io",
+    "sentry-cdn.com"
+   ],
+   "images": [
+    "getsentry/sentry-cli"
+   ],
+   "sources": [
+    "https://proxy.golang.org/github.com/getsentry/sentry-go/@latest",
+    "https://registry.npmjs.org/@sentry/browser",
+    "https://registry.npmjs.org/@sentry/cli",
+    "https://pypi.org/pypi/sentry-sdk/json",
+    "https://docs.sentry.io/organization/data-storage-location/",
+    "https://hub.docker.com/v2/repositories/getsentry/sentry-cli/",
+    "https://api.nuget.org/v3-flatcontainer/sentry/index.json",
+    "https://api.nuget.org/v3-flatcontainer/sentry.aspnetcore/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org and pypi.org; ingest hosts o<n>.ingest.sentry.io and o<n>.ingest.us.sentry.io and browser.sentry-cdn.com read from @sentry/browser source, o<n>.ingest.de.sentry.io from docs.sentry.io data-storage-location (via web search), all covered by sentry.io; env SENTRY_DSN, SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL read from @sentry/cli source; image checked on Docker Hub; self-hosted Sentry DSNs point at the customer's own host NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "sinch",
+   "name": "Sinch",
+   "category": "messaging",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@sinch/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "sinch"
+    }
+   ],
+   "env_prefixes": [
+    "SINCH_"
+   ],
+   "hosts": [
+    "sinch.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pypi.org/project/sinch/",
+    "https://www.npmjs.com/package/@sinch",
+    "https://developers.sinch.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), {region}.sms.api.sinch.com, verification.api.sinch.com and other *.api.sinch.com; env prefix from convention"
+  },
+  {
+   "id": "slack",
+   "name": "Slack",
+   "category": "messaging",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/slack-go/slack"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@slack/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "slack-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "slack-bolt"
+    }
+   ],
+   "env_prefixes": [
+    "SLACK_"
+   ],
+   "hosts": [
+    "slack.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/slack-go/slack",
+    "https://pypi.org/project/slack-sdk/",
+    "https://pypi.org/project/slack-bolt/",
+    "https://www.npmjs.com/package/@slack",
+    "https://docs.slack.dev/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), slack.com/api and files.slack.com (webhooks on hooks.slack.com); env prefix from convention; github.com/slack-go/slack is community but the dominant Go client"
+  },
+  {
+   "id": "smtp",
+   "name": "Email over SMTP",
+   "category": "email",
+   "kind": "protocol",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "nodemailer"
+    }
+   ],
+   "env_prefixes": [
+    "SMTP_"
+   ],
+   "hosts": [],
+   "images": [],
+   "internal_engines": [],
+   "resolved_by": [],
+   "sources": [
+    "https://registry.npmjs.org/nodemailer"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDK checked against registry.npmjs.org (nodemailer 10.x, active); SMTP_ prefix is a convention; Go and Python use the standard library for SMTP so no package is listed for them"
+  },
+  {
+   "id": "snowflake",
+   "name": "Snowflake",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/snowflakedb/gosnowflake"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "snowflake-sdk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "snowflake-connector-python"
+    }
+   ],
+   "env_prefixes": [
+    "SNOWFLAKE_HOME",
+    "SNOWFLAKE_DEFAULT_CONNECTION_NAME"
+   ],
+   "hosts": [
+    "snowflakecomputing.com",
+    "snowflakecomputing.cn"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/snowflakedb/gosnowflake/@latest",
+    "https://registry.npmjs.org/snowflake-sdk",
+    "https://pypi.org/pypi/snowflake-connector-python/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); *.snowflakecomputing.com (and .cn) from snowflake-sdk; env given as full names because SNOWFLAKE_ is also used by Snowflake-ID generators."
+  },
+  {
+   "id": "sparkpost",
+   "name": "SparkPost",
+   "category": "email",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/SparkPost/gosparkpost"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "sparkpost"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "sparkpost"
+    }
+   ],
+   "env_prefixes": [
+    "SPARKPOST_"
+   ],
+   "hosts": [
+    "sparkpost.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/SparkPost/gosparkpost",
+    "https://www.npmjs.com/package/sparkpost",
+    "https://pypi.org/project/sparkpost/",
+    "https://developers.sparkpost.com/api/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.sparkpost.com; env prefix from convention; official SDKs are stale (last releases 2019-2021) but still the official clients"
+  },
+  {
+   "id": "square",
+   "name": "Square",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/square/square-go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "square"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "squareup"
+    }
+   ],
+   "env_prefixes": [],
+   "hosts": [
+    "squareup.com",
+    "squareupsandbox.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/square/square-go-sdk",
+    "https://www.npmjs.com/package/square",
+    "https://pypi.org/project/squareup/",
+    "https://developer.squareup.com/docs"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), connect.squareup.com and connect.squareupsandbox.com; env prefix left empty: SQUARE is a common word"
+  },
+  {
+   "id": "stability",
+   "name": "Stability AI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "STABILITY_KEY",
+    "STABILITY_HOST",
+    "STABILITY_API_KEY"
+   ],
+   "hosts": [
+    "stability.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://pypi.org/pypi/stability-sdk/json",
+    "https://raw.githubusercontent.com/Stability-AI/stability-sdk/main/README.md"
+   ],
+   "checked": "2026-10-29",
+   "review": "stability.ai (grpc.stability.ai, platform.stability.ai) and STABILITY_KEY/STABILITY_HOST from the official stability-sdk source on PyPI; that SDK (gRPC, last release 2024-05) is not listed as an SDK; api.stability.ai and STABILITY_API_KEY only from third-party docs via web search."
+  },
+  {
+   "id": "statsig",
+   "name": "Statsig",
+   "category": "feature flags",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/statsig-io/go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@statsig/"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "statsig-node"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "statsig"
+    }
+   ],
+   "env_prefixes": [
+    "STATSIG_"
+   ],
+   "hosts": [
+    "statsig.com",
+    "statsigapi.net",
+    "statsigcdn.com",
+    "featureassets.org",
+    "prodregistryv2.org"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/statsig-io/go-sdk/@latest",
+    "https://registry.npmjs.org/statsig-node",
+    "https://pypi.org/pypi/statsig/json",
+    "https://raw.githubusercontent.com/statsig-io/go-sdk/main/transport.go",
+    "https://registry.npmjs.org/@statsig/js-client"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy, npm and PyPI; statsigapi.net, api.statsigcdn.com, featureassets.org and prodregistryv2.org (Statsig's default network endpoints) from go-sdk, statsig-node and @statsig/js-client; STATSIG_ is a convention."
+  },
+  {
+   "id": "storyblok",
+   "name": "Storyblok",
+   "category": "CMS",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "storyblok-js-client"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@storyblok/"
+    }
+   ],
+   "env_prefixes": [
+    "STORYBLOK_"
+   ],
+   "hosts": [
+    "storyblok.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/storyblok-js-client",
+    "https://raw.githubusercontent.com/storyblok/storyblok-js-client/main/README.md",
+    "https://registry.npmjs.org/@storyblok/js",
+    "https://registry.npmjs.org/@storyblok/react"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm; api.storyblok.com and regional api-us/api-ca/api-ap.storyblok.com from storyblok-js-client; STORYBLOK_ is a convention."
+  },
+  {
+   "id": "stripe",
+   "name": "Stripe",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/stripe/stripe-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "stripe"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@stripe/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "stripe"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Stripe.net"
+    }
+   ],
+   "env_prefixes": [
+    "STRIPE_"
+   ],
+   "hosts": [
+    "stripe.com"
+   ],
+   "images": [
+    "stripe/stripe-cli"
+   ],
+   "sources": [
+    "https://proxy.golang.org/github.com/stripe/stripe-go/v83/@latest",
+    "https://registry.npmjs.org/stripe",
+    "https://registry.npmjs.org/@stripe/stripe-js",
+    "https://registry.npmjs.org/@stripe/react-stripe-js",
+    "https://pypi.org/pypi/stripe/json",
+    "https://docs.stripe.com/security/guide",
+    "https://hub.docker.com/v2/repositories/stripe/stripe-cli/",
+    "https://api.nuget.org/v3-flatcontainer/stripe.net/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org (@stripe scope added: stripe-js, react-stripe-js from the stripe GitHub org) and pypi.org; hosts api.stripe.com, files.stripe.com, connect.stripe.com, meter-events.stripe.com read from the stripe npm source and js.stripe.com from @stripe/stripe-js, hooks.stripe.com from Stripe's security guide (via web search), all covered by stripe.com; STRIPE_ prefix is a convention, the SDKs read no env vars; image checked on Docker Hub NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "stytch",
+   "name": "Stytch",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/stytchauth/stytch-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "stytch"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@stytch/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "stytch"
+    }
+   ],
+   "env_prefixes": [
+    "STYTCH_"
+   ],
+   "hosts": [
+    "stytch.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/stytchauth/stytch-go",
+    "https://www.npmjs.com/package/stytch",
+    "https://pypi.org/project/stytch/",
+    "https://www.npmjs.com/package/@stytch",
+    "https://stytch.com/docs"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.stytch.com and test.stytch.com; env prefix from convention"
+  },
+  {
+   "id": "supabase",
+   "name": "Supabase",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/supabase-community/supabase-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@supabase/supabase-js"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@supabase/ssr"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "supabase"
+    }
+   ],
+   "env_prefixes": [
+    "SUPABASE_"
+   ],
+   "hosts": [
+    "supabase.co",
+    "supabase.in"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/supabase-community/supabase-go/@latest",
+    "https://registry.npmjs.org/@supabase/supabase-js",
+    "https://registry.npmjs.org/@supabase/ssr",
+    "https://pypi.org/pypi/supabase/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); project hosts *.supabase.co (and legacy *.supabase.in) from supabase-js; SUPABASE_URL/SUPABASE_KEY from supabase-py; Go module is from the supabase-community org (the de facto Go client); Supabase can be self-hosted but SDK use almost always means the hosted service."
+  },
+  {
+   "id": "taxjar",
+   "name": "TaxJar",
+   "category": "tax",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/taxjar/taxjar-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "taxjar"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "taxjar"
+    }
+   ],
+   "env_prefixes": [
+    "TAXJAR_"
+   ],
+   "hosts": [
+    "taxjar.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/taxjar/taxjar-go",
+    "https://www.npmjs.com/package/taxjar",
+    "https://pypi.org/project/taxjar/",
+    "https://developers.taxjar.com/api/reference/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.taxjar.com and api.sandbox.taxjar.com; env prefix from convention; TaxJar is owned by Stripe but has its own domains and SDKs"
+  },
+  {
+   "id": "teamleader",
+   "name": "Teamleader Focus",
+   "category": "CRM",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@teamleader/api"
+    }
+   ],
+   "env_prefixes": [
+    "TEAMLEADER_"
+   ],
+   "hosts": [
+    "teamleader.eu"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/@teamleader/api",
+    "https://developer.teamleader.eu/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.teamleader.eu; env prefix from convention"
+  },
+  {
+   "id": "telegram",
+   "name": "Telegram Bot API",
+   "category": "messaging",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/go-telegram-bot-api/telegram-bot-api"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/go-telegram/bot"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "node-telegram-bot-api"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "telegraf"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "grammy"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "python-telegram-bot"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "aiogram"
+    }
+   ],
+   "env_prefixes": [
+    "TELEGRAM_"
+   ],
+   "hosts": [
+    "telegram.org"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/go-telegram-bot-api/telegram-bot-api",
+    "https://pkg.go.dev/github.com/go-telegram/bot",
+    "https://www.npmjs.com/package/node-telegram-bot-api",
+    "https://www.npmjs.com/package/telegraf",
+    "https://www.npmjs.com/package/grammy",
+    "https://pypi.org/project/python-telegram-bot/",
+    "https://pypi.org/project/aiogram/",
+    "https://core.telegram.org/bots/api"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts api.telegram.org/bot<token>/ from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch) and in node-telegram-bot-api; env prefix from convention; no official SDKs; the listed community libraries are the dominant ones per ecosystem and only talk to Telegram"
+  },
+  {
+   "id": "tink",
+   "name": "Tink",
+   "category": "banking",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "tink.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://docs.tink.com/",
+    "https://apis.io/apis/tink-com/tink-com-oauth-api/"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.tink.com and api.us.tink.com from a mirror of Tink's OpenAPI spec found by web search; env prefix left empty: TINK_ also matches Google's Tink crypto library; DOUBT: host not confirmed on docs.tink.com itself; no official server SDK"
+  },
+  {
+   "id": "together",
+   "name": "Together AI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "together-ai"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "together"
+    }
+   ],
+   "env_prefixes": [
+    "TOGETHER_API_KEY",
+    "TOGETHER_BASE_URL"
+   ],
+   "hosts": [
+    "api.together.ai",
+    "together.xyz"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/together-ai",
+    "https://pypi.org/pypi/together/json",
+    "https://registry.npmjs.org/together-ai/0.9.0"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.together.ai in current SDKs, api.together.xyz in together-ai 0.9.0 (legacy); together.ai itself is also the marketing site, so only the API subdomain; common-word brand, so full env names."
+  },
+  {
+   "id": "tomtom",
+   "name": "TomTom",
+   "category": "maps",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@tomtom-org/maps-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@tomtom-international/web-sdk-maps"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@tomtom-international/web-sdk-services"
+    }
+   ],
+   "env_prefixes": [
+    "TOMTOM_"
+   ],
+   "hosts": [
+    "tomtom.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@tomtom-org/maps-sdk",
+    "https://registry.npmjs.org/@tomtom-international/web-sdk-maps",
+    "https://registry.npmjs.org/@tomtom-international/web-sdk-services"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm (@tomtom-international/web-sdk-* are deprecated in favour of @tomtom-org/maps-sdk, kept as still widely used); api.tomtom.com from @tomtom-org/maps-sdk; TOMTOM_ is a convention."
+  },
+  {
+   "id": "truelayer",
+   "name": "TrueLayer",
+   "category": "banking",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/TrueLayer/truelayer-signing/go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "truelayer-signing"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "truelayer-signing"
+    }
+   ],
+   "env_prefixes": [
+    "TRUELAYER_"
+   ],
+   "hosts": [
+    "truelayer.com",
+    "truelayer-sandbox.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/TrueLayer/truelayer-signing/go",
+    "https://www.npmjs.com/package/truelayer-signing",
+    "https://pypi.org/project/truelayer-signing/",
+    "https://docs.truelayer.com/docs/test-payments-in-sandbox",
+    "https://docs.truelayer.com/openapi/authentication-server.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts api.truelayer.com, auth.truelayer.com and *.truelayer-sandbox.com from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix from convention; the official SDKs on these registries are the request-signing libraries"
+  },
+  {
+   "id": "turso",
+   "name": "Turso",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@tursodatabase/api"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@tursodatabase/serverless"
+    }
+   ],
+   "env_prefixes": [
+    "TURSO_"
+   ],
+   "hosts": [
+    "turso.io",
+    "api.turso.tech"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@tursodatabase/api",
+    "https://registry.npmjs.org/@tursodatabase/serverless"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); *.turso.io database hosts and api.turso.tech platform API from @tursodatabase/api; TURSO_DATABASE_URL/TURSO_AUTH_TOKEN from @tursodatabase/serverless; @libsql/client left out (also used for local and self-hosted libSQL)."
+  },
+  {
+   "id": "twilio",
+   "name": "Twilio",
+   "category": "messaging",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/twilio/twilio-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "twilio"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "twilio"
+    },
+    {
+     "ecosystem": "nuget",
+     "name": "Twilio"
+    }
+   ],
+   "env_prefixes": [
+    "TWILIO_"
+   ],
+   "hosts": [
+    "twilio.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/twilio/twilio-go/@latest",
+    "https://registry.npmjs.org/twilio",
+    "https://pypi.org/pypi/twilio/json",
+    "https://api.nuget.org/v3-flatcontainer/twilio/index.json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against proxy.golang.org, registry.npmjs.org and pypi.org; hosts api.twilio.com and the per-product <product>.twilio.com domains and env TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_REGION, TWILIO_EDGE read from the twilio npm source NuGet ids checked against api.nuget.org on 2026-11-11 (a name ending in .* is a family, each prefix confirmed through its members)."
+  },
+  {
+   "id": "upcloud",
+   "name": "UpCloud",
+   "category": "cloud",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/UpCloudLtd/upcloud-go-api"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "upcloud-api"
+    }
+   ],
+   "env_prefixes": [
+    "UPCLOUD_"
+   ],
+   "hosts": [
+    "upcloud.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/!up!cloud!ltd/upcloud-go-api/@latest",
+    "https://pypi.org/pypi/upcloud-api/json",
+    "https://raw.githubusercontent.com/UpCloudLtd/upcloud-go-api/main/upcloud/client/client.go"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go proxy and PyPI; api.upcloud.com from upcloud-go-api and upcloud-api; UPCLOUD_USERNAME/UPCLOUD_TOKEN from upcloud-api."
+  },
+  {
+   "id": "uploadthing",
+   "name": "UploadThing",
+   "category": "storage",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "uploadthing"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@uploadthing/"
+    }
+   ],
+   "env_prefixes": [
+    "UPLOADTHING_"
+   ],
+   "hosts": [
+    "uploadthing.com",
+    "ufs.sh",
+    "utfs.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/uploadthing",
+    "https://registry.npmjs.org/@uploadthing/react"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm; api.uploadthing.com, ingest.uploadthing.com, ufs.sh and utfs.io (file URLs) and UPLOADTHING_TOKEN from the uploadthing package code (docs.uploadthing.com not reachable)."
+  },
+  {
+   "id": "upstash",
+   "name": "Upstash",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/upstash/vector-go"
+    },
+    {
+     "ecosystem": "go",
+     "name": "github.com/upstash/qstash-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@upstash/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "upstash-redis"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "upstash-vector"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "qstash"
+    }
+   ],
+   "env_prefixes": [
+    "UPSTASH_"
+   ],
+   "hosts": [
+    "upstash.io"
+   ],
+   "images": [],
+   "sources": [
+    "https://proxy.golang.org/github.com/upstash/vector-go/@latest",
+    "https://proxy.golang.org/github.com/upstash/qstash-go/@latest",
+    "https://registry.npmjs.org/@upstash/",
+    "https://pypi.org/pypi/upstash-redis/json",
+    "https://pypi.org/pypi/upstash-vector/json",
+    "https://pypi.org/pypi/qstash/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); qstash.upstash.io in @upstash/qstash, database URLs come from UPSTASH_REDIS_REST_URL (*.upstash.io); every package in the @upstash npm scope is Upstash's client for its own services."
+  },
+  {
+   "id": "vercel",
+   "name": "Vercel",
+   "category": "hosting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "@vercel/sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@vercel/blob"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@vercel/analytics"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@vercel/speed-insights"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@vercel/edge-config"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@vercel/global-config"
+    }
+   ],
+   "env_prefixes": [
+    "VERCEL_"
+   ],
+   "hosts": [
+    "vercel.com",
+    "vercel-storage.com",
+    "vercel-scripts.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/@vercel/sdk",
+    "https://registry.npmjs.org/@vercel/blob",
+    "https://registry.npmjs.org/@vercel/analytics",
+    "https://registry.npmjs.org/@vercel/speed-insights",
+    "https://registry.npmjs.org/@vercel/edge-config",
+    "https://registry.npmjs.org/@vercel/global-config"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against npm (@vercel/edge-config is deprecated, renamed to @vercel/global-config, kept as still widely used; @vercel/kv and @vercel/postgres left out, they now front Upstash and Neon); api.vercel.com, blob.vercel-storage.com, va.vercel-scripts.com and VERCEL_OIDC_TOKEN from the package code; vercel.com docs not reachable; vercel.app left out (customer apps)."
+  },
+  {
+   "id": "viva-wallet",
+   "name": "Viva Wallet",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "VIVAWALLET_",
+    "VIVA_WALLET_"
+   ],
+   "hosts": [
+    "vivapayments.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://developer.viva.com/tutorials/",
+    "https://developer.viva.com/apis-for-payments/payment-api/"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.vivapayments.com, accounts.vivapayments.com and demo-* variants from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix from convention; no official SDK"
+  },
+  {
+   "id": "vonage",
+   "name": "Vonage (ex Nexmo)",
+   "category": "messaging",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/vonage/vonage-go-sdk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@vonage/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "vonage"
+    }
+   ],
+   "env_prefixes": [
+    "VONAGE_",
+    "NEXMO_"
+   ],
+   "hosts": [
+    "vonage.com",
+    "nexmo.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/vonage/vonage-go-sdk",
+    "https://pypi.org/project/vonage/",
+    "https://www.npmjs.com/package/@vonage",
+    "https://developer.vonage.com/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.nexmo.com, rest.nexmo.com, api-eu.vonage.com (@vonage/server-client); env prefix from convention; Go SDK is official but last released 2021"
+  },
+  {
+   "id": "voyage",
+   "name": "Voyage AI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "voyageai"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "voyageai"
+    }
+   ],
+   "env_prefixes": [
+    "VOYAGE_API_KEY"
+   ],
+   "hosts": [
+    "voyageai.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://registry.npmjs.org/voyageai",
+    "https://pypi.org/pypi/voyageai/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.voyageai.com; full env name because 'voyage' is a common word (prefix also covers VOYAGE_API_KEY_PATH); PyPI author e-mail is @voyageai.com."
+  },
+  {
+   "id": "weaviate-cloud",
+   "name": "Weaviate Cloud",
+   "category": "database",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "weaviate.cloud",
+    "weaviate.network"
+   ],
+   "images": [],
+   "sources": [
+    "https://pypi.org/pypi/weaviate-client/json",
+    "https://registry.npmjs.org/weaviate-client"
+   ],
+   "checked": "2026-10-29",
+   "review": "Hosts *.weaviate.cloud and *.weaviate.network from the official weaviate-client source (PyPI and npm, 2026-10-29); SDKs and WEAVIATE_ env left out because Weaviate is also self-hosted, so they do not prove the cloud service."
+  },
+  {
+   "id": "wise",
+   "name": "Wise",
+   "category": "payments",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "TRANSFERWISE_"
+   ],
+   "hosts": [
+    "wise.com",
+    "wise-sandbox.com",
+    "transferwise.tech"
+   ],
+   "images": [],
+   "sources": [
+    "https://docs.wise.com/guides/developer",
+    "https://docs.wise.com/guides/developer/environments/sandbox-v2-migration"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.wise.com, api.wise-sandbox.com and legacy sandbox api.sandbox.transferwise.tech from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix TRANSFERWISE_ by convention; WISE_ left out because WISE is a common word; no official SDK"
+  },
+  {
+   "id": "workos",
+   "name": "WorkOS",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/workos/workos-go"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "@workos-inc/"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "workos"
+    }
+   ],
+   "env_prefixes": [
+    "WORKOS_"
+   ],
+   "hosts": [
+    "workos.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/workos/workos-go",
+    "https://pypi.org/project/workos/",
+    "https://www.npmjs.com/package/@workos-inc",
+    "https://workos.com/docs/reference"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.workos.com; env prefix from convention"
+  },
+  {
+   "id": "xai",
+   "name": "xAI",
+   "category": "AI",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "pypi",
+     "name": "xai-sdk"
+    }
+   ],
+   "env_prefixes": [
+    "XAI_"
+   ],
+   "hosts": [
+    "x.ai"
+   ],
+   "images": [],
+   "sources": [
+    "https://pypi.org/pypi/xai-sdk/json"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against their registries on 2026-10-29; hosts and env names read from the default base URLs and env lookups in the official SDK source downloaded from those registries (provider doc sites were not reachable from this session); api.x.ai and management-api.x.ai; XAI_API_KEY and XAI_MANAGEMENT_KEY; no official npm or Go SDK (often used through the openai SDK)."
+  },
+  {
+   "id": "xero",
+   "name": "Xero",
+   "category": "accounting",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "npm",
+     "name": "xero-node"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "xero-python"
+    }
+   ],
+   "env_prefixes": [
+    "XERO_"
+   ],
+   "hosts": [
+    "xero.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://www.npmjs.com/package/xero-node",
+    "https://pypi.org/project/xero-python/",
+    "https://developer.xero.com/documentation/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts read from the official SDK source as published in the registry (provider docs sites unreachable from the sandbox), api.xero.com and identity.xero.com; env prefix from convention"
+  },
+  {
+   "id": "yousign",
+   "name": "Yousign",
+   "category": "e-signature",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "YOUSIGN_"
+   ],
+   "hosts": [
+    "yousign.app",
+    "yousign.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://developers.yousign.com/docs/environments-new",
+    "https://developers.yousign.com/docs/migration-from-our-api-v2"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.yousign.app and api-sandbox.yousign.app (v3), api.yousign.com (v2) from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix from convention; no official SDK"
+  },
+  {
+   "id": "yuki",
+   "name": "Yuki",
+   "category": "accounting",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [
+    "YUKI_"
+   ],
+   "hosts": [
+    "yukiworks.nl",
+    "yukiworks.be"
+   ],
+   "images": [],
+   "sources": [
+    "https://support.yuki.nl/en/support/solutions/articles/80000785891-example-of-soap-link-with-visual-studio-2005",
+    "https://developer.yukisoftware.com/apis",
+    "https://root.packagist.org/packages/maartendeblock/yuki-api-client"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts api.yukiworks.nl/ws/*.asmx from Yuki's own support article; api.yukiworks.be only from a third-party client, both found by web search; env prefix from convention; no SDK; Yuki's newer REST API (via Visma Connect) host not verified"
+  },
+  {
+   "id": "zendesk",
+   "name": "Zendesk",
+   "category": "support",
+   "kind": "provider",
+   "sdks": [
+    {
+     "ecosystem": "go",
+     "name": "github.com/nukosuke/go-zendesk"
+    },
+    {
+     "ecosystem": "npm",
+     "name": "node-zendesk"
+    },
+    {
+     "ecosystem": "pypi",
+     "name": "zenpy"
+    }
+   ],
+   "env_prefixes": [
+    "ZENDESK_"
+   ],
+   "hosts": [
+    "zendesk.com"
+   ],
+   "images": [],
+   "sources": [
+    "https://pkg.go.dev/github.com/nukosuke/go-zendesk",
+    "https://www.npmjs.com/package/node-zendesk",
+    "https://pypi.org/project/zenpy/",
+    "https://developer.zendesk.com/api-reference/"
+   ],
+   "checked": "2026-10-29",
+   "review": "SDKs checked against the Go module proxy, npm registry and PyPI on 2026-10-29; hosts {subdomain}.zendesk.com/api/v2 built in zenpy and named by connector docs found by web search; env prefix from convention; no official server SDK; listed SDKs are the dominant community clients"
+  },
+  {
+   "id": "zitadel-cloud",
+   "name": "ZITADEL Cloud",
+   "category": "identity",
+   "kind": "provider",
+   "sdks": [],
+   "env_prefixes": [],
+   "hosts": [
+    "zitadel.cloud"
+   ],
+   "images": [],
+   "sources": [
+    "https://zitadel.com/docs/guides/manage/cloud/instances",
+    "https://zitadel.com/docs/concepts/features/custom-domain"
+   ],
+   "checked": "2026-10-29",
+   "review": "no SDK; hosts instance domains [name][number].zitadel.cloud from the provider's docs as returned by web search (docs sites unreachable from the sandbox for direct fetch); env prefix left empty; no SDKs or env prefix on purpose: zitadel-go and ZITADEL_ are equally used against self-hosted ZITADEL, which is not this party"
+  }
+ ]
+}

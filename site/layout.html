@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if .Home}}Cernly docs{{else}}{{.Title}} | Cernly docs{{end}}</title>
+<meta name="description" content="{{.Description}}">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="{{.Canonical}}">
+{{if .MarkdownURL}}<link rel="alternate" type="text/markdown" href="{{.MarkdownURL}}">
+{{end}}<link rel="alternate" type="text/plain" title="llms.txt" href="/llms.txt">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/fonts.css">
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/base.css">
+<link rel="stylesheet" href="/style.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cernly">
+<meta property="og:title" content="{{.Title}}">
+<meta property="og:description" content="{{.Description}}">
+<meta property="og:url" content="{{.Canonical}}">
+<script type="application/ld+json">{{.JSONLD}}</script>
+</head>
+<body>
+<header class="top">
+  <a class="wordmark" href="/" aria-label="Cernly docs">
+    <svg class="mark" viewBox="0 0 48 48" aria-hidden="true">
+      <circle class="g" cx="10" cy="9" r="1.6"/><circle class="g" cx="18" cy="13" r="2.2"/>
+      <circle class="g" cx="26" cy="7" r="1.8"/><circle class="g" cx="35" cy="11" r="2"/>
+      <circle class="g" cx="14" cy="18" r="2"/><circle class="g" cx="30" cy="17" r="1.6"/>
+      <circle class="g" cx="23" cy="19" r="1.5"/><circle class="g" cx="39" cy="18" r="1.4"/>
+      <path class="b" d="M6 26H42" stroke-width="4" stroke-linecap="round"/>
+      <circle class="p" cx="24" cy="37.5" r="5.2"/>
+    </svg>
+    <span>ce<span class="r">r</span>nly</span><span class="label">docs</span>
+  </a>
+  <nav class="links"><a href="/llms.txt">llms.txt</a> <a href="https://github.com/cernly/cernly">GitHub</a></nav>
+</header>
+<div class="shell">
+<nav class="side" aria-label="Docs">
+{{range .Nav}}{{if .Pages}}  <p class="label">{{.Name}}</p>
+  <ul>{{range .Pages}}<li><a href="{{.Path}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a></li>{{end}}</ul>
+{{end}}{{end}}</nav>
+<main>
+{{.Body}}
+</main>
+</div>
+<footer>
+  <p>Cernly is open source under the Apache License 2.0. <a href="https://github.com/cernly/cernly">Source on GitHub</a>{{range .Project}} · <a href="{{.Path}}">{{.Title}}</a>{{end}}{{if .MarkdownURL}} · <a href="{{.MarkdownURL}}">This page in Markdown</a>{{end}}</p>
+  <p>No cookies, no tracking.</p>
+</footer>
+</body>
+</html>

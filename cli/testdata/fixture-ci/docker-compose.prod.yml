@@ -1,0 +1,3 @@
+services:
+  web:
+    image: ghcr.io/acme/web:${TAG:-latest}

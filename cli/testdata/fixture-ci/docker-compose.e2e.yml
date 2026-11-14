@@ -1,0 +1,5 @@
+services:
+  db:
+    image: postgres:17
+  mail:
+    image: axllent/mailpit:v1.20

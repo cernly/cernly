@@ -1,0 +1,61 @@
+# Release on a version tag (v0.1.0): binaries for Linux, macOS and Windows with
+# checksums on the GitHub release, and the image on ghcr.io. Plain go build,
+# no release tool to trust; actions pinned by commit, as in ci.yml.
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+      - name: tag matches pipeline.Version and server.json
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          v=$(sed -n 's/^const Version = "\([^"]*\)".*/\1/p' pipeline/pipeline.go)
+          test "v$v" = "$TAG" || { echo "tag $TAG but pipeline.Version is $v"; exit 1; }
+          test "$(jq -r .version server.json)" = "$v" &&
+            test "$(jq -r '.packages[0].identifier' server.json)" = "ghcr.io/cernly/cernly:$v" ||
+            { echo "server.json does not name version $v"; exit 1; }
+      - run: go vet ./... && go test ./...
+      - name: build
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir dist
+          for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            os=${t%/*}; arch=${t#*/}; ext=; [ "$os" = windows ] && ext=.exe
+            d="cernly_${TAG#v}_${os}_${arch}"
+            mkdir "$d"
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w" -o "$d/cernly$ext" ./cmd/cernly
+            cp LICENSE NOTICE README.md "$d/"
+            if [ "$os" = windows ]; then zip -qr "dist/$d.zip" "$d"; else tar -czf "dist/$d.tar.gz" "$d"; fi
+          done
+          (cd dist && sha256sum * > checksums.txt)
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag
+      - name: image
+        env:
+          TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          img=ghcr.io/${GITHUB_REPOSITORY,,}
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build -t "$img:${TAG#v}" -t "$img:latest" .
+          docker push "$img:${TAG#v}"
+          docker push "$img:latest"

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog">
+    <changeSet id="1" author="example">
+        <createTable tableName="orders">
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="customer_email" type="VARCHAR(320)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="total" type="BIGINT"/>
+        </createTable>
+        <createTable tableName="scratch">
+            <column name="id" type="INT"/>
+        </createTable>
+        <dropTable tableName="scratch"/>
+    </changeSet>
+</databaseChangeLog>

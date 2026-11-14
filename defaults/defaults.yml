@@ -1,0 +1,163 @@
+# Shipped defaults (https://cernly.dev/how/config/): what differs from repo to repo but has a sensible default. A repo's
+# .cernly.yml and the operator's settings will extend these (layers 2 and 3). How a tool itself works
+# (Compose merge rules, go.mod, GitHub Actions semantics) stays in code and is not configurable here.
+# File patterns are globs on a file's base name (path.Match), unless a key says otherwise.
+version: 2026.11.2
+
+# The largest file a plugin reads, in bytes (8 MiB); a larger file is reported as a location error.
+max_file_bytes: 8388608
+
+files:
+  compose: [compose.yml, compose.yaml, compose.*.yml, compose.*.yaml,
+            docker-compose.yml, docker-compose.yaml, docker-compose.*.yml, docker-compose.*.yaml]
+  dockerfile: [Dockerfile, Containerfile, Dockerfile.*, "*.Dockerfile", "*.dockerfile"]
+  caddyfile: [Caddyfile, Caddyfile.*, "*.Caddyfile", "*.caddyfile", "*.caddy"]
+  # Prisma schema files; the .prisma files of one folder are one schema.
+  prisma: ["*.prisma"]
+  # nginx configuration, by path (https://cernly.dev/how/plugins/). Only files that say nginx in their name or folder: conf.d/ and
+  # sites-available/ are Apache's layout too. Templates are rendered by the nginx image's envsubst.
+  # Traefik file configuration (https://cernly.dev/how/plugins/): routers in http.routers; labels are read from compose files.
+  traefik: ["**/traefik.yml", "**/traefik.yaml", "**/traefik.toml", "**/traefik/**/*.yml", "**/traefik/**/*.yaml", "**/traefik/**/*.toml"]
+  nginx: ["**/nginx.conf", "**/nginx.conf.template", "**/*.nginx", "**/*.nginx.conf", "**/nginx/**/*.conf", "**/nginx/**/*.conf.template"]
+  # SQL migrations and schema dumps (https://cernly.dev/how/plugins/). Found by content, not by folder: any tracked.sql file with
+  # statements that shape tables, outside skip_dirs. A set is the nearest folder named in set_dirs above the file,
+  # else the folder above a one-migration-per-folder file, else the file's folder. paths are the usual locations:
+  # a file there that cannot be read is reported. Down migrations are never applied.
+  sql_migrations:
+    paths: ["**/migrations/**/*.sql", "**/migration/**/*.sql", "**/migrate/**/*.sql", "**/schema/**/*.sql",
+            "**/schema.sql", "**/structure.sql"]
+    set_dirs: [migrations, migration, migrate, schema]
+    down: ["*.down.sql", "*_down.sql", "down.sql", "U[0-9]*__*.sql"]
+    skip_dirs: [testdata, fixtures, __fixtures__, test, tests, __tests__, e2e, examples]
+  # Example env files by name. Any other *.example counts only when its content is dotenv-shaped.
+  env_examples: [.env.example, env.example, "*.env.example", env.*.example, .env.*.example,
+                 .env.sample, env.sample, "*.env.sample", env.*.sample, .env.*.sample,
+                 .env.template, env.template, "*.env.template", env.*.template, .env.*.template,
+                 .env.dist, env.dist, "*.env.dist", env.*.dist, .env.*.dist]
+  env_examples_by_content: ["*.example"]
+  # Hook configuration that runs on a developer's machine (https://cernly.dev/how/catalogue/): folders and files, repo-relative.
+  hooks:
+    dirs: [.githooks, .husky]
+    skip_dirs: [.husky/_]
+    files: [lefthook.yml, .lefthook.yml, lefthook.yaml, .pre-commit-config.yaml]
+  # Folders never scanned, at any depth (vendored or generated code).
+  skip_dirs: [node_modules, vendor, .git, dist, .next, build, coverage, .turbo]
+
+# Image names that make a compose container a data store, and its engine: the full repository path is
+# tried first (mssql/server), then its last segment.
+engines:
+  postgres: postgres
+  postgis: postgres
+  timescaledb: postgres
+  timescaledb-ha: postgres
+  mysql: mysql
+  mariadb: mysql
+  redis: redis
+  valkey: redis
+  keydb: redis
+  redis-stack: redis
+  mongo: mongodb
+  mongodb: mongodb
+  minio: minio
+  clickhouse-server: other
+  elasticsearch: other
+  opensearch: other
+  rabbitmq: other
+  nats: other
+  kafka: other
+  meilisearch: other
+  typesense: other
+  qdrant: other
+  mssql/server: sqlserver
+  azure-sql-edge: sqlserver
+
+# Database drivers per ecosystem, and the engine they talk to (https://cernly.dev/how/map/): a service that
+# ships one while the repo describes no data store of that engine gets a finding to confirm or dismiss.
+# A driver never makes a data store. Embedded engines (H2, HSQLDB, SQLite, Derby) are left out: they keep
+# their data in the process or a local file, not in a store the repo would describe.
+drivers:
+  maven:
+    com.mysql:mysql-connector-j: mysql
+    mysql:mysql-connector-java: mysql
+    org.mariadb.jdbc:mariadb-java-client: mysql
+    org.postgresql:postgresql: postgres
+    org.postgresql:r2dbc-postgresql: postgres
+    com.microsoft.sqlserver:mssql-jdbc: sqlserver
+    com.oracle.database.jdbc:ojdbc8: oracle
+    com.oracle.database.jdbc:ojdbc11: oracle
+    org.mongodb:mongodb-driver-sync: mongodb
+    org.mongodb:mongodb-driver-reactivestreams: mongodb
+    redis.clients:jedis: redis
+    io.lettuce:lettuce-core: redis
+  npm:
+    pg: postgres
+    postgres: postgres
+    mysql: mysql
+    mysql2: mysql
+    mariadb: mysql
+    mongodb: mongodb
+    mongoose: mongodb
+    redis: redis
+    ioredis: redis
+    tedious: sqlserver
+    mssql: sqlserver
+    oracledb: oracle
+  pypi:
+    psycopg: postgres
+    psycopg2: postgres
+    psycopg2-binary: postgres
+    asyncpg: postgres
+    pymysql: mysql
+    mysqlclient: mysql
+    mysql-connector-python: mysql
+    pymongo: mongodb
+    motor: mongodb
+    redis: redis
+    pyodbc: sqlserver
+    oracledb: oracle
+  go:
+    github.com/lib/pq: postgres
+    github.com/jackc/pgx/v4: postgres
+    github.com/jackc/pgx/v5: postgres
+    github.com/go-sql-driver/mysql: mysql
+    go.mongodb.org/mongo-driver: mongodb
+    go.mongodb.org/mongo-driver/v2: mongodb
+    github.com/redis/go-redis/v9: redis
+    github.com/go-redis/redis/v8: redis
+    github.com/microsoft/go-mssqldb: sqlserver
+  nuget:
+    Microsoft.Data.SqlClient: sqlserver
+    System.Data.SqlClient: sqlserver
+    Microsoft.EntityFrameworkCore.SqlServer: sqlserver
+    Npgsql: postgres
+    Npgsql.EntityFrameworkCore.PostgreSQL: postgres
+    MySqlConnector: mysql
+    MySql.Data: mysql
+    Pomelo.EntityFrameworkCore.MySql: mysql
+    StackExchange.Redis: redis
+    MongoDB.Driver: mongodb
+
+# outbound (https://cernly.dev/how/plugins/): a const or var whose name ends in one of these (any case) holds a configured URL.
+outbound:
+  config_name_suffixes: [url, endpoint, host]
+
+# Hosts that are never public (https://cernly.dev/how/plugins/).
+domains:
+  reserved_tlds: [localhost, local, internal, test, example, invalid, lan, home]
+  example: [example.com, example.net, example.org]
+
+# AI coding tools and the configuration they leave in a repo (agent-config plugin). Patterns are repo-relative and
+# cover a file or a whole folder; ** spans folders. Repo-level proof that a tool is set up for this repo, not proof
+# that a given commit was written by it.
+agent_configs:
+  - {tool: cursor, name: Cursor, paths: [.cursor, .cursorrules]}
+  - {tool: opencode, name: OpenCode, paths: [.opencode, opencode.json, opencode.jsonc]}
+  - {tool: claude, name: Claude Code, paths: [.claude, "**/CLAUDE.md"]}
+  - {tool: agents-md, name: AGENTS.md (read by several agents), paths: ["**/AGENTS.md"]}
+  - {tool: copilot, name: GitHub Copilot, paths: [.github/copilot-instructions.md, .github/instructions]}
+  - {tool: gemini, name: Gemini CLI, paths: [.gemini, "**/GEMINI.md"]}
+  - {tool: windsurf, name: Windsurf, paths: [.windsurf, .windsurfrules]}
+  - {tool: cline, name: Cline, paths: [.clinerules]}
+  - {tool: aider, name: Aider, paths: [.aider.conf.yml]}
+  - {tool: continue, name: Continue, paths: [.continue]}
+  - {tool: codex, name: OpenAI Codex, paths: [.codex]}

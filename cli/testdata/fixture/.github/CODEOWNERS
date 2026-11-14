@@ -1,0 +1,6 @@
+# Owners of the example shop
+*                @acme/platform
+/frontend/       @acme/web jane@acme.example
+/backend/        @acme/payments @Acme/Platform
+docs/my\ notes   @octo-dev
+/vendor/

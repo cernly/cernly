@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.cernly/cernly",
+  "title": "Cernly",
+  "description": "Architecture facts from a git repository: services, data stores, third-party providers, env vars, hosts, routes. File and line evidence.",
+  "websiteUrl": "https://cernly.dev",
+  "repository": { "url": "https://github.com/cernly/cernly", "source": "github" },
+  "version": "0.3.0",
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/cernly/cernly:0.3.0",
+      "transport": { "type": "stdio" },
+      "runtimeArguments": [
+        { "type": "named", "name": "-v", "value": "{repo}:/repo:ro", "description": "Mount the repository to scan, read-only",
+          "variables": { "repo": { "description": "Absolute path of the git repository", "isRequired": true } } }
+      ],
+      "packageArguments": [
+        { "type": "positional", "value": "mcp" },
+        { "type": "positional", "value": "/repo" }
+      ]
+    }
+  ]
+}

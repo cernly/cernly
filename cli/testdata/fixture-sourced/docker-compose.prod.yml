@@ -1,0 +1,9 @@
+services:
+  api:
+    image: ghcr.io/example/shop-api:${IMAGE_TAG}
+    depends_on: [db]
+  web:
+    image: ghcr.io/example/shop-web:${IMAGE_TAG}
+    depends_on: [api]
+  db:
+    image: postgres:17.2

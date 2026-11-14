@@ -1,0 +1,3 @@
+services:
+  shop:
+    image: ghcr.io/acme/shop:${TAG:-latest}

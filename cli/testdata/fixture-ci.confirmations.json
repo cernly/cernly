@@ -1,0 +1,6 @@
+[
+  {"id": 1, "kind": "stack_role", "subject": "stack:compose:vps", "value": "none", "reason": "The VPS was retired; production runs from the production stack.", "by": "A. Person", "issuer": "https://github.com", "person": "1001", "at": "2026-11-01T09:00:00Z"},
+  {"id": 2, "kind": "party", "subject": "party:stripe", "value": "approved", "reason": "Contract in place.", "by": "A. Person", "issuer": "https://github.com", "person": "1001", "at": "2026-11-01T09:05:00Z"},
+  {"id": 3, "kind": "host", "subject": "host:mock.example.org", "value": "not_supplier", "reason": "Test URL.", "by": "local operator", "issuer": "local", "person": "operator", "at": "2026-11-01T09:10:00Z"},
+  {"id": 4, "kind": "driver", "subject": "dependency:npm:apps/api:mysql2", "value": "store:the reporting database (managed MySQL)", "reason": "Reports read the managed MySQL instance the platform team runs.", "by": "A. Person", "issuer": "https://github.com", "person": "1001", "at": "2026-11-05T09:00:00Z"}
+]

@@ -1,0 +1,14 @@
+model Invoice {
+  customerId Int
+  number     Int
+  total      Decimal  @db.Decimal(10, 2)
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  @@id([customerId, number])
+  @@schema("billing")
+}
+
+view CustomerTotals {
+  customerId Int @unique
+  total      Decimal
+}

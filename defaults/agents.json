@@ -1,0 +1,15 @@
+{
+ "version": "2026.10.0",
+ "note": "Who counts as an AI agent or an automation bot, from proof in git only (https://cernly.dev/how/catalogue/). Names and addresses as they appear in commits; review before relying on them.",
+ "agents": [
+  {"id": "claude", "name": "Claude", "kind": "agent", "co_author_emails": ["noreply@anthropic.com"], "co_author_names": ["claude"], "trailer_keys": ["claude-session"]},
+  {"id": "codex", "name": "OpenAI Codex", "kind": "agent", "co_author_names": ["codex"]},
+  {"id": "copilot", "name": "GitHub Copilot", "kind": "agent", "co_author_names": ["copilot"], "bot_logins": ["copilot-swe-agent[bot]"]},
+  {"id": "cursor", "name": "Cursor", "kind": "agent", "co_author_emails": ["cursoragent@cursor.com"], "co_author_names": ["cursor"], "author_emails": ["cursoragent@cursor.com"]},
+  {"id": "opencode", "name": "OpenCode", "kind": "agent", "co_author_names": ["opencode"]},
+  {"id": "aikido-autofix", "name": "Aikido autofix", "kind": "bot", "bot_logins": ["aikido-autofix[bot]"]},
+  {"id": "dependabot", "name": "Dependabot", "kind": "bot", "bot_logins": ["dependabot[bot]"]},
+  {"id": "renovate", "name": "Renovate", "kind": "bot", "bot_logins": ["renovate[bot]"]},
+  {"id": "github-actions", "name": "GitHub Actions", "kind": "bot", "bot_logins": ["github-actions[bot]"]}
+ ]
+}

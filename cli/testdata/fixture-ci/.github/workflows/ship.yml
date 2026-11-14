@@ -1,0 +1,16 @@
+name: ship
+on:
+  push:
+    branches: [main]
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: npm test
+      - name: Start on the server
+        run: |
+          ssh deploy@shop.example.com "cd /srv/shop && docker compose -f docker-compose.vps.yml up -d"
+      - name: Smoke check
+        run: curl -fsS https://shop.example.com/health

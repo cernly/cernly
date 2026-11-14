@@ -1,0 +1,7 @@
+# Search engines and AI crawlers are welcome: this is documentation for an
+# open-source tool. Every page is also at <page>index.md, and /llms.txt lists
+# them.
+User-agent: *
+Allow: /
+
+Sitemap: https://cernly.dev/sitemap.xml

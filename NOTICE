@@ -1,0 +1,9 @@
+Cernly
+Copyright 2026 The Cernly Authors
+
+This product is licensed under the Apache License, Version 2.0 (LICENSE).
+Third-party modules it links keep their own licences; `go mod` lists them.
+
+The docs site (site/static/fonts) ships Funnel Display, Funnel Sans and IBM
+Plex Mono under the SIL Open Font License 1.1; each licence is beside the
+font files.

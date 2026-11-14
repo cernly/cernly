@@ -1,0 +1,4 @@
+version: 1
+exclude:
+  - path: cli/testdata
+    reason: test fixtures with fake services and dependencies

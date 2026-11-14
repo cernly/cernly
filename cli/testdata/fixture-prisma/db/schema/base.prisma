@@ -1,0 +1,38 @@
+// Multi-file schema: every .prisma file in this folder is one schema.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl = env("NOT_READ")
+  directUrl = env("DIRECT_URL")
+  schemas  = ["public", "billing"]
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+/// A customer. Braces in comments { are not blocks }.
+model Customer {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique @db.VarChar(320)
+  fullName  String?  @map("full_name")
+  tags      String[]
+  status    Status   @default(ACTIVE)
+  note      String   @default("{not a block}")
+  search    Unsupported("tsvector")?
+  address   Address?
+  invoices  Invoice[]
+
+  @@map("customers")
+  @@index([email,
+           status])
+}
+
+enum Status {
+  ACTIVE
+  CLOSED
+}
+
+type Address {
+  street String
+}

@@ -1,0 +1,11 @@
+name: lint
+on:
+  push:
+    branches: [main]
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: helm template charts/shop
+      - run: kubectl apply --dry-run=client -k deploy/k8s/overlays/staging

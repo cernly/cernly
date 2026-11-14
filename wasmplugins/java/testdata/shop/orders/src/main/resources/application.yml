@@ -1,0 +1,16 @@
+# Example service configuration; names are made up.
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/orders
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+payments:
+  base-url: https://api.payments.example-pay.io/v2
+  timeout: 5s
+shipping:
+  url: ${SHIPPING_URL:https://shipping.internal.test}
+docs: see https://docs.example-pay.io/guide
+feature:
+  flag: ${feature.default.flag:false}

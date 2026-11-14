@@ -1,0 +1,16 @@
+services:
+  web:
+    build: ./web
+  api:
+    image: ghcr.io/acme/api:1.4.2
+  edge:
+    image: caddy:2.10.0
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - type: bind
+        source: ./deploy/sites
+        target: /etc/caddy/sites
+      - ./deploy/missing.caddy:/etc/caddy/extra.caddy:ro
+volumes:
+  caddy_data: {}

@@ -1,0 +1,23 @@
+name: cd
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          bash deploy/build.sh --tag "${{ github.sha }}"
+      - name: Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          tags: ghcr.io/acme/web:${{ github.sha }}
+      - name: Deploy
+        run: |
+          ssh deploy@host "cd /srv/app && \
+            docker compose --env-file prod.env -f docker-compose.prod.yml -f deploy/docker-compose.vps.yml up -d"

@@ -1,0 +1,39 @@
+# Global options: the email address must never reach the scan.
+{
+	email ops@acme-widgets.be
+	auto_https off
+}
+
+(api) {
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+}
+
+shop.acme-widgets.be, www.acme-widgets.be {
+	import api
+	@hooks {
+		method post
+		path /hooks/*
+	}
+	handle @hooks {
+		reverse_proxy h2c://api:9090
+	}
+	@internal remote_ip 10.0.0.0/8
+	respond @internal "nope" 403
+	handle /old/* {
+		redir https://shop.acme-widgets.be{uri} permanent
+	}
+	handle {
+		reverse_proxy {
+			to web:3000 web2:3000
+		}
+	}
+}
+
+{$OPS_HOST:ops.localhost} {
+	reverse_proxy host.docker.internal:3010 # a dev server on the host
+	respond /health "ok # not a comment" 200
+}
+
+import sites/*.caddy

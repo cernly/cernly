@@ -1,0 +1,4 @@
+services:
+  wal-archive:
+    image: ghcr.io/example/wal-archive:1.0
+    depends_on: [db]

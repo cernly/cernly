@@ -1,0 +1,17 @@
+name: verify
+on:
+  push:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the cache
+        run: docker compose -f docker-compose.ci.yml up -d
+      - name: Unit
+        run: |
+          go mod download
+          go test ./...
+      - name: Stop the cache
+        run: docker compose -f docker-compose.ci.yml down

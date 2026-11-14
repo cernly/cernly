@@ -1,0 +1,7 @@
+services:
+  api:
+    restart: unless-stopped
+  db:
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+volumes:
+  pgdata: {}
