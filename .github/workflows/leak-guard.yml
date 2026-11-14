@@ -1,0 +1,62 @@
+# Fails when the tree holds anything that must stay private: the maintainers' own
+# names (from the PRIVATE_NAMES_RE secret, so the list never appears in this repo),
+# local paths, references to internal notes, key material or live tokens, and imports
+# of the application that embeds this module. Prints file and line only, never the
+# match. Patterns are Perl-compatible (git grep -P); the ones below are written so
+# they do not match this file.
+#
+# A pull request from a fork gets no secrets, so the check fails there on purpose: a
+# maintainer runs it on the pull request's tree before merging. Never switch this to
+# pull_request_target with a checkout of the pull request's head.
+name: leak-guard
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  leak-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull requests from forks
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "::error::This pull request comes from a fork and gets no secrets, so the leak check cannot run here. A maintainer must run the leak check on its tree before merging."
+          exit 1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Nothing private in the tree
+        env:
+          PRIVATE_NAMES_RE: ${{ secrets.PRIVATE_NAMES_RE }}
+        run: |
+          if [ -z "$PRIVATE_NAMES_RE" ]; then
+            echo "::error::The PRIVATE_NAMES_RE secret is empty or not set: the check fails closed."
+            exit 1
+          fi
+          failed=0
+          check() { # what, then git grep options and pattern
+            what=$1
+            shift
+            status=0
+            hits=$(git grep -I -n -o -P "$@") || status=$?
+            case $status in
+              0)
+                echo "::error::$what:"
+                printf '%s\n' "$hits" | cut -d: -f1,2
+                failed=1
+                ;;
+              1) ;; # no match
+              *)
+                echo "::error::git grep failed ($status) looking for $what: the check fails closed."
+                failed=1
+                ;;
+            esac
+          }
+          check "a private name" -i -e "$PRIVATE_NAMES_RE"
+          check "a local path" -e '/[U]sers/'
+          check "a reference to internal notes" -i -e 'designs? 0[0-9]{2}|docs/desig[n]/'
+          check "key material or a live token" -e '-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(ghp|gho|ghs|github_pat)_[A-Za-z0-9_]{20,}|\bAKIA[0-9A-Z]{16}\b|\bsk_live_[0-9A-Za-z]{10,}'
+          check "an import of the embedding application" -e 'architecture-observabilit[y]/'
+          exit $failed
