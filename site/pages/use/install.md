@@ -11,7 +11,7 @@ order: 10
 
 ## Go
 
-Go 1.24 or later:
+Go 1.26.8 or later (an older `go` fetches the toolchain itself, unless `GOTOOLCHAIN=local`):
 
 ```
 go install github.com/cernly/cernly/cmd/cernly@latest
