@@ -7,7 +7,7 @@ order: 25
 ---
 # Scan in CI
 
-**TL;DR** Add the `cernly/cernly` action, pinned by commit, after `actions/checkout`. It builds `cernly` from its own source and writes the facts file in the job. Nothing goes to Cernly: the file stays on the runner and, unless you turn it off, in a workflow artifact of your repository.
+**TL;DR** Add the `cernly/cernly` action, pinned by commit, after `actions/checkout`. It builds `cernly` from its own source and writes the facts file in the job. Nothing goes to Cernly: the file stays on the runner and, if you ask for it, in a workflow artifact of your repository.
 
 ## GitHub Actions
 
@@ -35,7 +35,7 @@ Pin the action by the full commit id of a release, as above, and keep the tag be
 |---|---|---|
 | `path` | `.` | The checkout to scan, relative to the workspace. |
 | `output` | `cernly.facts.json` | Where the facts file is written, relative to the workspace. |
-| `keep-artifact` | `true` | Keep the facts file as a workflow artifact. |
+| `keep-artifact` | `false` | Keep the facts file as a workflow artifact. It is the unredacted scan: anyone with read access to the repository can download it. |
 | `artifact-name` | `cernly-facts` | The artifact's name. It must be unique in the run: give each use of the action its own. |
 
 `path` and `output` must be relative, on one line and without `..`; the action refuses anything else.

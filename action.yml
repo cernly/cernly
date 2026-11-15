@@ -1,8 +1,8 @@
 # The Cernly scan as a GitHub Action: builds cernly from this commit of the
 # action's own source (the Go toolchain and modules that go.mod and go.sum
 # pin) and runs `cernly scan` on the checked-out commit. Nothing is sent to
-# Cernly: the facts file stays in the workspace and, by default, in a
-# workflow artifact of the repository's own run. Pin it by commit:
+# Cernly: the facts file stays in the workspace and, only with keep-artifact,
+# in a workflow artifact of the repository's own run. Pin it by commit:
 #
 #   - uses: actions/checkout@<sha>
 #   - uses: cernly/cernly@<sha> # vX.Y.Z
@@ -20,8 +20,8 @@ inputs:
     description: Where the facts file is written, relative to the workspace.
     default: cernly.facts.json
   keep-artifact:
-    description: Keep the facts file as a workflow artifact ("true" or "false").
-    default: "true"
+    description: Keep the facts file as a workflow artifact ("true" or "false"). The artifact is the unredacted scan (paths, names, hosts); anyone with read access to the repository can download it.
+    default: "false"
   artifact-name:
     description: The artifact's name; it must be unique in the workflow run, so give each use its own.
     default: cernly-facts
