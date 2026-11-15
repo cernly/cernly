@@ -79,6 +79,19 @@ test("the page cannot make a request", async ({ page }) => {
   expect(blocked).toEqual(["blocked", "blocked"]);
 });
 
+// The scan module and each plugin run in Workers made from blob: URLs, which
+// inherit the page's policy: a request from such a Worker fails too.
+test("a Worker of the page cannot make a request", async ({ page }) => {
+  await page.goto(pathToFileURL(state.page).href);
+  const blocked = await page.evaluate(() => new Promise((resolve) => {
+    const src = `fetch("https://example.com/").then(() => postMessage("sent"), () => postMessage("blocked"));`;
+    const w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+    w.onmessage = (e) => resolve(e.data);
+    w.onerror = () => resolve("worker refused");
+  }));
+  expect(blocked).toBe("blocked");
+});
+
 // The repository's files as [path, base64], for building it inside a page.
 function fixtureFiles() {
   const files = [];
