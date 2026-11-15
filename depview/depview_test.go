@@ -94,3 +94,27 @@ func TestCount(t *testing.T) {
 		t.Errorf("counts: %v", c)
 	}
 }
+
+// A service whose attached dependencies are all internal (a workspace package)
+// still owns the lockfile packages rooted at their folder.
+func TestGroupAllInternal(t *testing.T) {
+	s := &fact.Scan{Facts: []fact.Fact{
+		{Kind: "service", Key: "service:compose:shop:web", Attrs: map[string]any{"name": "web", "stack": "shop"}},
+		dep("dependency:npm:web:own", "own", true, "web", map[string]any{"internal": "packages/own"}),
+		dep("dependency:npm:web:scheduler", "scheduler", false, "web", map[string]any{"roots": []any{"web"}}),
+		dep("dependency:npm:web:inner", "inner", false, "web", map[string]any{"roots": []any{"web"}, "internal": "packages/inner"}),
+	}}
+	m := &rules.Map{Attached: []rules.Attached{
+		{Service: "service:compose:shop:web", Fact: "dependency:npm:web:own", Kind: fact.KindDependency},
+	}}
+	g := Group(s, m, nil)
+	if len(g) != 1 || g[0].Service != "service:compose:shop:web" {
+		t.Fatalf("groups: %+v", g)
+	}
+	if got := keys(g[0].Transitive); len(got) != 1 || got[0] != "dependency:npm:web:scheduler" {
+		t.Errorf("transitive: %v", got)
+	}
+	if len(g[0].Direct) != 0 {
+		t.Errorf("direct: %v", keys(g[0].Direct))
+	}
+}

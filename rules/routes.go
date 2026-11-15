@@ -93,7 +93,7 @@ func routes(m *Map, facts []fact.Fact) {
 		if f.Kind != fact.KindRoute {
 			continue
 		}
-		var sites []string
+		sites := []string{} // an empty list encodes as [], not null
 		for _, a := range maps(f.Attrs["addresses"]) {
 			s, _ := a["address"].(string)
 			sites = append(sites, s)

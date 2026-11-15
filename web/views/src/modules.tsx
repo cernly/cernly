@@ -39,7 +39,7 @@ export function ModuleGraphView({ map, facts, service, back, foot, where }: {
     <>
       <section className="panel" aria-label="Module graph">
         <div className="panel-head">
-          <h2>Module graph{service ? ` · ${tail(service)}` : ""}<Info label="About the module graph"><span>Boxes are the repo's own packages, arrows are imports, read from the code without building it. Importers are on the left, the packages most depended on to the right.</span><span>{reach?.reach === "entrypoints" ? `Followed from the entrypoint the Dockerfile builds (${(reach.roots ?? []).map(name).join(", ")}).` : "Every package in the service's sources: its Dockerfile names no Go entrypoint to follow."}</span></Info></h2>
+          <h2>Module graph{service ? ` · ${tail(service)}` : ""}<Info label="About the module graph"><span>Boxes are the repo's own packages, arrows are imports, read from the code without building it. Importers are on the left, the packages most depended on to the right.</span><span>{!service ? "Every package in the scan." : reach?.reach === "entrypoints" ? `Followed from the entrypoint the Dockerfile builds (${(reach.roots ?? []).map(name).join(", ")}).` : "Every package in the service's sources: its Dockerfile names no Go entrypoint to follow."}</span></Info></h2>
           <span className="label">{plural(keep.size, "package")} · {plural(edges.length, "import")}{cycles.length ? ` · ${plural(cycles.length, "cycle")}` : ""}</span>
           <div style={{ flex: "1 1 auto" }} />
           {back}

@@ -116,7 +116,22 @@ func Group(to *fact.Scan, m *rules.Map, mark func(*Dep)) []Service {
 			continue
 		}
 		f, ok := facts[a.Fact]
-		if !ok || f.Attrs["internal"] != nil {
+		if !ok {
+			continue
+		}
+		// The manifest folders of every attached dependency count, internal ones
+		// (a replace, a workspace package) too: the lockfile beside them is the
+		// service's.
+		for _, e := range f.Evidence {
+			if e.Unit != "" {
+				if folders[a.Service] == nil {
+					folders[a.Service] = map[string]bool{}
+				}
+				folders[a.Service][e.Unit] = true
+				svc(a.Service)
+			}
+		}
+		if f.Attrs["internal"] != nil {
 			continue
 		}
 		onService[f.Key] = true
@@ -124,20 +139,12 @@ func Group(to *fact.Scan, m *rules.Map, mark func(*Dep)) []Service {
 		d := FromFact(f)
 		mark(&d)
 		sd.Direct = append(sd.Direct, d)
-		for _, e := range f.Evidence {
-			if e.Unit != "" {
-				if folders[a.Service] == nil {
-					folders[a.Service] = map[string]bool{}
-				}
-				folders[a.Service][e.Unit] = true
-			}
-		}
 	}
 	for s, dirs := range folders {
 		seen := map[string]bool{}
 		for dir := range dirs {
 			for _, t := range byRoot[dir] {
-				if seen[t.Key] {
+				if seen[t.Key] || t.Attrs["internal"] != nil {
 					continue
 				}
 				seen[t.Key] = true
