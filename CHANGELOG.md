@@ -5,6 +5,10 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Extractor (pipeline)
 
+- 0.4.1: the release version of the binary. The extractor finds the same facts
+  as 0.4.0; only the version in the scan, and the hashes that follow from it,
+  change. The rules (0.17.2), the dockerfile plugin and the local viewer carry
+  their own versions below.
 - 0.4.0: the release version of the binary, which a release tag must equal.
   The extractor finds the same facts as 0.3.0. Only the version in the scan,
   and the hashes that follow from it, change. The plugins this release adds or
