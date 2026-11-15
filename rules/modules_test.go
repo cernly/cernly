@@ -80,7 +80,7 @@ func TestMetrics(t *testing.T) {
 		Parties:  []Party{{ID: "stripe", Services: []string{"service:compose:prod:api"}}, {ID: "openai", Services: []string{"service:compose:dev:api"}}},
 		Findings: []Finding{{Rule: FindingImagePinning, Subject: "datastore:compose:prod:db", Detail: "image postgres:16"}, {Rule: FindingImagePinning, Subject: "r", Detail: "stage x uses go"}},
 		Tables:   []Table{{Table: "users", From: []string{"db_table:sql:api/schema.sql:users"}, Check: []SensitiveColumn{{Column: "email"}, {Column: "iban"}}}},
-		Routes:   []RouteEdge{{Route: "route:a", Stack: "prod", To: "service:compose:prod:api"}, {Route: "route:b", Stack: "dev"}},
+		Routes:   []RouteEdge{{Route: "route:a", Stack: "stack:compose:prod", To: "service:compose:prod:api"}, {Route: "route:b", Stack: "stack:compose:dev"}},
 	}
 	x := metrics(m, facts)
 	tot, prod := x.Total, x.Production

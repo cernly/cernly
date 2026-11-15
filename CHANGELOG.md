@@ -20,6 +20,9 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Rules (map)
 
+- 0.17.2: production metrics look a stack's role up by its full key, so two
+  stacks of the same name in different kinds (helm and kubernetes) keep their
+  own role.
 - 0.17.1: an endpoint row whose registrations disagree on anonymous access
   (auth `unknown` with an `AllowAnonymous` marker) gets no fallback policy.
 - 0.17.0: a link or CI image whose recipe builds .NET entrypoints is narrowed
