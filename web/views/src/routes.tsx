@@ -24,7 +24,7 @@ export function RoutesPanels({ map, labels, title }: { map: MapDoc; labels: Reco
     groups.set(g, [...(groups.get(g) ?? []), r]);
   }
   const byHost = new Map<string, typeof routes>();
-  for (const r of routes) for (const site of r.sites.length ? r.sites : ["(any host)"]) {
+  for (const r of routes) for (const site of r.sites?.length ? r.sites : ["(any host)"]) {
     const h = site.replace(/^https?:\/\//, "");
     byHost.set(h, [...(byHost.get(h) ?? []), r]);
   }
@@ -39,11 +39,13 @@ export function RoutesPanels({ map, labels, title }: { map: MapDoc; labels: Reco
           <div className="flow">
             {hosts.map(([host, rs]) => {
               const targets = [...new Set(rs.map((r) => (r.to ? tail(r.to) : r.upstream ? `↗ ${r.upstream}` : r.action)))];
+              // One entry per match and action: several upstreams of one route repeat them.
+              const paths = [...new Set(rs.map((r) => `${r.match || "/"} ${r.action}`))];
               return (
                 <div key={host} style={{ display: "contents" }}>
                   <div className="node host">{host}</div>
                   <div className="arrow">→</div>
-                  <div className="paths">{rs.slice(0, 4).map((r) => `${r.match || "/"} ${r.action}`).join(" · ")}{rs.length > 4 ? ` · and ${rs.length - 4} more` : ""}</div>
+                  <div className="paths">{paths.slice(0, 4).join(" · ")}{paths.length > 4 ? ` · and ${paths.length - 4} more` : ""}</div>
                   <div className="arrow">→</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {targets.map((t) => <div key={t} className={`node ${t.startsWith("↗") ? "ext" : "svc"}`}>{t}</div>)}
@@ -65,7 +67,7 @@ export function RoutesPanels({ map, labels, title }: { map: MapDoc; labels: Reco
                 <tbody>
                   {rs.map((r, k) => (
                     <tr key={k}>
-                      <td>{r.sites.map((s) => s.replace(/^https?:\/\//, "")).join(", ")}</td>
+                      <td>{(r.sites ?? []).map((s) => s.replace(/^https?:\/\//, "")).join(", ")}</td>
                       <td className="code">{r.match}</td>
                       <td>{r.action}</td>
                       <td style={{ fontWeight: 600 }}>{r.to ? tail(r.to) : <span className="muted">{r.upstream ?? ""}</span>}</td>

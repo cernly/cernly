@@ -15,7 +15,7 @@ export type Image = { service: string; image_repo: string; class: string };
 export type Party = { id: string; name: string; category: string; kind: string; grade: string; services: string[]; signals: { kind: string; fact: string }[]; confirmed?: ConfirmRef };
 export type Finding = { rule: string; subject: string; grade?: string; detail: string; from: string[] };
 export type RouteRewrite = { kind: string; prefix?: string; to?: string };
-export type RouteEdge = { route: string; stack?: string; via?: string; sites: string[]; match: string; action: string; upstream?: string; to?: string; rewrite?: RouteRewrite; match_type?: string };
+export type RouteEdge = { route: string; stack?: string; via?: string; sites?: string[]; match: string; action: string; upstream?: string; to?: string; rewrite?: RouteRewrite; match_type?: string };
 // Endpoints of the app code (absent in maps from rules before 0.17.0 and without endpoint facts).
 export type EndpointAuth = { state: "required" | "anonymous" | "unknown" | string; markers?: string[]; policy?: string };
 export type EndpointRow = {

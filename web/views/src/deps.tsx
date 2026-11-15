@@ -71,8 +71,8 @@ export function DependenciesPanel<D extends Dep>({ services, title, since, tools
       ) : (
         <div className="dep-groups">
           {shown.map((s) => (
-            <ServiceGroup key={s.service || "-"} s={s} since={at} where={where} addedBy={addedBy}
-              startOpen={shown.length <= 3} showTransitive={query !== "" || filter === "changed"} />
+            <ServiceGroup key={`${s.service || "-"}|${filter}|${query}`} s={s} since={at} where={where} addedBy={addedBy}
+              startOpen={shown.length <= 3 || query !== "" || filter !== "all"} showTransitive={query !== "" || filter === "changed"} />
           ))}
         </div>
       )}
