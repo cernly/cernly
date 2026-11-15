@@ -5,6 +5,10 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Extractor (pipeline)
 
+- 0.4.0: the release version of the binary, which a release tag must equal.
+  The extractor finds the same facts as 0.3.0. Only the version in the scan,
+  and the hashes that follow from it, change. The plugins this release adds or
+  changes (.NET, the local viewer) carry their own versions below.
 - Unversioned: `cernly sbom` reads a single-string `roots` attribute as a
   one-item list, so a transitive dependency written that way now reaches its
   service. The SBOM has no version of its own and the scan output does not

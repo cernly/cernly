@@ -24,7 +24,7 @@ import (
 
 // Version is the extractor version every scan records. Bump on any output
 // change; see CHANGELOG.md.
-const Version = "0.3.0"
+const Version = "0.4.0"
 
 // ScanOptions says what Scan reads and how. An empty Commit scans the working
 // tree, labelled with HEAD; an empty RepoID is taken from the origin remote.
