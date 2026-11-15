@@ -56,6 +56,7 @@ type State =
   | { at: "confirm"; folder: Folder; kind: Kind; plugins: string[]; maxFiles: number }
   | { at: "scanning"; folder: Folder }
   | { at: "one"; v: View; name: string; facts: string; scanned?: ScannedData }
+  | { at: "kept"; name: string; scanned: ScannedData }
   | { at: "two"; c: ChangesData; names: string[] };
 
 async function load(files: File[]): Promise<State> {
@@ -85,6 +86,8 @@ async function confirm(folder: Folder): Promise<State> {
 async function scanFolder(folder: Folder): Promise<State> {
   try {
     const s = await scan(folder);
+    // A scan the page cannot show keeps its facts file to save.
+    if (!s.view) return { at: "kept", name: folder.name, scanned: s };
     return { at: "one", v: s.view, name: folder.name, facts: s.facts, scanned: s };
   } catch (e) {
     return { at: "error", message: `${folder.name}: ${e instanceof Error ? e.message : String(e)}` };
@@ -135,7 +138,7 @@ function App() {
     setLoads((n) => n + 1);
     void scanFolder(f).then(setState);
   };
-  const names = state.at === "one" ? state.name : state.at === "two" ? state.names.join(" and ") : "";
+  const names = state.at === "one" || state.at === "kept" ? state.name : state.at === "two" ? state.names.join(" and ") : "";
   return (
     <main className="page">
       <header className="bar">
@@ -143,7 +146,7 @@ function App() {
         <span className="wordmark" style={{ font: "600 18px/1 var(--font-display)" }}>cernly local viewer</span>
         {names && <span className="muted names mono">{names}</span>}
         <span className="spacer" />
-        {(state.at === "one" || state.at === "two") && <button type="button" className="btn" onClick={() => { setFiles(null); setState({ at: "open" }); }}>Start over</button>}
+        {(state.at === "one" || state.at === "two" || state.at === "kept") && <button type="button" className="btn" onClick={() => { setFiles(null); setState({ at: "open" }); }}>Start over</button>}
       </header>
       {state.at === "open" && <Open onFiles={setFiles} onFolder={onFolder} />}
       {state.at === "busy" && <p className="panel empty" role="status">Reading…</p>}
@@ -156,7 +159,8 @@ function App() {
         </>
       )}
       <Guard key={loads} onFiles={setFiles} onFolder={onFolder}>
-        {state.at === "one" && state.scanned && <Scanned name={state.name} facts={state.scanned.facts} warnings={state.scanned.warnings} dirty={state.v.scan.commit.dirty === true} />}
+        {state.at === "one" && state.scanned && <Scanned name={state.name} repo={state.scanned.repo} facts={state.scanned.facts} warnings={state.scanned.warnings} dirty={state.v.scan.commit.dirty === true} changed={state.scanned.changed} />}
+        {state.at === "kept" && <Scanned name={state.name} repo={state.scanned.repo} facts={state.scanned.facts} warnings={state.scanned.warnings} dirty={(state.scanned.changed?.length ?? 0) > 0} changed={state.scanned.changed} viewError={state.scanned.view_error} />}
         {state.at === "one" && <Upload key={state.facts} name={state.name} facts={state.facts} />}
         {(state.at === "one" || state.at === "two") && <Tabs tab={tab} two={state.at === "two"} onTab={(t) => { setTab(t); globalThis.scrollTo?.(0, 0); }} />}
         {state.at === "one" && <One v={state.v} tab={tab} />}

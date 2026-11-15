@@ -9,7 +9,6 @@
 package gitfs
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -25,6 +24,8 @@ import (
 	"time"
 )
 
+const maxPackedRefs = 64 << 20
+
 // Repo is an opened .git folder. Call Close when done.
 type Repo struct {
 	fsys        fs.FS
@@ -33,8 +34,22 @@ type Repo struct {
 	hashLen     int
 	packs       []*pack
 	packsLoaded bool
-	packed      map[string]string
+	maxEntries  int      // SetMaxEntries
+	unread      []string // config includes that could not be followed
 }
+
+// SetMaxEntries limits the entries of the index (and, doubled, of a tree
+// walk): an index that lists more is refused with *TooManyEntriesError before
+// it is allocated. 0 is no limit beyond the fixed bounds. Call it before
+// Index, Tree or Dirty.
+func (r *Repo) SetMaxEntries(n int) { r.maxEntries = n }
+
+// Unread lists the config includes Open could not follow, such as
+// "include.path /etc/work.gitconfig": a path outside .git (absolute, in the
+// home folder or above .git), includeIf with
+// gitdir: or hasconfig:. The repository's origin and settings may differ from
+// what git, with those files, sees.
+func (r *Repo) Unread() []string { return r.unread }
 
 // ErrUnborn is returned by Head when HEAD names a branch with no commit.
 var ErrUnborn = errors.New("HEAD points at a branch with no commits")
@@ -52,11 +67,7 @@ func Open(fsys fs.FS) (*Repo, error) {
 		return nil, fmt.Errorf("not a git repository, no .git/HEAD: %w", err)
 	}
 	r := &Repo{fsys: fsys, format: "sha1", hashLen: 20, cfg: config{}}
-	if data, err := r.readFile(".git/config", 16<<20); err == nil {
-		if r.cfg, err = parseConfig(data); err != nil {
-			return nil, fmt.Errorf(".git/config: %w", err)
-		}
-	} else if !errors.Is(err, fs.ErrNotExist) {
+	if err := r.loadConfig(); err != nil {
 		return nil, err
 	}
 	version := 0
@@ -133,11 +144,10 @@ func (r *Repo) blobIDReader(rd io.Reader, size int64) (string, bool, error) {
 // OriginURL is remote.origin.url as `git remote get-url origin` gives it,
 // with url.<base>.insteadOf applied; "" without an origin.
 func (r *Repo) OriginURL() string {
-	v := r.cfg["remote.origin.url"]
-	if len(v) == 0 {
+	u, ok := r.cfg.get("remote.origin.url") // git's last value wins
+	if !ok {
 		return ""
 	}
-	u := v[0]
 	best, base := 0, ""
 	for k, vals := range r.cfg {
 		if !strings.HasPrefix(k, "url.") || !strings.HasSuffix(k, ".insteadof") {
@@ -207,35 +217,31 @@ func (r *Repo) resolve(name string, depth int) (string, error) {
 	return s, nil
 }
 
+// packedRef finds one ref in .git/packed-refs by scanning its lines.
 func (r *Repo) packedRef(name string) (string, bool, error) {
-	if r.packed == nil {
-		r.packed = map[string]string{}
-		f, err := r.fsys.Open(".git/packed-refs")
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return "", false, nil
-			}
-			return "", false, err
+	data, err := r.readFile(".git/packed-refs", maxPackedRefs)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return "", false, nil
 		}
-		defer f.Close()
-		sc := bufio.NewScanner(f)
-		sc.Buffer(nil, 1<<20)
-		for sc.Scan() {
-			l := sc.Text()
-			if l == "" || l[0] == '#' || l[0] == '^' {
-				continue
-			}
-			id, ref, ok := strings.Cut(l, " ")
-			if ok && r.isID(id) {
-				r.packed[ref] = id
-			}
+		return "", false, err
+	}
+	for len(data) > 0 {
+		var l []byte
+		if i := bytes.IndexByte(data, '\n'); i >= 0 {
+			l, data = data[:i], data[i+1:]
+		} else {
+			l, data = data, nil
 		}
-		if err := sc.Err(); err != nil {
-			return "", false, err
+		l = bytes.TrimSuffix(l, []byte("\r"))
+		if len(l) == 0 || l[0] == '#' || l[0] == '^' {
+			continue
+		}
+		if sp := bytes.IndexByte(l, ' '); sp >= 0 && string(l[sp+1:]) == name && r.isID(string(l[:sp])) {
+			return string(l[:sp]), true, nil
 		}
 	}
-	id, ok := r.packed[name]
-	return id, ok, nil
+	return "", false, nil
 }
 
 // Commit is what a scan needs of a commit.

@@ -10,6 +10,7 @@ import (
 	"github.com/cernly/cernly/config"
 	"github.com/cernly/cernly/fact"
 	"github.com/cernly/cernly/plugin"
+	"github.com/cernly/cernly/repo"
 	"github.com/cernly/cernly/repo/gitfs/gitfstest"
 )
 
@@ -128,4 +129,31 @@ func TestScanFSSelf(t *testing.T) {
 	}
 	os.WriteFile(filepath.Join(dir, "README.md"), []byte("changed\n"), 0o644)
 	scanBoth(t, dir, ScanOptions{})
+}
+
+// ScanOpenedFS scans a repo opened once with OpenFSMax and leaves it open.
+func TestScanOpenedFS(t *testing.T) {
+	g := gitfstest.New(t, "")
+	g.Write("Dockerfile", "FROM alpine:3.20\n")
+	g.Commit("c")
+	o := ScanOptions{Plugins: plugin.All()}
+	want, _, err := ScanFS(os.DirFS(g.Dir), filepath.Base(g.Dir), o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := repo.OpenFSMax(os.DirFS(g.Dir), filepath.Base(g.Dir), 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	got, _, err := ScanOpenedFS(r, filepath.Base(g.Dir), o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(canon(t, got), canon(t, want)) {
+		t.Error("ScanOpenedFS differs from ScanFS")
+	}
+	if _, err := r.GitFS().Head(); err != nil { // still open
+		t.Errorf("repo closed by the scan: %v", err)
+	}
 }

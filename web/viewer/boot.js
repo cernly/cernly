@@ -21,17 +21,28 @@
   const waiting = new Map();
   let worker;
   let src;
+  // Set once the module is gone (it failed, stopped or ran past the scan
+  // deadline): every call then rejects with it instead of waiting.
+  let dead;
+  // The longest a scan may take before the module is stopped: the page
+  // cannot tell a slow scan from one that will never end.
+  const scanMs = (b && b.scanMs) || 15 * 60 * 1000;
   const ready = () => dispatchEvent(new Event("cernly-ready"));
-  const fail = (e) => {
-    const m = "the viewer's module did not start: " + ((e && e.message) || e);
+  const stop = (m) => {
+    dead = m;
+    if (worker) worker.terminate();
     const no = () => Promise.reject(new Error(m));
-    globalThis.cernly = { failed: m, view: no, compare: no, redact: no, scan: no, hash: b && b.hash };
+    globalThis.cernly = { ...(globalThis.cernly || {}), failed: m, view: no, compare: no, redact: no, scan: no, hash: b && b.hash };
     for (const w of waiting.values()) w.reject(new Error(m));
     waiting.clear();
-    ready();
+  };
+  const fail = (e) => {
+    const started = globalThis.cernly && !globalThis.cernly.failed;
+    stop((started ? "the viewer's module stopped: " : "the viewer's module did not start: ") + ((e && e.message) || e));
+    if (!started) ready();
   };
   const call = (op, args) =>
-    new Promise((resolve, reject) => {
+    dead ? Promise.reject(new Error(dead)) : new Promise((resolve, reject) => {
       const id = ++seq;
       waiting.set(id, { resolve, reject });
       worker.postMessage({ type: "call", id, op, args });
@@ -83,9 +94,16 @@
           view: (text) => call("view", [text]),
           compare: (a, c) => call("compare", [a, c]),
           redact: (text) => call("redact", [text]),
+          // One scan at a time: a second one while the first runs is refused,
+          // since both would read through the same folder and module state.
           scan: (source, name) => {
+            if (src) return Promise.reject(new Error("a scan is already running"));
             src = source;
-            return call("scan", [name]).finally(() => { src = undefined; });
+            const timer = setTimeout(() => stop(`the scan ran past ${scanMs / 60000} minutes and was stopped; reload the page, or scan this repository with the cernly CLI`), scanMs);
+            return call("scan", [name]).finally(() => {
+              clearTimeout(timer);
+              if (src === source) src = undefined;
+            });
           },
           maxBytes: m.maxBytes,
           maxFiles: m.maxFiles,

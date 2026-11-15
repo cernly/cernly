@@ -18,11 +18,32 @@ func (c config) get(key string) (string, bool) {
 	return v[len(v)-1], true
 }
 
-// parseConfig reads git's config syntax: [section], [section "sub"], the
+// kv is one config assignment, in file order.
+type kv struct{ key, val string }
+
+// fold collects assignments into a config, keeping their order per key.
+func fold(list []kv) config {
+	c := config{}
+	for _, e := range list {
+		c[e.key] = append(c[e.key], e.val)
+	}
+	return c
+}
+
+// parseConfig is parseConfigList folded into a config.
+func parseConfig(data []byte) (config, error) {
+	list, err := parseConfigList(data)
+	if err != nil {
+		return nil, err
+	}
+	return fold(list), nil
+}
+
+// parseConfigList reads git's config syntax: [section], [section "sub"], the
 // legacy [section.sub], key = value, a key alone (true), quoting, \" \\ \n \t
 // \b escapes, # and ; comments and a backslash at a line end.
-func parseConfig(data []byte) (config, error) {
-	c := config{}
+func parseConfigList(data []byte) ([]kv, error) {
+	var c []kv
 	s := string(data)
 	s = strings.TrimPrefix(s, "\xEF\xBB\xBF")
 	i, n := 0, len(s)
@@ -101,7 +122,7 @@ func parseConfig(data []byte) (config, error) {
 				i++
 			}
 			if i >= n || s[i] == '\n' || s[i] == '\r' || s[i] == '#' || s[i] == ';' {
-				c[key] = append(c[key], "true")
+				c = append(c, kv{key, "true"})
 				continue
 			}
 			if s[i] != '=' {
@@ -173,7 +194,7 @@ func parseConfig(data []byte) (config, error) {
 			if len(v) > trimTo {
 				v = v[:trimTo]
 			}
-			c[key] = append(c[key], v)
+			c = append(c, kv{key, v})
 		}
 	}
 	return c, nil
