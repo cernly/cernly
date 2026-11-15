@@ -14,12 +14,14 @@ order: 110
 | `service` | A service in a Compose file or a Kubernetes workload. |
 | `stack` | A deployment unit: a Compose project, a Kubernetes overlay. |
 | `datastore` | A database, cache or queue among the services. |
-| `image_recipe` | A Dockerfile stage and what it builds from. |
+| `image_recipe` | A Dockerfile stage and what it builds from, with the builds it runs (`go build`, `dotnet publish`, an npm workspace) and the other commands that feed it. |
 | `image_build` | A CI job or Compose entry that builds an image. |
 | `dependency` | A package from a manifest or lockfile: npm, Go, Python, Maven, Gradle, NuGet. |
 | `env_var` | An environment variable, where it is set and where it is read. |
 | `outbound_host` | A host the code or config calls. |
-| `route` | What a web server or proxy serves: Caddy, nginx, Traefik, Ingress. |
+| `route` | What a web server or proxy serves: Caddy, nginx, Traefik, Ingress. Records how the route matches a path (`match_type`) and how it changes the path (`rewrite`). |
+| `endpoint` | A route an application registers, with the auth the code states. ASP.NET Core for now. |
+| `auth_policy` | A host-wide auth rule the code states, such as `RequireAuthorization()` on all controllers. |
 | `db_table`, `db_column` | Tables and columns from migrations and ORM models. |
 | `secret_found` | Reserved in the schema; no plugin emits it yet. |
 | `agent_config` | An AI coding tool's configuration in the repo. |

@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/cernly/cernly/fact"
+	"github.com/cernly/cernly/internal/dotnetsln"
+	"github.com/cernly/cernly/repo"
 )
 
 // testCmd is a command that runs tests. Tests never run here; the command
@@ -14,6 +16,7 @@ type testCmd struct {
 	tool    string
 	dir     string // as written; "" = where the command runs
 	command string
+	sln     string // a dotnet solution target (.sln, .slnx) as written; "" otherwise
 }
 
 func joinArgs(args []arg) string {
@@ -198,6 +201,9 @@ func parseTest(args []arg) *testCmd {
 			d := strings.ReplaceAll(target, `\`, "/") // a Windows path
 			switch strings.ToLower(path.Ext(d)) {
 			case ".csproj", ".fsproj", ".vbproj", ".sln", ".slnx":
+				if e := strings.ToLower(path.Ext(d)); e == ".sln" || e == ".slnx" {
+					t.sln = strings.TrimPrefix(d, "./")
+				}
 				d = path.Dir(d)
 			}
 			d = strings.TrimSuffix(strings.TrimPrefix(d, "./"), "/")
@@ -212,9 +218,22 @@ func parseTest(args []arg) *testCmd {
 	return t
 }
 
+// solutionOf finds the tracked solution file a dotnet test target names, the
+// way resolveDir finds its folder: from the repo root, then from base.
+func (st *state) solutionOf(sln, base, dir string) (string, bool) {
+	for _, b := range []string{".", base} {
+		if p, ok := repo.Join(b, sln); ok && path.Dir(p) == dir && st.r.Has(p) {
+			return p, true
+		}
+	}
+	return "", false
+}
+
 func (st *state) testFacts() []fact.Fact {
 	type agg struct {
 		tool, dir, command string
+		projects           map[string]bool // folders a solution lists; nil once a run without a list joins
+		open               bool
 		ev                 []fact.Evidence
 		wfs                map[string]any
 	}
@@ -241,8 +260,28 @@ func (st *state) testFacts() []fact.Fact {
 		id := t.tool + ":" + dir
 		a := aggs[id]
 		if a == nil {
-			a = &agg{tool: t.tool, dir: dir, command: t.command, wfs: map[string]any{}}
+			a = &agg{tool: t.tool, dir: dir, command: t.command, wfs: map[string]any{}, projects: map[string]bool{}}
 			aggs[id] = a
+		}
+		if t.tool == "dotnet" {
+			var list []string
+			if t.sln != "" {
+				if sp, ok := st.solutionOf(t.sln, base, dir); ok {
+					data, err := st.r.Read(sp)
+					if err == nil {
+						list, err = dotnetsln.Projects(data, sp)
+					}
+					if err != nil {
+						st.testErrs = append(st.testErrs, fact.LocationError{Path: f.snip.path, Line: f.line, Message: "solution " + sp + ": " + err.Error()})
+					}
+				}
+			}
+			if len(list) == 0 {
+				a.open = true // no list: the run covers what it covers today
+			}
+			for _, p := range list {
+				a.projects[p] = true
+			}
 		}
 		chain, wfs := st.reachOf(f.snip, false)
 		a.ev = append(a.ev, st.evidence(f, chain...)...)
@@ -265,6 +304,18 @@ func (st *state) testFacts() []fact.Fact {
 		attrs := map[string]any{"tool": a.tool, "dir": a.dir, "command": a.command, "ci_invoked": len(a.wfs) > 0}
 		if len(a.wfs) > 0 {
 			attrs["workflows"] = fact.SortedValues(a.wfs)
+		}
+		if a.tool == "dotnet" && !a.open && len(a.projects) > 0 {
+			ps := make([]string, 0, len(a.projects))
+			for p := range a.projects {
+				ps = append(ps, p)
+			}
+			sort.Strings(ps)
+			list := make([]any, len(ps))
+			for i, p := range ps {
+				list[i] = p
+			}
+			attrs["projects"] = list
 		}
 		out = append(out, fact.Fact{Kind: fact.KindTestRun, Key: "test_run:" + id, Attrs: attrs, Plugin: "commands", Evidence: a.ev})
 	}

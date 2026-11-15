@@ -75,7 +75,7 @@
       "required": ["kind", "key", "attrs", "plugin", "evidence"],
       "properties": {
         "kind": {
-          "enum": ["dependency", "service", "datastore", "env_var", "outbound_host", "db_table", "db_column", "secret_found", "image_build", "image_recipe", "stack", "agent_config", "route", "owner", "catalog_entity", "source_size", "import", "test_suite", "test_run"]
+          "enum": ["dependency", "service", "datastore", "env_var", "outbound_host", "db_table", "db_column", "secret_found", "image_build", "image_recipe", "stack", "agent_config", "route", "owner", "catalog_entity", "source_size", "import", "test_suite", "test_run", "endpoint", "auth_policy"]
         },
         "key": {
           "type": "string",
@@ -112,7 +112,9 @@
         { "if": { "properties": { "kind": { "const": "source_size" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_source_size" } } } },
         { "if": { "properties": { "kind": { "const": "import" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_import" } } } },
         { "if": { "properties": { "kind": { "const": "test_suite" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_test_suite" } } } },
-        { "if": { "properties": { "kind": { "const": "test_run" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_test_run" } } } }
+        { "if": { "properties": { "kind": { "const": "test_run" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_test_run" } } } },
+        { "if": { "properties": { "kind": { "const": "endpoint" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_endpoint" } } } },
+        { "if": { "properties": { "kind": { "const": "auth_policy" } } }, "then": { "properties": { "attrs": { "$ref": "#/$defs/attrs_auth_policy" } } } }
       ]
     },
     "workflow_ref": {
@@ -214,18 +216,21 @@
             "additionalProperties": false,
             "required": ["kind", "raw"],
             "properties": {
-              "kind": { "enum": ["go", "npm"] },
+              "kind": { "enum": ["go", "npm", "dotnet"] },
               "raw": { "type": "string", "description": "The build command as written" },
-              "path": { "type": "string", "description": "go: package path, mapped to the repo when resolved" },
-              "resolved": { "type": "boolean", "description": "go: path maps back to the build context through a COPY line" },
-              "workspace": { "type": "string", "description": "npm: workspace built" }
+              "path": { "type": "string", "description": "go: package path; dotnet: project, solution or folder; mapped to the repo when resolved" },
+              "resolved": { "type": "boolean", "description": "go, dotnet: path maps back to the build context through a COPY line" },
+              "workspace": { "type": "string", "description": "npm: workspace built" },
+              "projects": { "type": "array", "items": { "type": "string" }, "description": "dotnet: sorted repo folders of the projects it builds; only when resolved" }
             },
             "allOf": [
               { "if": { "properties": { "kind": { "const": "go" } } }, "then": { "required": ["path", "resolved"] } },
-              { "if": { "properties": { "kind": { "const": "npm" } } }, "then": { "required": ["workspace"] } }
+              { "if": { "properties": { "kind": { "const": "npm" } } }, "then": { "required": ["workspace"] } },
+              { "if": { "properties": { "kind": { "const": "dotnet" } } }, "then": { "required": ["path", "resolved"] } }
             ]
           }
-        }
+        },
+        "other_commands": { "type": "array", "items": { "type": "string" }, "description": "Sorted command words of RUN lines in stages that feed this image that are neither a known build nor setup; absent when none. A reader that narrows links keeps them when this is present." }
       }
     },
     "attrs_agent_config": {
@@ -280,7 +285,59 @@
         "dir": { "type": "string", "description": "Folder it runs in: -C, --prefix, --dir, -f pom.xml, -p project, the folder of a package.json script, else the repo root" },
         "command": { "type": "string", "description": "The first such command, as written, at most 200 characters" },
         "ci_invoked": { "type": "boolean" },
+        "projects": { "type": "array", "items": { "type": "string" }, "description": "dotnet only: the sorted folders of the projects a tracked .sln or .slnx lists, resolved from the solution's folder (solution folders and paths outside the repo skipped). Present only when every dotnet test merged into this run names a readable solution; the run then covers only test suites at these folders, otherwise every suite below dir" },
         "workflows": { "type": "array", "items": { "$ref": "#/$defs/workflow_ref" } }
+      }
+    },
+    "attrs_endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "line", "language", "framework", "method", "path", "raw", "auth"],
+      "description": "An HTTP endpoint the code registers; key endpoint:<language>:<file>:<method>:<path>. The path is the full path as registered with every resolved prefix applied: a leading /, parameters as {name}, catch-alls as {*name}, no trailing / except the root. Evidence: the registration line first, then each prefix line (route group, class [Route]) and each auth marker line, all in the file that holds them. ASP.NET today (dotnet plugin): minimal APIs (aspnet-minimal) and controllers (aspnet-mvc), Razor Pages (aspnet-razor) and Blazor pages (blazor).",
+      "properties": {
+        "ext": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "prefix_unresolved": { "type": "boolean", "description": "Some prefix in front of the path could not be read; the path then starts with {?}" },
+            "conditional": { "type": "string", "description": "The condition (an if or #if) around the registration, as written" }
+          }
+        },
+        "file": { "type": "string", "description": "The file that holds the registration (repo path); endpoints attach to services through it, since normalisation sorts the evidence" },
+        "line": { "type": "integer", "minimum": 1, "description": "The registration line" },
+        "language": { "enum": ["csharp", "go", "javascript", "java", "python"] },
+        "framework": { "enum": ["aspnet-minimal", "aspnet-mvc", "aspnet-razor", "blazor", "nethttp", "chi", "gin", "echo", "express", "fastify", "nestjs", "nextjs", "spring", "jaxrs", "fastapi", "flask", "django"] },
+        "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "ANY"], "description": "ANY when the registration takes every method" },
+        "path": { "type": "string", "description": "Normalised path" },
+        "raw": { "type": "string", "description": "The path as written at the registration (without prefixes)" },
+        "handler": { "type": "string", "description": "The handler's name when it is an identifier or member; absent for an inline lambda" },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "markers"],
+          "description": "What the code states, never inferred",
+          "properties": {
+            "state": { "enum": ["required", "anonymous", "unknown"] },
+            "markers": { "type": "array", "items": { "type": "string" }, "description": "The markers seen on the endpoint, its class and its groups; with state unknown after merging repeated registrations, the markers of all of them" }
+          }
+        },
+        "app_unit": { "type": "string", "description": "The folder of the web project that holds the file (.NET: Microsoft.NET.Sdk.Web or BlazorWebAssembly)" }
+      }
+    },
+    "attrs_auth_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "line", "language", "framework", "scope", "state"],
+      "description": "A host-level auth policy the code states; key auth_policy:<language>:<file>:<line>:<scope>. The reader cannot know which app hosts a file, so an endpoint fact holds only its own markers and the rules apply a policy per service. ASP.NET (dotnet plugin): MapControllers().RequireAuthorization() (scope controllers), MapRazorPages().RequireAuthorization() (razor), and a FallbackPolicy set through AddAuthorization or AddAuthorizationBuilder().SetFallbackPolicy (fallback), each only on the host builder or app. Evidence: the policy line.",
+      "properties": {
+        "file": { "type": "string", "description": "The file that holds the policy (repo path)" },
+        "line": { "type": "integer", "minimum": 1, "description": "The policy line" },
+        "language": { "enum": ["csharp", "java"] },
+        "framework": { "enum": ["aspnet", "spring"] },
+        "scope": { "enum": ["controllers", "razor", "fallback", "matcher"], "description": "What the policy covers: the controller endpoints, the Razor Pages, every endpoint without its own marker, or the endpoints a matcher pattern selects" },
+        "state": { "enum": ["required", "anonymous"] },
+        "pattern": { "type": "string", "description": "matcher scope only: the literal pattern" },
+        "app_unit": { "type": "string", "description": "The folder of the web project that holds the file (.NET: Microsoft.NET.Sdk.Web or BlazorWebAssembly)" }
       }
     },
     "attrs_source_size": {
@@ -300,7 +357,7 @@
     "attrs_import": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["language", "from", "to", "from_dir", "to_dir"],
+      "required": ["language", "from", "to", "from_dir"],
       "description": "One package of the repo importing another package of the repo (the module graph, https://cernly.dev/how/map/). Key import:<language>:<from>:<to>. Go: from the parsed import declarations of non-test files, never go tooling; the target resolves by the longest module path of a go.mod in the repo, and must be a folder with Go files. .NET (dotnet): one per ProjectReference between two project files of the repo; from and to are the project file paths, from_dir and to_dir their folders. Imports of packages outside the repo are dependencies, not imports. Evidence: every import line (.NET: every ProjectReference line).",
       "properties": {
         "ext": { "$ref": "#/$defs/ext" },
@@ -308,7 +365,8 @@
         "from": { "type": "string", "description": "The importing package, e.g. example.com/api/internal/billing" },
         "to": { "type": "string", "description": "The imported package" },
         "from_dir": { "type": "string" },
-        "to_dir": { "type": "string" },
+        "to_dir": { "type": "string", "description": "Absent only for a .NET linked item whose path is unresolved (ext.unresolved)" },
+        "item": { "enum": ["Compile", "Content", "None", "EmbeddedResource", "Import", "Project", "ProjectReference"], "description": ".NET: the fact is not a project reference but an item or Import of the project that names a path outside the project's folder (to is the repo path, wildcards kept, or the path as written when unresolved; to_dir the folder, or the folder before the first wildcard). Project: a legacy (non-SDK) project, whose references are not read (always ext.unresolved, to is its own file). ProjectReference: a project reference the reader did not resolve to a project it holds (a $(...) it cannot expand, a path that matches no tracked project or several only case-insensitively, or a reference written in a props, targets or imported file); always ext.unresolved, to is the resolved path or the path as written. Items declared in a props file that applies to the project are reported with that file as evidence. Not a module-graph edge." },
         "from_module": { "type": "string", "description": "Go: the module path of the importing package" },
         "to_module": { "type": "string" }
       }
@@ -361,6 +419,18 @@
         "action": { "enum": ["proxy", "fastcgi", "respond", "redirect", "file_server"] },
         "upstreams": { "type": "array", "items": { "$ref": "#/$defs/route_address" } },
         "status": { "type": "integer" },
+        "match_type": { "enum": ["prefix", "exact", "regex", "host", "other"], "description": "How the route matches a path: prefix (caddy /a/*, nginx /a/, traefik PathPrefix), exact, regex (nginx ~, traefik PathRegexp), host (no path matcher), other (a named matcher that tests more than paths, globs, or paths of mixed types)" },
+        "rewrite": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "description": "How the path changes before the upstream sees it. none; strip (caddy handle_path, uri strip_prefix, traefik stripprefix: prefix is removed); replace (nginx proxy_pass with a URI part: prefix becomes to); unknown (a rewrite, a variable or a middleware that is not read)",
+          "properties": {
+            "kind": { "enum": ["none", "strip", "replace", "unknown"] },
+            "prefix": { "type": "string" },
+            "to": { "type": "string" }
+          }
+        },
         "target": { "type": "string", "description": "redirect: the target as written" },
         "router": { "type": "string", "description": "traefik: the router's name" },
         "rule": { "type": "string", "description": "traefik: the router rule as written; addresses, paths (PathPrefix as /x*) and methods are its positive matchers" },

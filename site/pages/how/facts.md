@@ -37,7 +37,9 @@ Plugins translate their stack's syntax into shared concepts, so rules only read 
 - **Image references** become registry, repository, tag and digest, with a pinning grade: `digest`, `exact` (a full version), `floating` (`latest`, no tag, a major like `16`) or `unknown`. Docker Hub names become `docker.io/library/<name>`. `${VAR:-default}` keeps the variable and shows the default.
 - **Versions** keep the raw string and add a scheme: semver, calver, date or pseudo.
 - **Internal packages** (workspaces, Go `replace`, .NET `ProjectReference`) become edges inside the repo, never third-party dependencies.
-- **Stacks share the vocabulary.** A dependency names its ecosystem (`go`, `npm`, `pypi`, `maven`, `nuget`), a test suite its language and framework (`csharp` with `xunit`, `nunit`, `mstest` or `tunit`, say), an `import` its language (`dotnet` for project references). Rules read these fields, never the stack's own files.
+- **Stacks share the vocabulary.** A dependency names its ecosystem (`go`, `npm`, `pypi`, `maven`, `nuget`), a test suite its language and framework (`csharp` with `xunit`, `nunit`, `mstest` or `tunit`, say), an `import` its language (`dotnet` for project references). Rules read these fields, never the stack's own files. A `dotnet test` of a tracked solution (`.sln` or `.slnx`) records on its test run the folders of the projects the solution lists (`projects`), and then covers only the test suites at those folders; without that list it covers every suite below its folder.
+- **Endpoints** become one `endpoint` fact per registered route, with the auth the code states (`required`, `anonymous` or `unknown`). Host-wide rules are `auth_policy`. A prefix the reader cannot resolve is marked, never guessed.
+- **Routes** record how they match and rewrite paths.
 - **Repo identity** is `host/owner/name`, from the git remote or `--repo`.
 
 ## In the code

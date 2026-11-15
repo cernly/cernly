@@ -1,0 +1,14 @@
+/* The viewer's own layout; colours, fonts and the shared components come from @cernly/brand and @cernly/views. */
+.page { max-width: 1180px; margin: 0 auto; padding: 20px 24px 48px; display: flex; flex-direction: column; gap: 20px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.bar .spacer { flex: 1 1 auto; }
+.bar .names { font-size: 13px; }
+.drop { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 56px 24px; text-align: center; border-style: dashed; }
+.drop.over { --edge: var(--brand); }
+.drop h1 { font: var(--display-weight) 30px/36px var(--font-display); letter-spacing: var(--display-tracking); }
+.drop p { max-width: 60ch; }
+.drop input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.drop label.btn:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 6px; }
+.seg .btn[aria-pressed="true"] { --edge: var(--brand); color: var(--ink); font-weight: 600; }
+.stack-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }

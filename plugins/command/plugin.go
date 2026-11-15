@@ -21,7 +21,7 @@ type Plugin struct{}
 func init() { plugin.Register(Plugin{}) }
 
 func (Plugin) Name() string    { return "commands" }
-func (Plugin) Version() string { return "0.3.2" }
+func (Plugin) Version() string { return "0.3.3" }
 
 // Watches is true for every path: commands name arbitrary files (Dockerfiles,
 // build contexts, compose files), so any added or removed file can change how
@@ -42,11 +42,12 @@ type reach struct {
 }
 
 type state struct {
-	r      *repo.Repo
-	src    *sources
-	found  []found
-	edges  map[*snippet][]edge
-	reachd map[*snippet]*reach
+	r        *repo.Repo
+	src      *sources
+	found    []found
+	edges    map[*snippet][]edge
+	reachd   map[*snippet]*reach
+	testErrs []fact.LocationError
 }
 
 type edge struct {
@@ -73,6 +74,7 @@ func (Plugin) Run(r *repo.Repo) plugin.Result {
 	res.Facts = append(res.Facts, st.stackFacts()...)
 	res.Facts = append(res.Facts, st.deployFacts()...)
 	res.Facts = append(res.Facts, st.testFacts()...)
+	res.Errors = append(res.Errors, st.testErrs...)
 	return res
 }
 

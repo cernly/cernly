@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -843,6 +844,159 @@ func TestCentralVersionAfterEvaluation(t *testing.T) {
 	}
 }
 
+func TestProjectSDK(t *testing.T) {
+	r := repotest.Write(t, t.TempDir(), map[string]string{
+		"a/A.csproj": `<Project Sdk="Microsoft.NET.Sdk.Web"></Project>`,
+		"b/B.csproj": `<Project Sdk="Microsoft.NET.Sdk.Web/9.0.0"></Project>`,
+		"c/C.csproj": `<Project>
+  <Sdk Name="Microsoft.NET.Sdk.BlazorWebAssembly" Version="8.0.0" />
+</Project>`,
+		"d/D.csproj": `<Project Sdk="Microsoft.NET.Sdk"></Project>`,
+	})
+	ps := projects(t, r)
+	for p, want := range map[string]string{"a/A.csproj": "Microsoft.NET.Sdk.Web", "b/B.csproj": "Microsoft.NET.Sdk.Web", "c/C.csproj": "Microsoft.NET.Sdk.BlazorWebAssembly", "d/D.csproj": "Microsoft.NET.Sdk"} {
+		if ps[p] == nil || ps[p].SDK != want {
+			t.Errorf("%s: SDK %+v, want %q", p, ps[p], want)
+		}
+	}
+}
+
+// A ProjectReference Include is split on ";", runs through the reserved
+// properties, and is Unresolved when a property is unknown. One in a props
+// file resolves against the project's folder, with the props file as File.
+func TestProjectRefParts(t *testing.T) {
+	r := repotest.Write(t, t.TempDir(), map[string]string{
+		"Directory.Build.props": `<Project>
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src\Shared\Shared.csproj" />
+  </ItemGroup>
+</Project>
+`,
+		"src/Api/Api.csproj": `<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\A\A.csproj; ..\B\B.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\C\C.csproj" />
+    <ProjectReference Include="$(SolutionDir)src\D\D.csproj" />
+  </ItemGroup>
+</Project>
+`,
+	})
+	api := projects(t, r)["src/Api/Api.csproj"]
+	var got []string
+	for _, ref := range api.ProjectRefs {
+		got = append(got, fmt.Sprintf("%s|%s|%s|%v|%d", ref.File, ref.Include, ref.Path, ref.Unresolved, ref.Line))
+	}
+	want := []string{`Directory.Build.props|$(MSBuildThisFileDirectory)src\Shared\Shared.csproj|src/Shared/Shared.csproj|false|3`,
+		`src/Api/Api.csproj|..\A\A.csproj|src/A/A.csproj|false|3`, `src/Api/Api.csproj|..\B\B.csproj|src/B/B.csproj|false|3`,
+		`src/Api/Api.csproj|$(MSBuildThisFileDirectory)..\C\C.csproj|src/C/C.csproj|false|4`, `src/Api/Api.csproj|$(SolutionDir)src\D\D.csproj||true|5`}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("refs\n got %q\nwant %q", got, want)
+	}
+	if len(api.Links) != 0 {
+		t.Errorf("links: %+v", api.Links)
+	}
+}
+
+// Items and ProjectReferences in a props file resolve against the folder of
+// each project that imports it, not the props file's own folder; the
+// reserved properties are relative to that same base. One that leaves the
+// repo for a project is unresolved, never dropped.
+func TestPropsItemsPerProjectBase(t *testing.T) {
+	r := repotest.Write(t, t.TempDir(), map[string]string{
+		"Directory.Build.props": `<Project>
+  <ItemGroup>
+    <Compile Include="..\Shared\Common.cs" />
+    <Content Include="$(MSBuildThisFileDirectory)assets\logo.png" />
+    <None Include="$(MSBuildProjectDirectory)\..\Docs\readme.md" />
+    <ProjectReference Include="..\Lib\Lib.csproj" />
+    <Compile Include="..\..\..\Outside\X.cs" />
+  </ItemGroup>
+</Project>
+`,
+		"src/Api/Api.csproj":   `<Project Sdk="Microsoft.NET.Sdk" />`,
+		"tools/Cli/Cli.csproj": `<Project Sdk="Microsoft.NET.Sdk" />`,
+	})
+	ps := projects(t, r)
+	for _, c := range []struct {
+		proj string
+		want []string
+	}{
+		{"src/Api/Api.csproj", []string{"Compile|src/Shared/Common.cs|src/Shared|false", "Content|assets/logo.png|assets|false",
+			"None|src/Docs/readme.md|src/Docs|false", `Compile|||true`}},
+		{"tools/Cli/Cli.csproj", []string{"Compile|tools/Shared/Common.cs|tools/Shared|false", "Content|assets/logo.png|assets|false",
+			"None|tools/Docs/readme.md|tools/Docs|false", `Compile|||true`}},
+	} {
+		p := ps[c.proj]
+		var got []string
+		for _, l := range p.Links {
+			if l.File != "Directory.Build.props" {
+				t.Errorf("%s: link file %q", c.proj, l.File)
+			}
+			got = append(got, fmt.Sprintf("%s|%s|%s|%v", l.Item, l.Path, l.Dir, l.Unresolved))
+		}
+		if !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s links\n got %q\nwant %q", c.proj, got, c.want)
+		}
+		wantRef := path.Dir(path.Dir(c.proj)) + "/Lib/Lib.csproj"
+		if len(p.ProjectRefs) != 1 || p.ProjectRefs[0].Path != wantRef || p.ProjectRefs[0].Unresolved ||
+			p.ProjectRefs[0].File != "Directory.Build.props" || p.ProjectRefs[0].Line != 6 {
+			t.Errorf("%s refs: %+v, want %s", c.proj, p.ProjectRefs, wantRef)
+		}
+	}
+}
+
+// A ProjectReference in a props file that leaves the repo for the importing
+// project stays an unresolved reference: the link is kept.
+func TestPropsProjectRefLeavesRepo(t *testing.T) {
+	r := repotest.Write(t, t.TempDir(), map[string]string{
+		"Directory.Build.props": "<Project>\n  <ItemGroup>\n    <ProjectReference Include=\"..\\..\\Lib\\Lib.csproj\" />\n  </ItemGroup>\n</Project>\n",
+		"Api/Api.csproj":        `<Project Sdk="Microsoft.NET.Sdk" />`,
+	})
+	p := projects(t, r)["Api/Api.csproj"]
+	if len(p.ProjectRefs) != 1 || !p.ProjectRefs[0].Unresolved || p.ProjectRefs[0].Path != "" {
+		t.Errorf("refs: %+v", p.ProjectRefs)
+	}
+}
+
+// $(MSBuildProjectName), $(MSBuildProjectFile) and $(MSBuildProjectExtension)
+// are known per project in a condition, unless the repo sets them.
+func TestConditionOnProjectName(t *testing.T) {
+	props := `<Project>
+  <ItemGroup>
+    <ProjectReference Include="..\Lib\Lib.csproj" Condition="'$(MSBuildProjectName)' != 'Lib'" />
+    <ProjectReference Include="..\File\File.csproj" Condition="'$(MSBuildProjectFile)' == 'Api.csproj'" />
+    <ProjectReference Include="..\Ext\Ext.csproj" Condition="'$(MSBuildProjectExtension)' == '.csproj'" />
+  </ItemGroup>
+</Project>
+`
+	refs := func(p *Project) []string {
+		var out []string
+		for _, r := range p.ProjectRefs {
+			out = append(out, r.Path+"|"+r.Condition)
+		}
+		return out
+	}
+	ps := projects(t, repotest.Write(t, t.TempDir(), map[string]string{
+		"src/Directory.Build.props": props,
+		"src/Api/Api.csproj":        `<Project Sdk="Microsoft.NET.Sdk" />`,
+		"src/Lib/Lib.csproj":        `<Project Sdk="Microsoft.NET.Sdk" />`,
+	}))
+	if got, want := refs(ps["src/Api/Api.csproj"]), []string{"src/Lib/Lib.csproj|", "src/File/File.csproj|", "src/Ext/Ext.csproj|"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("api: %q, want %q", got, want)
+	}
+	if got, want := refs(ps["src/Lib/Lib.csproj"]), []string{"src/Ext/Ext.csproj|"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("lib: %q, want %q", got, want)
+	}
+	// Set in the repo: the exact rules decide nothing about it.
+	ps = projects(t, repotest.Write(t, t.TempDir(), map[string]string{
+		"src/Directory.Build.props": strings.Replace(props, "<ItemGroup>", "<PropertyGroup Condition=\"'$(X)' == ''\"><MSBuildProjectName>Y</MSBuildProjectName></PropertyGroup>\n  <ItemGroup>", 1),
+		"src/Api/Api.csproj":        `<Project Sdk="Microsoft.NET.Sdk" />`,
+	}))
+	if got := refs(ps["src/Api/Api.csproj"]); got[0] != `src/Lib/Lib.csproj|'$(MSBuildProjectName)' != 'Lib'` {
+		t.Errorf("overridden: %q", got)
+	}
+}
+
 // A Choose with thousands of undecided branches must not grow every later
 // condition without bound.
 func TestChooseBounded(t *testing.T) {
@@ -877,5 +1031,9 @@ func TestChooseBounded(t *testing.T) {
 	}
 	if last := ps[0].Packages[len(ps[0].Packages)-1]; last.ID != "Taken" {
 		t.Errorf("last package = %s, want Taken", last.ID)
+	}
+	// What the cut skipped may hold a ProjectReference: one unresolved ref keeps the link.
+	if len(ps[0].ProjectRefs) != 1 || !ps[0].ProjectRefs[0].Unresolved || ps[0].ProjectRefs[0].Path != "" || ps[0].ProjectRefs[0].Line == 0 {
+		t.Errorf("project refs = %+v, want one unresolved ref at the cut", ps[0].ProjectRefs)
 	}
 }

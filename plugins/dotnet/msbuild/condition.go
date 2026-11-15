@@ -1,6 +1,9 @@
 package msbuild
 
-import "strings"
+import (
+	"path"
+	"strings"
+)
 
 // Conditions are decided only when the answer is exact: a conjunction (as
 // joinCond builds them) of comparisons '$(Name)' == 'literal' or !=, either
@@ -9,7 +12,9 @@ import "strings"
 // props file of the repo sets it (reader.setInRepo); one no file sets may come
 // from the environment and is unknown, as is one set under a condition or
 // computed, and one MSBuild, the SDK or the command line may set (see
-// unsetUnknown). A parenthesised group, negated or not, is one operand that
+// unsetUnknown). The reserved $(MSBuildProjectName), $(MSBuildProjectFile)
+// and $(MSBuildProjectExtension) are known from the project's path, unless a
+// file of the repo sets them (projectReserved). A parenthesised group, negated or not, is one operand that
 // is never decided. Anything else is undecided.
 
 type tri int
@@ -92,6 +97,9 @@ func (v *eval) operand(t condToken) (string, bool) {
 		if val, ok := v.props[key]; ok {
 			return val, true
 		}
+		if val, ok := v.projectReserved(key); ok {
+			return val, true
+		}
 		if unsetUnknown(key) || !v.e.setInRepo[key] {
 			return "", false
 		}
@@ -101,6 +109,23 @@ func (v *eval) operand(t condToken) (string, bool) {
 		return "", false // other expansions, item lists, metadata, escapes
 	}
 	return s, true
+}
+
+// projectReserved is the value of a reserved property MSBuild derives from the
+// project's path, when no file of the repo sets it.
+func (v *eval) projectReserved(key string) (string, bool) {
+	if v.p == nil || v.e.setInRepo[key] {
+		return "", false
+	}
+	switch key {
+	case "msbuildprojectname":
+		return v.p.Name, true
+	case "msbuildprojectfile":
+		return path.Base(v.p.Path), true
+	case "msbuildprojectextension":
+		return path.Ext(v.p.Path), true
+	}
+	return "", false
 }
 
 // unsetUnknown reports properties that have a value at item evaluation even

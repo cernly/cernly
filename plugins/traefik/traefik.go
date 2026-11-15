@@ -34,7 +34,7 @@ type Plugin struct{}
 func init() { plugin.Register(Plugin{}) }
 
 func (Plugin) Name() string    { return "traefik" }
-func (Plugin) Version() string { return "0.1.1" }
+func (Plugin) Version() string { return "0.2.0" }
 
 // The image a label route's proxy runs; the routes rule matches it by name.
 const proxyImage = "traefik"
@@ -74,6 +74,9 @@ type router struct {
 	name, rule, service string
 	ruleLine            int
 	upstreams           []upstream
+	middlewares         []string
+	defined             map[string][]string // middleware name to its stripprefix prefixes; nil when it changes the path unreadably
+	readable            bool                // the middlewares are defined where they were read (the same labels)
 }
 
 type upstream struct {
@@ -124,6 +127,8 @@ func route(file string, rt router, extra map[string]any, ev []fact.Evidence) (fa
 		}
 	}
 	attrs["addresses"] = addrs
+	attrs["match_type"] = matchType(ms)
+	attrs["rewrite"] = rewriteOf(rt)
 	if len(paths) > 0 {
 		attrs["paths"] = paths
 	}
@@ -165,6 +170,7 @@ func fromLabels(r *repo.Repo, file string) ([]fact.Fact, []fact.LocationError) {
 		}
 		routers := map[string]*router{}
 		ports := map[string]string{}
+		defined := map[string][]string{}
 		for k, l := range labels {
 			parts := strings.Split(k, ".")
 			if len(parts) < 5 || parts[0] != "traefik" || parts[1] != "http" {
@@ -176,6 +182,20 @@ func fromLabels(r *repo.Repo, file string) ([]fact.Fact, []fact.LocationError) {
 				rt.rule, rt.ruleLine = l.value, l.line
 			case parts[2] == "routers" && parts[4] == "service" && len(parts) == 5:
 				routerOf(routers, parts[3]).service = l.value
+			case parts[2] == "routers" && parts[4] == "middlewares" && len(parts) == 5:
+				routerOf(routers, parts[3]).middlewares = splitList(l.value)
+			case parts[2] == "middlewares" && len(parts) >= 6:
+				if _, ok := defined[parts[3]]; !ok {
+					defined[parts[3]] = []string{} // defined, no path change
+				}
+				switch strings.ToLower(parts[4]) {
+				case "stripprefix":
+					if strings.EqualFold(parts[5], "prefixes") && len(parts) == 6 && defined[parts[3]] != nil {
+						defined[parts[3]] = splitList(l.value)
+					}
+				case "stripprefixregex", "replacepath", "replacepathregex", "addprefix", "chain", "plugin":
+					defined[parts[3]] = nil // changes the path in a way we do not read
+				}
 			case parts[2] == "services" && strings.EqualFold(strings.Join(parts[4:], "."), "loadbalancer.server.port"):
 				ports[parts[3]] = l.value
 			}
@@ -203,6 +223,7 @@ func fromLabels(r *repo.Repo, file string) ([]fact.Fact, []fact.LocationError) {
 				addr += ":" + port
 			}
 			rt.upstreams = []upstream{{address: addr, host: svc, port: port}}
+			rt.defined, rt.readable = defined, true
 			ev := []fact.Evidence{{Path: file, Line: rt.ruleLine, Unit: svc}}
 			f, lerr := route(file, *rt, map[string]any{"labels_on": svc, "proxy_image": proxyImage}, ev)
 			if lerr != nil {
@@ -299,6 +320,9 @@ func yamlRouters(data []byte) ([]router, map[string][]string, error) {
 			if v := yamlnode.Get(rs.Content[i+1], "service"); v != nil {
 				rt.service = v.Value
 			}
+			if v := yamlnode.Get(rs.Content[i+1], "middlewares"); v != nil {
+				rt.middlewares = []string{"@file"} // not read from file config: unknown rewrite
+			}
 			if rt.rule != "" {
 				out = append(out, rt)
 			}
@@ -325,8 +349,9 @@ func tomlRouters(data []byte) ([]router, map[string][]string, error) {
 	var doc struct {
 		HTTP struct {
 			Routers map[string]struct {
-				Rule    string `toml:"rule"`
-				Service string `toml:"service"`
+				Rule        string   `toml:"rule"`
+				Service     string   `toml:"service"`
+				Middlewares []string `toml:"middlewares"`
 			} `toml:"routers"`
 			Services map[string]struct {
 				LoadBalancer struct {
@@ -346,7 +371,11 @@ func tomlRouters(data []byte) ([]router, map[string][]string, error) {
 		if rt.Rule == "" {
 			continue
 		}
-		out = append(out, router{name: name, rule: rt.Rule, service: rt.Service, ruleLine: ruleLine(lines, name)})
+		r := router{name: name, rule: rt.Rule, service: rt.Service, ruleLine: ruleLine(lines, name)}
+		if len(rt.Middlewares) > 0 {
+			r.middlewares = []string{"@file"}
+		}
+		out = append(out, r)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].name < out[j].name })
 	servers := map[string][]string{}
@@ -388,6 +417,77 @@ func parseURL(u string) upstream {
 		out.host, out.port = rest[:i], rest[i+1:]
 	} else {
 		out.host = rest
+	}
+	return out
+}
+
+func splitList(v string) []string {
+	var out []string
+	for _, x := range strings.Split(v, ",") {
+		if x = strings.TrimSpace(x); x != "" {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
+// matchType classifies a router rule: prefix (PathPrefix), exact (Path),
+// regex (PathRegexp), host (no path matcher), other (mixed path types, a
+// negated path matcher, or a matcher on headers, query or client).
+func matchType(ms []matcher) string {
+	typ := ""
+	for _, m := range ms {
+		t := ""
+		switch m.Name {
+		case "PathPrefix", "Path", "PathRegexp":
+			if m.Negated {
+				return "other"
+			}
+			t = map[string]string{"PathPrefix": "prefix", "Path": "exact", "PathRegexp": "regex"}[m.Name]
+		case "Headers", "HeadersRegexp", "Query", "QueryRegexp", "ClientIP":
+			return "other"
+		}
+		if t == "" {
+			continue
+		}
+		if typ != "" && typ != t {
+			return "other"
+		}
+		typ = t
+	}
+	if typ == "" {
+		return "host"
+	}
+	return typ
+}
+
+// rewriteOf reads the router's middlewares: only a stripprefix with one prefix,
+// defined in the same labels, is understood; any other path changer or a
+// middleware that cannot be read gives unknown.
+func rewriteOf(rt router) map[string]any {
+	out := map[string]any{"kind": "none"}
+	if len(rt.middlewares) == 0 {
+		return out
+	}
+	var strip string
+	for _, name := range rt.middlewares {
+		prefixes, ok := rt.defined[name]
+		if !rt.readable || !ok || strings.Contains(name, "@") {
+			return map[string]any{"kind": "unknown"}
+		}
+		if prefixes == nil {
+			return map[string]any{"kind": "unknown"}
+		}
+		if len(prefixes) == 0 {
+			continue
+		}
+		if len(prefixes) != 1 || strip != "" {
+			return map[string]any{"kind": "unknown"}
+		}
+		strip = "/" + strings.Trim(prefixes[0], "/")
+	}
+	if strip != "" {
+		return map[string]any{"kind": "strip", "prefix": strip}
 	}
 	return out
 }

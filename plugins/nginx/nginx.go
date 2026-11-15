@@ -27,7 +27,7 @@ type Plugin struct{}
 func init() { plugin.Register(Plugin{}) }
 
 func (Plugin) Name() string    { return "nginx" }
-func (Plugin) Version() string { return "0.2.0" }
+func (Plugin) Version() string { return "0.3.0" }
 
 func (Plugin) Watches(p string) bool { return nginxconf.IsConfig(p) }
 
@@ -237,15 +237,17 @@ func envName(s string) string {
 }
 
 type server struct {
-	addrs []address
-	at    []fact.Evidence // the server line and its server_name line
-	root  bool            // a root directive at server level
+	addrs   []address
+	at      []fact.Evidence // the server line and its server_name line
+	root    bool            // a root directive at server level
+	rewrite bool            // a rewrite at server level, also inside an if there
 }
 
 func (rd *reader) server(n nginxconf.Node, ups map[string][]string) {
 	s := server{at: []fact.Evidence{{Path: n.Args[0].File, Line: n.Line()}}}
 	port, scheme := "", "http"
 	var names []string
+	s.rewrite = hasRewrite(n.Block)
 	for _, d := range n.Block {
 		switch d.Name() {
 		case "listen":
@@ -290,27 +292,29 @@ func (rd *reader) server(n nginxconf.Node, ups map[string][]string) {
 	}
 	for _, d := range n.Block {
 		if d.Name() == "location" && d.Open {
-			rd.location(s, d, ups)
+			rd.location(s, d, ups, false)
 		}
 	}
 	// Directives at server level handle what no location matches.
-	rd.handle(s, "*", n.Block, n.Args[0], ups, s.root)
+	rd.handle(s, "*", n.Block, n.Args[0], ups, s.root, false)
 }
 
 // location reads one location block (nested ones too) and its handler.
-func (rd *reader) location(s server, n nginxconf.Node, ups map[string][]string) {
+// outer is true when an enclosing location has a rewrite.
+func (rd *reader) location(s server, n nginxconf.Node, ups map[string][]string, outer bool) {
 	match := strings.Join(n.Values(), " ")
-	rd.handle(s, match, n.Block, n.Args[0], ups, s.root)
+	rd.handle(s, match, n.Block, n.Args[0], ups, s.root, outer || s.rewrite)
+	outer = outer || hasRewrite(n.Block)
 	for _, d := range n.Block {
 		if d.Name() == "location" && d.Open {
-			rd.location(s, d, ups)
+			rd.location(s, d, ups, outer)
 		}
 	}
 }
 
 // handle emits the route of one location (or the server itself, match "*"):
 // the first handler directive in its block.
-func (rd *reader) handle(s server, match string, block []nginxconf.Node, at nginxconf.Token, ups map[string][]string, inheritRoot bool) {
+func (rd *reader) handle(s server, match string, block []nginxconf.Node, at nginxconf.Token, ups map[string][]string, inheritRoot, outerRewrite bool) {
 	attrs := map[string]any{}
 	var line nginxconf.Node
 	for _, d := range block {
@@ -362,6 +366,8 @@ func (rd *reader) handle(s server, match string, block []nginxconf.Node, at ngin
 	if match != "*" {
 		attrs["paths"] = []any{match}
 	}
+	attrs["match_type"] = matchType(match)
+	attrs["rewrite"] = rewriteOf(match, block, outerRewrite)
 	ev := append([]fact.Evidence(nil), s.at...)
 	if match != "*" {
 		ev = append(ev, fact.Evidence{Path: at.File, Line: at.Line})
@@ -423,4 +429,89 @@ func hostPort(s, scheme string) address {
 		a.host = ""
 	}
 	return a
+}
+
+// matchType classifies a location match: "= /x" exact, "~" and "~*" regex,
+// "/x" and "^~ /x" prefix, a named location other, the server itself host.
+func matchType(match string) string {
+	mod, _, ok := strings.Cut(match, " ")
+	switch {
+	case match == "*":
+		return "host"
+	case !ok:
+		if strings.HasPrefix(match, "/") {
+			return "prefix"
+		}
+		return "other"
+	case mod == "=":
+		return "exact"
+	case mod == "~" || mod == "~*":
+		return "regex"
+	case mod == "^~":
+		return "prefix"
+	}
+	return "other"
+}
+
+// hasRewrite reports a rewrite directive in the block or in an if block in it
+// (not in a nested location, which the walk visits on its own).
+func hasRewrite(block []nginxconf.Node) bool {
+	for _, d := range block {
+		if d.Name() == "rewrite" || (d.Name() == "if" && d.Open && hasRewrite(d.Block)) {
+			return true
+		}
+	}
+	return false
+}
+
+// rewriteOf reads how the path changes before the upstream sees it: a rewrite
+// directive in the location, an enclosing server or location, or an if block
+// in them, or a variable in proxy_pass is unknown; a proxy_pass with a URI
+// part replaces the location's prefix with that URI.
+func rewriteOf(match string, block []nginxconf.Node, outerRewrite bool) map[string]any {
+	none := map[string]any{"kind": "none"}
+	unknown := map[string]any{"kind": "unknown"}
+	if outerRewrite || hasRewrite(block) {
+		return unknown
+	}
+	for _, d := range block {
+		if d.Name() != "proxy_pass" || len(d.Args) < 2 {
+			continue
+		}
+		target := d.Args[1].Text
+		if i := strings.Index(target, "://"); i >= 0 {
+			target = target[i+3:]
+		}
+		hostPart, uri := target, ""
+		if i := strings.Index(target, "/"); i >= 0 {
+			hostPart, uri = target[:i], target[i:]
+		}
+		if strings.Contains(uri, "$") || strings.Contains(stripEnv(hostPart), "$") {
+			return unknown
+		}
+		if uri == "" {
+			return none
+		}
+		prefix := match[strings.LastIndex(match, " ")+1:]
+		if !strings.HasPrefix(prefix, "/") {
+			return unknown
+		}
+		return map[string]any{"kind": "replace", "prefix": prefix, "to": uri}
+	}
+	return none
+}
+
+// stripEnv removes ${VAR} placeholders (envsubst templates, not nginx variables).
+func stripEnv(s string) string {
+	for {
+		i := strings.Index(s, "${")
+		if i < 0 {
+			return s
+		}
+		j := strings.IndexByte(s[i:], '}')
+		if j < 0 {
+			return s
+		}
+		s = s[:i] + s[i+j+1:]
+	}
 }

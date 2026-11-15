@@ -17,7 +17,7 @@ import (
 const (
 	SchemaID = "cernly.map/v1"
 	// Bump on any change to the map output; see CHANGELOG.md.
-	Version = "0.15.0"
+	Version = "0.17.1"
 )
 
 type Settings struct {
@@ -51,8 +51,10 @@ type Map struct {
 	Unknown          []UnknownHost `json:"unknown"`
 	Own              []OwnHost     `json:"own"`
 	Routes           []RouteEdge   `json:"routes"`
-	AITools          []AITool      `json:"ai_tools"`
-	Findings         []Finding     `json:"findings"`
+	// Endpoints of the app code, one row per subject. Absent when the scan has no endpoint facts.
+	Endpoints []EndpointRow `json:"endpoints,omitempty"`
+	AITools   []AITool      `json:"ai_tools"`
+	Findings  []Finding     `json:"findings"`
 	// Database tables merged across schema sources, with the columns to
 	// check. Absent when the scan has no db_table facts.
 	Tables []Table `json:"tables,omitempty"`
@@ -134,8 +136,14 @@ type Link struct {
 	Contexts  []string `json:"contexts"`
 	Sources   []string `json:"sources"` // repo paths: the recipe's sources inside each build context
 	Precision string   `json:"precision"`
-	Via       []string `json:"via"`
-	From      []string `json:"from"`
+	// Narrowing: whether the sources were cut to the entrypoint's project
+	// closure; Narrowed names those project folders, Excluded the code-unit
+	// folders left out.
+	Narrowing Narrowing `json:"narrowing"`
+	Narrowed  []string  `json:"narrowed,omitempty"`
+	Excluded  []string  `json:"excluded,omitempty"`
+	Via       []string  `json:"via"`
+	From      []string  `json:"from"`
 }
 
 // Attached puts a fact that lives in a service's code on that service: a
@@ -218,6 +226,7 @@ func DeriveWith(s *fact.Scan, sha256 string, set Settings, cat Catalogue) *Map {
 	m.CIImages = ciImages(m, facts)
 	attach(m, facts)
 	routes(m, facts)
+	endpoints(m, facts)
 	var decl *fact.Declared
 	if s.Config != nil {
 		decl = s.Config.Declared
@@ -233,6 +242,7 @@ func DeriveWith(s *fact.Scan, sha256 string, set Settings, cat Catalogue) *Map {
 		}
 	}
 	roles(m, facts, set.DefaultBranch, decl)
+	endpointFindings(m, facts)
 	pins(m, facts)
 	m.Tables = tables(facts)
 	m.Tests = tests(m, facts)
@@ -349,8 +359,10 @@ func link(m *Map, facts []fact.Fact) {
 		for _, k := range order {
 			c := found[k]
 			ctxs := uniq(c.contexts)
-			m.Links = append(m.Links, Link{Service: svc.Key, Recipe: k, Contexts: ctxs, Sources: inContexts(c.recipe.Strs("sources"), ctxs),
-				Precision: "module", Via: uniq(c.via), From: uniq(c.from)})
+			srcs := inContexts(c.recipe.Strs("sources"), ctxs)
+			nw, narrowed, excluded := narrow(c.recipe, srcs, facts)
+			m.Links = append(m.Links, Link{Service: svc.Key, Recipe: k, Contexts: ctxs, Sources: srcs,
+				Precision: precisionOf(nw), Narrowing: nw, Narrowed: narrowed, Excluded: excluded, Via: uniq(c.via), From: uniq(c.from)})
 		}
 		switch {
 		case len(order) > 1:
@@ -370,13 +382,18 @@ func attach(m *Map, facts []fact.Fact) {
 	type target struct {
 		subject, recipe string
 		sources         []string
+		excluded        []string
 	}
 	var ts []target
 	for _, l := range m.Links {
-		ts = append(ts, target{l.Service, l.Recipe, l.Sources})
+		ts = append(ts, target{l.Service, l.Recipe, l.Sources, l.Excluded})
 	}
 	for _, c := range m.CIImages {
-		ts = append(ts, target{c.Image, c.Recipe, c.Sources})
+		ts = append(ts, target{c.Image, c.Recipe, c.Sources, c.Excluded})
+	}
+	units := map[string]bool{} // the .NET code units narrow counts
+	for _, f := range facts {
+		addUnits(units, f)
 	}
 	seen := map[string]bool{}
 	for _, l := range ts {
@@ -386,8 +403,11 @@ func attach(m *Map, facts []fact.Fact) {
 			}
 			src := ""
 			for _, e := range f.Evidence {
+				if f.Kind == fact.KindDependency && units[e.Unit] && insideAny(e.Unit, l.excluded) {
+					continue // a dependency evidence of a project the narrowing left out (other kinds name services as units)
+				}
 				for _, s := range l.sources {
-					if inside(e.Path, s) && len(s) > len(src) {
+					if covers(e.Path, []string{s}, l.excluded) && len(s) > len(src) {
 						src = s
 					}
 				}

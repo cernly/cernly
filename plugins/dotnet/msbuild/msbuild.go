@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,12 +25,14 @@ type Project struct {
 	Path, Dir   string // repo paths, "/" separators
 	Lang        string // csharp | fsharp | vb, from the extension
 	SDKStyle    bool
+	SDK         string            // the Sdk of <Project Sdk="…"> without /version, else the first <Sdk Name="…">; "" when none
 	Name        string            // file name without extension
 	Props       map[string]string // lower-cased name -> value: the Directory.Build.props chain, then Directory.Packages.props, then the project (project wins); conditional or unresolvable properties are absent
 	Packages    []PackageRef
 	ProjectRefs []ProjectRef
-	CPM         bool // ManagePackageVersionsCentrally resolved true
-	IsTest      bool // IsTestProject true, or references Microsoft.NET.Test.Sdk unconditionally
+	Links       []Link // Compile, Content, None and EmbeddedResource items and Imports that reach outside the project's folder
+	CPM         bool   // ManagePackageVersionsCentrally resolved true
+	IsTest      bool   // IsTestProject true, or references Microsoft.NET.Test.Sdk unconditionally
 }
 
 type PackageRef struct {
@@ -42,11 +46,36 @@ type PackageRef struct {
 	Ev          []fact.Evidence // the reference line, plus the PackageVersion line when CPM supplied it
 }
 
+// Link is an item or import of a project that names a path outside the
+// project's own folder: code or content the project builds in from elsewhere.
+// Item is Compile, Content, None, EmbeddedResource or Import (dotnet.go also
+// reports unresolved ProjectReferences as Links). Include as written; Path the
+// resolved repo path (wildcards kept); Dir its folder, or the folder before the
+// first wildcard segment. Unresolved: the path still holds something MSBuild
+// computes ($(...), @(...), %(...)), or it leaves the repo; Path and Dir are
+// empty.
+type Link struct {
+	Item, Include, Path, Dir string
+	File                     string // the file the item is written in: the project, or a props file that applies to it
+	Unresolved               bool
+	Line                     int
+	Condition                string // as PackageRef.Condition
+}
+
+// ProjectRef is one path of a ProjectReference that applies to the project (a
+// ";" list gives one per part), written in the project or in a props, targets
+// or imported file; either way MSBuild resolves it against the project's
+// folder. Include as written; Path the resolved repo path, "" when it leaves
+// the repo or is Unresolved. Unresolved: the path still holds something
+// MSBuild computes ($(...), or a ";" a property brought in), or it is written
+// outside the project and leaves the repo for this project.
 type ProjectRef struct {
 	Include, Path string
+	File          string // the file the reference is written in
 	Line          int
 	Condition     string // as PackageRef.Condition
-} // Include as written, Path resolved repo path ("" when it leaves the repo)
+	Unresolved    bool
+}
 
 // Candidate is one version source (a Version, VersionOverride, PackageVersion
 // or Update) that may apply to a PackageRef: its raw version, the condition it
@@ -91,6 +120,7 @@ var langs = map[string]string{".csproj": "csharp", ".fsproj": "fsharp", ".vbproj
 const (
 	buildProps    = "directory.build.props"
 	packagesProps = "directory.packages.props"
+	buildTargets  = "directory.build.targets"
 )
 
 // Projects reads every tracked .csproj, .fsproj and .vbproj, sorted by path.
@@ -110,7 +140,7 @@ const (
 func Projects(r *repo.Repo) ([]*Project, []fact.LocationError) {
 	e := &reader{r: r, docs: map[string]*doc{}, byLower: map[string]string{}, setInRepo: map[string]bool{}}
 	for _, f := range r.Files {
-		if b := strings.ToLower(path.Base(f)); b == buildProps || b == packagesProps {
+		if b := strings.ToLower(path.Base(f)); b == buildProps || b == packagesProps || b == buildTargets {
 			e.byLower[strings.ToLower(f)] = f
 		}
 	}
@@ -357,9 +387,12 @@ type item struct {
 
 type eval struct {
 	e       *reader
+	p       *Project          // the project being evaluated
 	props   map[string]string // lower-cased name -> value
 	unknown map[string]bool
 	items   []item
+	imports []item       // Import elements of the project file, with a Project attribute
+	capped  []ProjectRef // a Choose cut at its caps: what it skipped may hold a ProjectReference
 	seen    map[string]bool
 }
 
@@ -402,8 +435,10 @@ func (v *eval) walk(kids []*node, file string, props bool, choose string) {
 		case "choose":
 			v.choose(n, file, props, choose)
 		case "import":
-			if props {
+			if props && strings.Contains(n.attr("project"), "GetPathOfFileAbove(") {
 				v.importAbove(n.attr("project"), file)
+			} else if n.attr("project") != "" && !n.has("sdk") {
+				v.imports = append(v.imports, item{n: n, file: file, choose: choose, cond: c})
 			}
 		}
 	}
@@ -439,6 +474,8 @@ func (v *eval) choose(n *node, file string, props bool, outer string) {
 			// the rest of the Choose is skipped, with an error at it.
 			if undecided++; undecided > maxChooseBranches || len(after) > maxChooseCond {
 				v.e.fail(file, w.line, "Choose: more than "+strconv.Itoa(maxChooseBranches)+" undecided When branches or a condition over "+strconv.Itoa(maxChooseCond)+" bytes; rest skipped")
+				// The skipped branches may reference any project: keep the link.
+				v.capped = append(v.capped, ProjectRef{Include: "(Choose: rest skipped)", File: file, Line: w.line, Condition: after, Unresolved: true})
 				return
 			}
 			v.walk(w.kids, file, props, joinCond(after, wc))
@@ -570,11 +607,24 @@ func (e *reader) project(file string) *Project {
 			p.SDKStyle = true
 		}
 	}
+	if sdk := strings.TrimSpace(root.attr("sdk")); sdk != "" {
+		p.SDK = sdk
+	} else {
+		for _, k := range root.kids {
+			if k.name == "sdk" && k.attr("name") != "" {
+				p.SDK = strings.TrimSpace(k.attr("name"))
+				break
+			}
+		}
+	}
+	if i := strings.IndexByte(p.SDK, '/'); i >= 0 {
+		p.SDK = p.SDK[:i]
+	}
 	if !p.SDKStyle {
 		return p // only a sibling packages.config is read for these
 	}
 
-	v := &eval{e: e, props: map[string]string{}, unknown: map[string]bool{}, seen: map[string]bool{}}
+	v := &eval{e: e, p: p, props: map[string]string{}, unknown: map[string]bool{}, seen: map[string]bool{}}
 	if f := e.nearest(p.Dir, "Directory.Build.props"); f != "" {
 		v.file(f, true)
 	}
@@ -583,6 +633,9 @@ func (e *reader) project(file string) *Project {
 		v.file(pkgProps, true)
 	}
 	v.file(file, false)
+	if f := e.nearest(p.Dir, "Directory.Build.targets"); f != "" {
+		v.file(f, true)
+	}
 
 	p.Props = v.props
 	p.CPM = strings.EqualFold(v.prop("ManagePackageVersionsCentrally"), "true")
@@ -648,20 +701,16 @@ func (e *reader) project(file string) *Project {
 					}
 				}
 			}
+		case "compile", "content", "none", "embeddedresource":
+			p.Links = append(p.Links, v.links(p, it.file, itemNames[it.n.name], it.n.attr("include"), it.n.line, it.cond)...)
 		case "projectreference":
-			inc := it.n.attr("include")
-			if inc == "" || it.props {
-				continue
-			}
-			ref := ProjectRef{Include: inc, Line: it.n.line, Condition: it.cond}
-			if s, ok := v.expand(strings.ReplaceAll(inc, `\`, "/")); ok {
-				if rp, ok := repo.Join(p.Dir, s); ok {
-					ref.Path = rp
-				}
-			}
-			p.ProjectRefs = append(p.ProjectRefs, ref)
+			p.ProjectRefs = append(p.ProjectRefs, v.projectRefs(p, it.file, it.n, it.cond)...)
 		}
 	}
+	for i := 0; i < len(v.imports); i++ {
+		v.followImport(p, v.imports[i])
+	}
+	p.ProjectRefs = append(p.ProjectRefs, v.capped...)
 	// Sources in order: the reference's own version, else its PackageVersion
 	// (NuGet matches it after evaluation, so a reference in a props file read
 	// before Directory.Packages.props gets it too) and the props Updates;
@@ -727,4 +776,207 @@ func (v *eval) resolve(pr *PackageRef, raw string) {
 func privateAll(n *node) bool {
 	pa, _ := n.meta("PrivateAssets")
 	return strings.EqualFold(strings.TrimSpace(pa), "all")
+}
+
+// listParts splits an Include on ";", trimmed, empty parts left out.
+func listParts(raw string) []string {
+	var out []string
+	for _, part := range strings.Split(raw, ";") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+// projectRefs turns one ProjectReference written in file into ProjectRefs,
+// one per ";" part, resolved against the project's folder. One written outside
+// the project that leaves the repo for this project is Unresolved, so the link
+// is kept; one in the project that leaves the repo has an empty Path.
+func (v *eval) projectRefs(p *Project, file string, n *node, cond string) []ProjectRef {
+	var out []ProjectRef
+	for _, part := range listParts(n.attr("include")) {
+		ref := ProjectRef{Include: part, File: file, Line: n.line, Condition: cond}
+		s, ok := v.expand(thisFile(strings.ReplaceAll(part, `\`, "/"), p, file, p.Dir))
+		if !ok || strings.Contains(s, ";") {
+			ref.Unresolved = true
+		} else if rp, ok := repo.Join(p.Dir, s); ok {
+			ref.Path = rp
+		} else if file != p.Path {
+			ref.Unresolved = true
+		}
+		out = append(out, ref)
+	}
+	return out
+}
+
+var itemNames = map[string]string{"compile": "Compile", "content": "Content", "none": "None", "embeddedresource": "EmbeddedResource"}
+
+// links turns the paths of one item Include written in file into Links, one
+// per ";" part. MSBuild resolves an item path against the folder of the
+// project being built, also when the item is written in a props, targets or
+// imported file, so every part is joined to p.Dir. A path inside the
+// project's own folder gives none: it is the project's own code. One that
+// leaves the repo is Unresolved: it is never dropped silently.
+func (v *eval) links(p *Project, file, item, raw string, line int, cond string) []Link {
+	var out []Link
+	for _, part := range strings.Split(raw, ";") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		marker := Link{Item: item, Include: part, Unresolved: true, File: file, Line: line, Condition: cond}
+		s, ok := v.expand(thisFile(strings.ReplaceAll(part, `\`, "/"), p, file, p.Dir))
+		if !ok {
+			out = append(out, marker)
+			continue
+		}
+		rp, ok := repo.Join(p.Dir, s)
+		if !ok {
+			out = append(out, marker)
+			continue
+		}
+		dir := path.Dir(rp)
+		if strings.HasSuffix(s, "/") {
+			dir = rp
+		}
+		if segs := strings.Split(rp, "/"); strings.ContainsAny(rp, "*?") {
+			var keep []string
+			for _, sg := range segs {
+				if strings.ContainsAny(sg, "*?") {
+					break
+				}
+				keep = append(keep, sg)
+			}
+			dir = "."
+			if len(keep) > 0 {
+				dir = strings.Join(keep, "/")
+			}
+		}
+		if p.Dir == "." || dir == p.Dir || strings.HasPrefix(dir, p.Dir+"/") {
+			continue
+		}
+		out = append(out, Link{Item: item, Include: part, Path: rp, Dir: dir, File: file, Line: line, Condition: cond})
+	}
+	return out
+}
+
+var msbuildTokens = regexp.MustCompile(`(?i)\$\((MSBuild(?:ThisFileDirectory|ThisFile|ThisFileName|ProjectDirectory|ProjectDir|ProjectFile|ProjectName))\)`)
+
+// thisFile replaces the reserved properties that depend on the file a path is
+// written in or the project being built, as paths relative to dir, the folder
+// the caller joins the result to: the project's folder for items and
+// ProjectReferences, the file's own folder for an Import.
+// $(MSBuildThisFileDirectory) is the file's folder with a trailing slash;
+// $(MSBuildProjectDirectory) the project's folder, $(MSBuildProjectDir) the
+// same with a trailing slash.
+func thisFile(s string, p *Project, file, dir string) string {
+	rel := func(to string) string {
+		r, err := filepath.Rel(dir, to)
+		if err != nil {
+			return "."
+		}
+		return filepath.ToSlash(r)
+	}
+	return msbuildTokens.ReplaceAllStringFunc(s, func(m string) string {
+		base := path.Base(file)
+		switch strings.ToLower(m[2 : len(m)-1]) {
+		case "msbuildthisfiledirectory":
+			return rel(path.Dir(file)) + "/"
+		case "msbuildthisfile":
+			return base
+		case "msbuildthisfilename":
+			return strings.TrimSuffix(base, path.Ext(base))
+		case "msbuildprojectdirectory":
+			return rel(p.Dir)
+		case "msbuildprojectdir":
+			return rel(p.Dir) + "/"
+		case "msbuildprojectfile":
+			return path.Base(p.Path)
+		default: // msbuildprojectname
+			return p.Name
+		}
+	})
+}
+
+// sdkImport is an Import of MSBuild's own targets: not repo code.
+func sdkImport(project string) bool {
+	l := strings.ToLower(strings.TrimSpace(project))
+	for _, pre := range []string{"$(msbuildtoolspath)", "$(msbuildextensionspath", "$(msbuildbinpath)", "$(msbuildsdkspath)", "$(vstoolspath)", "$(msbuildruntimepath)"} {
+		if strings.HasPrefix(l, pre) {
+			return true
+		}
+	}
+	return false
+}
+
+func copyMap[V any](m map[string]V) map[string]V {
+	out := make(map[string]V, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
+}
+
+// followImport handles one Import of the project or of a file it imports.
+// A tracked file with a path that resolves is read, and its items and imports
+// are collected in turn (seen guards cycles); the Import itself gives no link,
+// the items in the file do. Anything else the reader cannot follow (an
+// unresolved or wildcard path, a file that leaves the repo or is not tracked)
+// is an unresolved Link: the project may build in anything.
+func (v *eval) followImport(p *Project, it item) {
+	raw := strings.TrimSpace(it.n.attr("project"))
+	if sdkImport(raw) {
+		return
+	}
+	switch v.decide(it.cond) {
+	case isFalse:
+		return
+	case isTrue:
+		it.cond = ""
+	}
+	cond := joinCond(it.choose, it.cond)
+	marker := func() {
+		p.Links = append(p.Links, Link{Item: "Import", Include: raw, Unresolved: true, File: it.file, Line: it.n.line, Condition: cond})
+	}
+	// Unlike an item, an Import path is relative to the file it is written in.
+	s, ok := v.expand(thisFile(strings.ReplaceAll(raw, `\`, "/"), p, it.file, path.Dir(it.file)))
+	if !ok || strings.ContainsAny(s, "*?;") {
+		marker()
+		return
+	}
+	rp, ok := repo.Join(path.Dir(it.file), s)
+	if !ok || !v.e.r.Has(rp) {
+		marker()
+		return
+	}
+	if v.seen[rp] {
+		return
+	}
+	sub := &eval{e: v.e, p: v.p, props: copyMap(v.props), unknown: copyMap(v.unknown), seen: v.seen}
+	sub.file(rp, true)
+	for _, x := range sub.imports {
+		x.cond = joinCond(cond, x.cond)
+		v.imports = append(v.imports, x)
+	}
+	for _, x := range sub.items {
+		switch x.n.name {
+		case "compile", "content", "none", "embeddedresource", "projectreference":
+		default:
+			continue
+		}
+		switch v.decide(joinCond(cond, x.cond)) {
+		case isFalse:
+			continue
+		case isTrue:
+			x.cond = ""
+		default:
+			x.cond = joinCond(cond, x.cond)
+		}
+		if x.n.name == "projectreference" {
+			p.ProjectRefs = append(p.ProjectRefs, v.projectRefs(p, x.file, x.n, joinCond(x.choose, x.cond))...)
+			continue
+		}
+		p.Links = append(p.Links, v.links(p, x.file, itemNames[x.n.name], x.n.attr("include"), x.n.line, joinCond(x.choose, x.cond))...)
+	}
 }

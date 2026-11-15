@@ -130,6 +130,7 @@ func Gate(base, head *fact.Scan, bm, hm *Map) *GateResult {
 	gateColumns(bm, hm, add)
 	gateImages(bm, hm, add)
 	gateStacks(bm, hm, add)
+	gateEndpoints(bm, hm, add)
 	gateDependencies(base, head, add)
 	gateLicences(base, head, r.Policy, add)
 	gateLoosened(base, head, r.Policy, add)
@@ -241,6 +242,35 @@ func gateStacks(bm, hm *Map, add gateAdd) {
 			continue
 		}
 		add(config.GateNewProductionStack, s.Stack, fmt.Sprintf("stack %s is now %s", strings.TrimPrefix(s.Stack, "stack:compose:"), s.Role), []string{s.Stack})
+	}
+}
+
+// gateEndpoints: an endpoint_anonymous_public finding the base did not have,
+// by endpoint.
+func gateEndpoints(bm, hm *Map, add gateAdd) {
+	// A base from before route rewrites cannot have had these findings: every
+	// head finding would be a false "new".
+	if len(bm.Routes) > 0 {
+		known := false
+		for _, e := range bm.Routes {
+			if e.Rewrite != nil {
+				known = true
+			}
+		}
+		if !known {
+			return
+		}
+	}
+	had := map[string]bool{}
+	for _, f := range bm.Findings {
+		if f.Rule == FindingEndpointAnonymousPublic {
+			had[f.Subject] = true
+		}
+	}
+	for _, f := range hm.Findings {
+		if f.Rule == FindingEndpointAnonymousPublic && !had[f.Subject] {
+			add(config.GateNewAnonymousEndpoint, f.Subject, f.Detail, f.From)
+		}
 	}
 }
 

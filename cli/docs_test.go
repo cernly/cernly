@@ -117,3 +117,27 @@ func TestDocsEmptyStack(t *testing.T) {
 		t.Errorf("empty stack not described:\n%s", got)
 	}
 }
+
+// The building blocks show a narrowed link's exclusions, the endpoint count in
+// the container's description and an endpoints table per service.
+func TestDocsEndpoints(t *testing.T) {
+	facts := filepath.Join(t.TempDir(), "fixture-dotnet.json")
+	if err := os.WriteFile(facts, scanDir(t, "fixture-dotnet"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := BuildDocs(facts, "main", archdoc.Options{Version: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	md := string(got)
+	for _, want := range []string{
+		"(narrowed to src/Shop.Web; excluded legacy/Old.Web, tests/Shop.Tests)",
+		`"8 endpoints: 4 required, 2 anonymous, 2 unknown"`,
+		"Endpoints of web:",
+		"| GET | /health | anonymous (AllowAnonymous()) |",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("docs lack %q", want)
+		}
+	}
+}

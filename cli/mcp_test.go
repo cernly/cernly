@@ -128,3 +128,46 @@ func TestMCP(t *testing.T) {
 		t.Error("an unknown map section is not an error")
 	}
 }
+
+// The map's endpoints are a get_map section, and find_facts serves the endpoint
+// facts.
+func TestMCPEndpoints(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "facts.json")
+	if err := os.WriteFile(path, scanDir(t, "fixture-dotnet"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	src, err := LoadSource(path, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	st, ct := sdk.NewInMemoryTransports()
+	ss, err := mcp.NewServer(src, "test").Connect(ctx, st, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ss.Close()
+	cs, err := sdk.NewClient(&sdk.Implementation{Name: "test", Version: "test"}, nil).Connect(ctx, ct, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cs.Close()
+	res, err := cs.CallTool(ctx, &sdk.CallToolParams{Name: "get_map", Arguments: map[string]any{"section": "endpoints", "text": "/health"}})
+	if err != nil || res.IsError {
+		t.Fatalf("get_map endpoints: %v %v", err, res)
+	}
+	var sec mcp.MapOutput
+	raw, _ := json.Marshal(res.StructuredContent)
+	if err := json.Unmarshal(raw, &sec); err != nil || sec.Total != 1 {
+		t.Fatalf("get_map endpoints /health: %+v %v", sec, err)
+	}
+	res, err = cs.CallTool(ctx, &sdk.CallToolParams{Name: "find_facts", Arguments: map[string]any{"kind": "endpoint"}})
+	if err != nil || res.IsError {
+		t.Fatalf("find_facts endpoint: %v %v", err, res)
+	}
+	var found mcp.FindOutput
+	raw, _ = json.Marshal(res.StructuredContent)
+	if err := json.Unmarshal(raw, &found); err != nil || found.Total != len(src.Map.Endpoints) || found.Total == 0 {
+		t.Fatalf("find_facts endpoint: total %d, map has %d", found.Total, len(src.Map.Endpoints))
+	}
+}

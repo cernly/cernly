@@ -8,6 +8,26 @@ import (
 	"github.com/cernly/cernly/rules"
 )
 
+// The Routes column lists only the edges that reach the row's own service: an
+// edge with the same route key to another service (another stack mounting the
+// same file) is not repeated in it.
+func TestEndpointsRoutesOwnService(t *testing.T) {
+	m := &rules.Map{
+		Endpoints: []rules.EndpointRow{{Endpoint: "endpoint:a", Service: "service:compose:prod:web", Method: "GET", Path: "/health",
+			Auth: rules.EndpointAuth{State: "anonymous"}, Routes: []string{"route:r"}}},
+		Routes: []rules.RouteEdge{
+			{Route: "route:r", Stack: "prod", To: "service:compose:prod:web", Sites: []string{"shop.example.com"}, Match: "/*"},
+			{Route: "route:r", Stack: "staging", To: "service:compose:staging:web", Sites: []string{"staging.example.com"}, Match: "/*"},
+		},
+	}
+	d := &doc{s: &fact.Scan{}, m: m, o: Options{MaxEvidence: 5}, facts: map[string]fact.Fact{}, ids: map[string]int{}}
+	d.endpoints(fact.Fact{Key: "service:compose:prod:web", Attrs: map[string]any{"name": "web"}})
+	out := d.b.String()
+	if !strings.Contains(out, "| shop.example.com /* |") || strings.Contains(out, "staging.example.com") {
+		t.Errorf("routes column:\n%s", out)
+	}
+}
+
 func TestHostileStringsStayLiteral(t *testing.T) {
 	img := `<img src=x onerror=alert(1)>`
 	pipe := "a|b"

@@ -69,9 +69,17 @@ type stage struct {
 	line    int
 	vars    map[string]string
 	workdir string
+	shell   string // executable name of a SHELL that is not sh or bash, else ""
 	copies  []copyOp
 	builds  []build
+	others  []otherCmd
 	remote  []remoteSrc
+}
+
+// otherCmd is a RUN command that is neither a known build nor setup.
+type otherCmd struct {
+	line, endLine int
+	word          string
 }
 
 // copyOp maps container paths in this stage to where they came from: the
@@ -86,10 +94,11 @@ type copyOp struct {
 
 type build struct {
 	line, endLine int
-	kind          string // "go" or "npm"
-	pkg           string // container path for go, workspace for npm
+	kind          string // "go", "npm" or "dotnet"
+	pkg           string // container path for go and dotnet, workspace for npm
 	output        string // container path of the built artifact, "" when unknown
 	raw           string
+	unresolved    bool // a cd before it, or several projects named: the path is not known
 }
 
 type remoteSrc struct {
@@ -175,12 +184,31 @@ func readStages(res *parser.Result) []*stage {
 			if len(op.srcs) > 0 {
 				cur.copies = append(cur.copies, op)
 			}
+		case "shell":
+			if cur != nil {
+				cur.shell = ""
+				if a := args(n); len(a) > 0 {
+					name := strings.ToLower(strings.TrimSuffix(strings.ToLower(a[0][strings.LastIndexAny(a[0], `/\`)+1:]), ".exe"))
+					if name != "sh" && name != "bash" {
+						cur.shell = name
+					}
+				}
+			}
 		case "run":
 			if cur == nil {
 				continue
 			}
 			var scripts []string
+			if cur.shell != "" && !n.Attributes["json"] {
+				// Not readable as sh: name the shell instead of guessing.
+				cur.others = append(cur.others, otherCmd{line: n.StartLine, endLine: n.EndLine, word: cur.shell})
+				continue
+			}
 			if len(n.Heredocs) > 0 {
+				if w := heredocCommand(strings.Join(args(n), " ")); w != "" {
+					cur.others = append(cur.others, otherCmd{line: n.StartLine, endLine: n.EndLine, word: w})
+					continue
+				}
 				for _, h := range n.Heredocs {
 					scripts = append(scripts, h.Content)
 				}
@@ -190,8 +218,18 @@ func readStages(res *parser.Result) []*stage {
 				scripts = append(scripts, strings.Join(args(n), " "))
 			}
 			for _, sc := range scripts {
-				for _, b := range findBuilds(substitute(sc, cur.allVars(globals))) {
+				builds, others := findBuilds(substitute(sc, cur.allVars(globals)))
+				for _, w := range others {
+					cur.others = append(cur.others, otherCmd{line: n.StartLine, endLine: n.EndLine, word: w})
+				}
+				for _, b := range builds {
 					b.line, b.endLine = n.StartLine, n.EndLine
+					if b.kind == "dotnet" {
+						b.pkg = absIn(cur.workdir, b.pkg) // "" is the WORKDIR
+						if b.output != "" {
+							b.output = absIn(cur.workdir, b.output)
+						}
+					}
 					if b.kind == "go" {
 						b.pkg = absIn(cur.workdir, b.pkg)
 						if b.output != "" {
@@ -206,6 +244,23 @@ func readStages(res *parser.Result) []*stage {
 		}
 	}
 	return stages
+}
+
+// heredocCommand returns the command of a heredoc RUN line when it is not
+// plain sh or bash ("python3 <<EOF"), whose body is then not shell. "" means
+// the body is shell and is scanned.
+func heredocCommand(line string) string {
+	f := strings.Fields(line)
+	for len(f) > 0 && strings.Contains(f[0], "=") && !strings.HasPrefix(f[0], "<") {
+		f = f[1:]
+	}
+	if len(f) == 0 || strings.HasPrefix(f[0], "<") {
+		return ""
+	}
+	if base := path.Base(f[0]); base == "sh" || base == "bash" {
+		return ""
+	}
+	return f[0]
 }
 
 func (s *stage) allVars(globals map[string]string) map[string]string {

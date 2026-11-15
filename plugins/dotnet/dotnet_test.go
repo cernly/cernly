@@ -2,9 +2,12 @@ package dotnet
 
 import (
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/cernly/cernly/fact"
+	"github.com/cernly/cernly/plugin"
 	"github.com/cernly/cernly/plugin/plugintest"
 	"github.com/cernly/cernly/repo/repotest"
 )
@@ -124,6 +127,14 @@ func TestImports(t *testing.T) {
 				"from_dir": "src/Application", "to_dir": "src/Domain"},
 			Evidence: []fact.Evidence{{Path: "src/Application/Application.csproj", Line: 3, Unit: "src/Application"}},
 		},
+		// A project the repo does not hold: unresolved, so narrowing keeps the link.
+		// The reference that leaves the repo gives nothing.
+		"import:dotnet:src/Application/Application.csproj:ProjectReference:src/Missing/Missing.csproj": {
+			Kind: fact.KindImport, Key: "import:dotnet:src/Application/Application.csproj:ProjectReference:src/Missing/Missing.csproj", Plugin: "dotnet",
+			Attrs: map[string]any{"language": "dotnet", "from": "src/Application/Application.csproj", "to": "src/Missing/Missing.csproj",
+				"from_dir": "src/Application", "item": "ProjectReference", "ext": map[string]any{"unresolved": true}},
+			Evidence: []fact.Evidence{{Path: "src/Application/Application.csproj", Line: 5, Unit: "src/Application"}},
+		},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("imports:\n got %+v\nwant %+v", got, want)
@@ -138,6 +149,8 @@ func TestWatches(t *testing.T) {
 		"Directory.Build.props":                true,
 		"Directory.Packages.props":             true,
 		"src/Web/Program.cs":                   true,
+		"src/Web/Pages/Index.cshtml":           true,
+		"src/Web/Pages/Counter.razor":          true,
 		"src/Web/appsettings.json":             true,
 		"src/Web/appsettings.Development.json": true,
 		"src/Web/package.json":                 false,
@@ -186,6 +199,9 @@ func TestLegacyProjectNoSourceFacts(t *testing.T) {
 		"legacy/OldTests/Tests.cs":        "class T { }\n",
 	}))
 	for _, f := range res.Facts {
+		if f.Kind == fact.KindImport && f.Attrs["item"] == "Project" && strings.HasSuffix(f.Key, ":?") {
+			continue // the marker that says the project's references are unknown
+		}
 		t.Errorf("legacy folder gave %s", f.Key)
 	}
 }
@@ -228,5 +244,191 @@ func TestImportsCondition(t *testing.T) {
 		if c := cond(to); c != want {
 			t.Errorf("%s: condition %v, want %v", to, c, want)
 		}
+	}
+}
+
+func TestImportsLinkedItems(t *testing.T) {
+	r := repotest.Files(t, map[string]string{
+		"src/Web/Web.csproj": `<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="..\..\legacy\Old\X.cs" />
+    <Compile Include="..\Shared\**\*.cs" />
+    <Content Include="..\assets\a.txt" />
+    <Compile Include="$(SharedDir)\Y.cs" />
+    <Compile Include="Local\Z.cs" />
+    <None Include="..\..\..\Outside\n.txt" />
+  </ItemGroup>
+  <Import Project="..\Shared\common.props" />
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+</Project>
+`,
+	})
+	type got struct {
+		to, toDir string
+		line      int
+		unres     bool
+	}
+	have := map[string]got{}
+	for _, f := range byKey(Plugin{}.Run(r).Facts, fact.KindImport) {
+		item, _ := f.Attrs["item"].(string)
+		if item == "" {
+			continue
+		}
+		ext, _ := f.Attrs["ext"].(map[string]any)
+		td, _ := f.Attrs["to_dir"].(string)
+		have[item+" "+f.Attrs["to"].(string)] = got{f.Attrs["to"].(string), td, f.Evidence[0].Line, ext["unresolved"] == true}
+		if f.Attrs["from_dir"] != "src/Web" || f.Evidence[0].Unit != "src/Web" || f.Attrs["language"] != "dotnet" {
+			t.Errorf("%+v", f)
+		}
+	}
+	want := map[string]got{
+		"Compile legacy/Old/X.cs":       {"legacy/Old/X.cs", "legacy/Old", 3, false},
+		"Compile src/Shared/**/*.cs":    {"src/Shared/**/*.cs", "src/Shared", 4, false},
+		"Content src/assets/a.txt":      {"src/assets/a.txt", "src/assets", 5, false},
+		`Compile $(SharedDir)\Y.cs`:     {`$(SharedDir)\Y.cs`, "", 6, true},
+		`Import ..\Shared\common.props`: {`..\Shared\common.props`, "", 10, true}, // not a tracked file: unknown content
+		`None ..\..\..\Outside\n.txt`:   {`..\..\..\Outside\n.txt`, "", 8, true},  // leaves the repo: never dropped silently
+	}
+	if !reflect.DeepEqual(have, want) {
+		t.Errorf("linked items:\n got %+v\nwant %+v", have, want)
+	}
+}
+
+func TestImportsPropsItems(t *testing.T) {
+	r := repotest.Files(t, map[string]string{
+		"Directory.Build.props": `<Project>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)shared/Common.cs" />
+  </ItemGroup>
+  <Import Project="$(Extra)/more.props" />
+</Project>
+`,
+		"src/Web/Web.csproj": `<Project Sdk="Microsoft.NET.Sdk"></Project>`,
+	})
+	var found int
+	for _, f := range byKey(Plugin{}.Run(r).Facts, fact.KindImport) {
+		if f.Attrs["item"] == "Compile" && f.Attrs["to"] == "shared/Common.cs" {
+			found++
+			if f.Attrs["from"] != "src/Web/Web.csproj" || f.Attrs["to_dir"] != "shared" || f.Evidence[0].Path != "Directory.Build.props" ||
+				f.Evidence[0].Line != 3 || f.Evidence[0].Unit != "src/Web" {
+				t.Errorf("%+v", f)
+			}
+		}
+		if f.Attrs["item"] == "Import" && (f.Attrs["to_dir"] != nil || f.Evidence[0].Path != "Directory.Build.props") {
+			t.Errorf("props import: %+v", f)
+		}
+	}
+	if found != 1 {
+		t.Errorf("props Compile item found %d times", found)
+	}
+}
+
+func TestImportsLegacyProject(t *testing.T) {
+	r := repotest.Files(t, map[string]string{
+		"legacy/Old/Old.csproj": `<?xml version="1.0"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup><Compile Include="A.cs" /></ItemGroup>
+</Project>
+`,
+		"src/Web/Web.csproj": `<Project Sdk="Microsoft.NET.Sdk"></Project>`,
+	})
+	var got []fact.Fact
+	for _, f := range byKey(Plugin{}.Run(r).Facts, fact.KindImport) {
+		got = append(got, f)
+	}
+	if len(got) != 1 {
+		t.Fatalf("imports: %+v", got)
+	}
+	f := got[0]
+	ext, _ := f.Attrs["ext"].(map[string]any)
+	if f.Key != "import:dotnet:legacy/Old/Old.csproj:?" || f.Attrs["item"] != "Project" || f.Attrs["from_dir"] != "legacy/Old" || f.Attrs["from"] != "legacy/Old/Old.csproj" ||
+		f.Attrs["to"] != "legacy/Old/Old.csproj" || f.Attrs["to_dir"] != nil || ext["unresolved"] != true || f.Evidence[0].Line != 1 || f.Evidence[0].Path != "legacy/Old/Old.csproj" {
+		t.Errorf("%+v", f)
+	}
+}
+
+// linkedByKey returns the item import facts of the scan by "<item> <to>".
+func linkedByKey(res plugin.Result) map[string]fact.Fact {
+	out := map[string]fact.Fact{}
+	for _, f := range byKey(res.Facts, fact.KindImport) {
+		if it, _ := f.Attrs["item"].(string); it != "" {
+			out[it+" "+f.Attrs["to"].(string)] = f
+		}
+	}
+	return out
+}
+
+// Items in imported files resolve against the project's folder; the Imports
+// themselves against the importing file's folder.
+func TestImportedFilesAreRead(t *testing.T) {
+	res := Plugin{}.Run(repotest.Files(t, map[string]string{
+		"src/Web/Web.csproj": `<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="eng/links.targets" />
+</Project>
+`,
+		"src/Web/eng/links.targets": `<Project>
+  <ItemGroup>
+    <Compile Include="../../legacy/Old/**" />
+  </ItemGroup>
+  <Import Project="more.targets" />
+  <Import Project="$(MSBuildToolsPath)/Microsoft.Common.targets" />
+</Project>
+`,
+		"src/Web/eng/more.targets": `<Project>
+  <Import Project="links.targets" />
+  <ItemGroup><Content Include="..\..\assets\a.txt" /></ItemGroup>
+</Project>
+`,
+		"Directory.Build.targets": `<Project>
+  <ItemGroup><Compile Include="$(MSBuildThisFileDirectory)shared/Y.cs" /></ItemGroup>
+  <Import Project="$(MSBuildThisFileDirectory)common.props" />
+</Project>
+`,
+		"common.props": `<Project>
+  <ItemGroup><Compile Include="$(MSBuildThisFileDirectory)tools/Z.cs" /></ItemGroup>
+</Project>
+`,
+	}))
+	got := linkedByKey(res)
+	for key, want := range map[string][2]any{
+		"Compile legacy/Old/**": {"legacy/Old", "src/Web/eng/links.targets"},
+		"Content assets/a.txt":  {"assets", "src/Web/eng/more.targets"},
+		"Compile shared/Y.cs":   {"shared", "Directory.Build.targets"},
+		"Compile tools/Z.cs":    {"tools", "common.props"},
+	} {
+		f, ok := got[key]
+		if !ok || f.Attrs["to_dir"] != want[0] || f.Evidence[0].Path != want[1] || f.Attrs["from"] != "src/Web/Web.csproj" {
+			t.Errorf("%s: %+v", key, f)
+		}
+	}
+	for k, f := range got {
+		if strings.HasPrefix(k, "Import") || f.Attrs["to_dir"] == nil {
+			t.Errorf("a followed or SDK import must not give a fact: %s %+v", k, f.Attrs)
+		}
+	}
+}
+
+// A Choose cut at its caps may have skipped a ProjectReference: the project
+// gets an unresolved ProjectReference import, so narrowing keeps the link.
+func TestChooseCapKeepsLink(t *testing.T) {
+	var b strings.Builder
+	b.WriteString(`<Project Sdk="Microsoft.NET.Sdk"><Choose>`)
+	for i := 0; i < 100; i++ {
+		b.WriteString(`<When Condition="'$(Cfg` + strconv.Itoa(i) + `)' == 'x'"></When>`)
+	}
+	b.WriteString(`</Choose></Project>`)
+	r := repotest.Files(t, map[string]string{"src/Web/Web.csproj": b.String()})
+	var found *fact.Fact
+	for _, f := range (Plugin{}).Run(r).Facts {
+		if f.Kind == fact.KindImport && f.Attrs["item"] == "ProjectReference" {
+			f := f
+			found = &f
+		}
+	}
+	if found == nil {
+		t.Fatal("no unresolved ProjectReference import")
+	}
+	if ext, _ := found.Attrs["ext"].(map[string]any); ext["unresolved"] != true || found.Attrs["from"] != "src/Web/Web.csproj" || found.Evidence[0].Line == 0 {
+		t.Errorf("%+v", found)
 	}
 }

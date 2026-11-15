@@ -70,6 +70,9 @@ func modules(m *Map, facts []fact.Fact) *ModuleGraph {
 		if f.Kind != fact.KindImport {
 			continue
 		}
+		if f.Str("item") != "" {
+			continue // a linked item or import is not an edge between two packages
+		}
 		from, to := f.Str("from"), f.Str("to")
 		if from == "" || to == "" || from == to {
 			continue
@@ -223,13 +226,14 @@ func serviceModules(m *Map, facts []fact.Fact, names []string, pk map[string]*Pa
 	type target struct {
 		subject, recipe string
 		sources         []string
+		excluded        []string
 	}
 	var ts []target
 	for _, l := range m.Links {
-		ts = append(ts, target{l.Service, l.Recipe, l.Sources})
+		ts = append(ts, target{l.Service, l.Recipe, l.Sources, l.Excluded})
 	}
 	for _, c := range m.CIImages {
-		ts = append(ts, target{c.Image, c.Recipe, c.Sources})
+		ts = append(ts, target{c.Image, c.Recipe, c.Sources, c.Excluded})
 	}
 	var res []ServiceModules
 	seen := map[string]bool{}
@@ -238,14 +242,7 @@ func serviceModules(m *Map, facts []fact.Fact, names []string, pk map[string]*Pa
 			continue
 		}
 		seen[t.subject] = true
-		in := func(dir string) bool {
-			for _, s := range t.sources {
-				if inside(dir, s) {
-					return true
-				}
-			}
-			return false
-		}
+		in := func(dir string) bool { return covers(dir, t.sources, t.excluded) }
 		var roots []string
 		eps, _ := recipes[t.recipe].Attrs["entrypoints"].([]any)
 		for _, x := range eps {

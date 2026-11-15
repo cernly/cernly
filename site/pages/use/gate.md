@@ -34,6 +34,7 @@ Exit codes: `0` nothing, or warnings only; `1` a finding at level `block`; `2` a
 | `new_dependency` | a direct dependency | warn |
 | `new_transitive_dependency` | a dependency through a lockfile | off |
 | `licence_not_allowed` | a dependency under a listed licence | warn |
+| `new_anonymous_public_endpoint` | an endpoint marked anonymous in code, on a public production route | warn |
 | `gate_loosened` | a weaker level than the base had | warn |
 
 Set levels in `.cernly.yml` ([config](/use/config/)): `off`, `warn` or `block`. Of the repo's and the operator's level, the stricter wins.

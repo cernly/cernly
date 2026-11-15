@@ -53,6 +53,14 @@ A repository can exclude paths and declare its own domains and stack roles in `.
 visible in the facts file. The formats are `schema/scan.v1.schema.json` and `schema/map.v1.schema.json`
 (JSON Schema 2020-12).
 
+## Local viewer
+
+`web/viewer/build.sh` builds `dist/viewer/cernly-viewer.html`: one file that opens one or two facts files from
+disk and shows the map, the findings and what changed between them. The map is derived in the page by the same Go
+code, compiled to WebAssembly. The page makes no requests: its Content-Security-Policy allows none, and every script
+in it is listed by hash. The build is reproducible (Go 1.26.10, `-trimpath`, the committed lockfile): build it
+yourself and compare with `dist/viewer/SHA256SUMS`, or with the hash we publish.
+
 ## Documentation
 
 - [`.cernly.yml` reference](https://cernly.dev/use/config/): every key, precedence, recipes, errors.

@@ -78,7 +78,10 @@
           "recipe": { "type": "string" },
           "contexts": { "type": "array", "items": { "type": "string" }, "description": "Build contexts the link was built with; empty when none is known, and then sources is empty too" },
           "sources": { "type": "array", "items": { "type": "string" }, "description": "Repo paths: the recipe's sources inside each context" },
-          "precision": { "enum": ["module", "binary"] },
+          "precision": { "enum": ["module", "binary", "entrypoint"] },
+          "narrowing": { "$ref": "#/$defs/narrowing", "description": "Always emitted by rules 0.17.0 and later; optional so maps stored under earlier rules still validate" },
+          "narrowed": { "type": "array", "items": { "type": "string" }, "description": "Narrowed: the project folders the image's entrypoints build" },
+          "excluded": { "type": "array", "items": { "type": "string" }, "description": "Narrowed: code-unit folders left out of the sources; no attachment, route or size counts there" },
           "via": { "type": "array", "items": { "enum": ["compose_build", "image_build"] } },
           "from": { "type": "array", "items": { "type": "string" } }
         }
@@ -150,7 +153,10 @@
           },
           "contexts": { "type": "array", "items": { "type": "string" } },
           "sources": { "type": "array", "items": { "type": "string" }, "description": "Repo paths: the recipe's sources inside each context, as for links" },
-          "precision": { "enum": ["module", "binary"] },
+          "precision": { "enum": ["module", "binary", "entrypoint"] },
+          "narrowing": { "$ref": "#/$defs/narrowing", "description": "Always emitted by rules 0.17.0 and later; optional so maps stored under earlier rules still validate" },
+          "narrowed": { "type": "array", "items": { "type": "string" }, "description": "Narrowed: the project folders the image's entrypoints build" },
+          "excluded": { "type": "array", "items": { "type": "string" }, "description": "Narrowed: code-unit folders left out of the sources; no attachment, route or size counts there" },
           "test_only": { "type": "boolean", "description": "Every CI job that builds it is a test job; kept and marked, never hidden" },
           "deployment": { "enum": ["not_seen"], "description": "not_seen: nothing in this repo shows where it runs" },
           "detail": { "type": "string", "description": "The image in words, as the app and the report show it" },
@@ -270,6 +276,47 @@
           "action": { "enum": ["proxy", "fastcgi", "respond", "redirect", "file_server"] },
           "upstream": { "type": "string" },
           "to": { "type": "string" },
+          "rewrite": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind"],
+            "description": "How the route changes the path before the upstream, from the route fact. Absent in maps of older scans",
+            "properties": {
+              "kind": { "enum": ["none", "strip", "replace", "unknown"] },
+              "prefix": { "type": "string" },
+              "to": { "type": "string" }
+            }
+          },
+          "from": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "description": "Endpoint facts of the app code, one row per subject: a service or ci_image key whose link sources cover the registration file, or no service when none does. Auth policies of the same subject are applied; link broad marks a kept link that holds more than one app.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["endpoint", "method", "path", "framework", "auth", "routes", "public", "from"],
+        "properties": {
+          "endpoint": { "type": "string" },
+          "service": { "type": "string", "description": "A service key or a ci_image key; absent: repo-level" },
+          "method": { "type": "string" },
+          "path": { "type": "string" },
+          "framework": { "type": "string" },
+          "auth": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["state"],
+            "properties": {
+              "state": { "type": "string" },
+              "markers": { "type": "array", "items": { "type": "string" } },
+              "policy": { "type": "string", "description": "The auth_policy key that decided the state" }
+            }
+          },
+          "routes": { "type": "array", "items": { "type": "string" }, "description": "Route edge keys that reach it" },
+          "public": { "type": "boolean" },
+          "link": { "enum": ["broad"] },
           "from": { "type": "array", "items": { "type": "string" } }
         }
       }
@@ -296,7 +343,7 @@
         "additionalProperties": false,
         "required": ["rule", "subject", "detail", "from"],
         "properties": {
-          "rule": { "enum": ["no_code_link", "link_conflict", "production_unconfirmed", "image_pinning", "party_unconfirmed", "driver_without_store"] },
+          "rule": { "enum": ["no_code_link", "link_conflict", "production_unconfirmed", "image_pinning", "party_unconfirmed", "driver_without_store", "endpoint_anonymous_public"] },
           "subject": { "type": "string", "description": "Fact key the finding is about" },
           "grade": { "enum": ["floating", "unknown", "exact"], "description": "image_pinning: how the image is pinned (https://cernly.dev/how/facts/); exact means a full version without digest" },
           "image": { "type": "string", "description": "image_pinning: the image repository without tag (registry/repository), so a new tag of the same repository reads as an upgrade (https://cernly.dev/how/gate/)" },
@@ -488,6 +535,18 @@
               "columns_to_check": { "type": "integer", "minimum": 0, "description": "Columns to check of tables whose schema lies in its sources" },
               "unpinned_images": { "type": "integer", "minimum": 0, "description": "image_pinning findings on it or its recipe" },
               "routes": { "type": "integer", "minimum": 0, "description": "Routes that reach it" },
+              "endpoints": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["total", "required", "anonymous", "unknown"],
+                "description": "Its endpoints by auth state; absent when it has none",
+                "properties": {
+                  "total": { "type": "integer", "minimum": 1 },
+                  "required": { "type": "integer", "minimum": 0 },
+                  "anonymous": { "type": "integer", "minimum": 0 },
+                  "unknown": { "type": "integer", "minimum": 0 }
+                }
+              },
               "size": { "$ref": "#/$defs/size" },
               "coupling": { "$ref": "#/$defs/coupling" },
               "items": { "$ref": "#/$defs/service_items", "unevaluatedProperties": false }
@@ -498,6 +557,16 @@
     }
   },
   "$defs": {
+    "narrowing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "description": "Whether a link's sources were narrowed to the entrypoint's project closure. Anything uncertain is kept.",
+      "properties": {
+        "state": { "enum": ["narrowed", "kept"] },
+        "reason": { "type": "string", "description": "Kept: what was uncertain" }
+      }
+    },
     "surface": {
       "type": "object",
       "additionalProperties": false,
@@ -538,7 +607,8 @@
             "description": "An image_pinning finding"
           }
         },
-        "routes": { "type": "array", "items": { "type": "string" }, "description": "route keys" }
+        "routes": { "type": "array", "items": { "type": "string" }, "description": "route keys" },
+        "endpoints": { "type": "array", "items": { "type": "string" }, "description": "endpoint keys; per service, absent when it has none" }
       }
     },
     "size": {

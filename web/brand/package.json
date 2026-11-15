@@ -1,0 +1,16 @@
+{
+  "name": "@cernly/brand",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The brand files the local viewer uses: colour tokens, base styles, self-hosted fonts and the mark. Copied from the app's design package by scripts/sync-site-brand.sh; do not edit.",
+  "exports": {
+    "./fonts.css": "./fonts.css",
+    "./tokens.css": "./tokens.css",
+    "./base.css": "./base.css",
+    "./mark": "./mark.tsx"
+  },
+  "peerDependencies": {
+    "react": "19.3.0"
+  }
+}

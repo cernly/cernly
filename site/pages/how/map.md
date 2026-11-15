@@ -21,6 +21,8 @@ The map header records the facts file's hash, the rules version, the catalogue v
 
 - **Link:** a service is linked to the Dockerfile and source folder that build it, through Compose `build:` or a CI image build that produces its image. Precision is the module folder.
 - **Production:** see [stacks](/how/stacks/).
+- **Narrowing:** when a Dockerfile builds a named project, the link keeps it and what it references, and lists the code units left out. Unresolved builds keep every source.
+- **Endpoints:** attached to the service holding the file, joined by path to the proxy routes in front. `endpoint_anonymous_public` prompts a look at an anonymous endpoint on a public production route; it does not claim the endpoint is open.
 - **Parties:** provider signals from the [catalogue](/how/catalogue/), graded.
 - **Images:** an image no build in the repo produces is third-party, graded by pinning.
 - **Tables:** tables and columns merged across migrations and ORM models; columns that look personal or secret are listed to check.
@@ -28,7 +30,7 @@ The map header records the facts file's hash, the rules version, the catalogue v
 
 ## Metrics
 
-`metrics` counts the surface: outside parties, data stores, columns to check, unpinned images, production stacks and routes. In total, in production and per service. Each count lists its items, so a number is never without its proof. Size (files, lines, test lines) and coupling are context, not scores.
+`metrics` counts the surface: outside parties, data stores, columns to check, unpinned images, production stacks and routes. In total, in production and per service. Services also get endpoint counts, including endpoints on a link that keeps more than one app. Each count lists its items, so a number is never without its proof. Size (files, lines, test lines) and coupling are context, not scores.
 
 ## Module graph
 

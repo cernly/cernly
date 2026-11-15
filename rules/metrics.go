@@ -48,6 +48,15 @@ type ServiceItems struct {
 	ColumnsToCheck []string `json:"columns_to_check"`
 	UnpinnedImages []Pin    `json:"unpinned_images"`
 	Routes         []string `json:"routes"`
+	Endpoints      []string `json:"endpoints,omitempty"` // endpoint keys; per service only, absent when it has none
+}
+
+// EndpointCounts are a service's endpoints by auth state.
+type EndpointCounts struct {
+	Total     int `json:"total"`
+	Required  int `json:"required"`
+	Anonymous int `json:"anonymous"`
+	Unknown   int `json:"unknown"`
 }
 
 // Pin is one image_pinning finding: its subject and its detail.
@@ -59,16 +68,17 @@ type Pin struct {
 // ServiceMetrics is one service's, or one image built in CI's, share.
 // DataStores are the data stores it depends on in its stack.
 type ServiceMetrics struct {
-	Service        string       `json:"service"`
-	Role           string       `json:"role"` // its stack's role; none for an image built in CI
-	OutsideParties int          `json:"outside_parties"`
-	DataStores     int          `json:"data_stores"`
-	ColumnsToCheck int          `json:"columns_to_check"`
-	UnpinnedImages int          `json:"unpinned_images"`
-	Routes         int          `json:"routes"`
-	Size           Size         `json:"size"`
-	Coupling       *Coupling    `json:"coupling,omitempty"`
-	Items          ServiceItems `json:"items"`
+	Service        string          `json:"service"`
+	Role           string          `json:"role"` // its stack's role; none for an image built in CI
+	OutsideParties int             `json:"outside_parties"`
+	DataStores     int             `json:"data_stores"`
+	ColumnsToCheck int             `json:"columns_to_check"`
+	UnpinnedImages int             `json:"unpinned_images"`
+	Routes         int             `json:"routes"`
+	Endpoints      *EndpointCounts `json:"endpoints,omitempty"`
+	Size           Size            `json:"size"`
+	Coupling       *Coupling       `json:"coupling,omitempty"`
+	Items          ServiceItems    `json:"items"`
 }
 
 // Size counts every source file; the test files and lines among them (by
@@ -160,35 +170,32 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	type subject struct {
 		key, stack, recipe string
 		sources            []string
+		scopes             []scope
 	}
 	var subs []subject
 	sources := map[string][]string{}
+	scopes := map[string][]scope{}
 	recipeOf := map[string]string{}
 	for _, l := range m.Links {
 		sources[l.Service] = append(sources[l.Service], l.Sources...)
+		scopes[l.Service] = append(scopes[l.Service], scope{l.Sources, l.Excluded})
 		recipeOf[l.Service] = l.Recipe
 	}
 	for _, c := range m.CIImages {
 		sources[c.Image] = append(sources[c.Image], c.Sources...)
+		scopes[c.Image] = append(scopes[c.Image], scope{c.Sources, c.Excluded})
 		recipeOf[c.Image] = c.Recipe
 	}
 	for _, f := range facts {
 		if f.Kind == fact.KindService {
-			subs = append(subs, subject{f.Key, f.Str("stack"), recipeOf[f.Key], uniq(sources[f.Key])})
+			subs = append(subs, subject{f.Key, f.Str("stack"), recipeOf[f.Key], uniq(sources[f.Key]), scopes[f.Key]})
 		}
 	}
 	for _, c := range m.CIImages {
-		subs = append(subs, subject{c.Image, "", c.Recipe, uniq(sources[c.Image])})
+		subs = append(subs, subject{c.Image, "", c.Recipe, uniq(sources[c.Image]), scopes[c.Image]})
 	}
-	inSources := func(srcs []string) func(string) bool {
-		return func(p string) bool {
-			for _, s := range srcs {
-				if inside(p, s) {
-					return true
-				}
-			}
-			return false
-		}
+	inSources := func(ss []scope) func(string) bool {
+		return func(p string) bool { return coversAny(p, ss) }
 	}
 	evIn := func(key string, keep func(string) bool) bool {
 		for _, e := range byKey[key].Evidence {
@@ -283,6 +290,7 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	}
 	out := &Metrics{Services: []ServiceMetrics{}}
 	var prodSrc, prodPins, prodParties, prodPkgs []string
+	var prodScopes []scope
 	for _, s := range subs {
 		r := RoleNone
 		if s.stack != "" {
@@ -291,12 +299,31 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 				r = RoleNone
 			}
 		}
-		keep := inSources(s.sources)
+		keep := inSources(s.scopes)
 		it := ServiceItems{OutsideParties: uniq(partiesOf(s.key)), DataStores: storesOf(s), UnpinnedImages: pinPairs(pinsOf(s)), Routes: routesTo(s.key)}
 		sm := ServiceMetrics{Service: s.key, Role: r, Size: Size{Languages: []LanguageSize{}}}
 		if len(s.sources) > 0 {
 			it.ColumnsToCheck = colsIn(keep)
 			sm.Size = sz.size(keep)
+		}
+		var ec EndpointCounts
+		for _, row := range m.Endpoints {
+			if row.Service != s.key {
+				continue
+			}
+			it.Endpoints = append(it.Endpoints, row.Endpoint)
+			ec.Total++
+			switch row.Auth.State {
+			case "required":
+				ec.Required++
+			case "anonymous":
+				ec.Anonymous++
+			default:
+				ec.Unknown++
+			}
+		}
+		if ec.Total > 0 {
+			sm.Endpoints = &ec
 		}
 		sm.Items = it.norm()
 		sm.OutsideParties, sm.DataStores, sm.UnpinnedImages = len(sm.Items.OutsideParties), len(sm.Items.DataStores), len(sm.Items.UnpinnedImages)
@@ -307,6 +334,7 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 		out.Services = append(out.Services, sm)
 		if s.stack != "" && prod(s.stack) {
 			prodSrc = append(prodSrc, s.sources...)
+			prodScopes = append(prodScopes, s.scopes...)
 			prodPins = append(prodPins, pinsOf(s)...)
 			prodParties = append(prodParties, partiesOf(s.key)...)
 			prodPkgs = append(prodPkgs, reach[s.key]...)
@@ -336,7 +364,7 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	}
 	for _, r := range m.Routes {
 		all.Routes = append(all.Routes, r.Route)
-		if r.Stack != "" && prod(r.Stack) {
+		if r.Stack != "" && prod(r.Stack[strings.LastIndex(r.Stack, ":")+1:]) {
 			prodIt.Routes = append(prodIt.Routes, r.Route)
 		}
 	}
@@ -355,8 +383,8 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	prodIt.UnpinnedImages = pinPairs(uniq(prodPins))
 	out.Production = Surface{Size: Size{Languages: []LanguageSize{}}}
 	if len(prodSrc) > 0 {
-		prodIt.ColumnsToCheck = colsIn(inSources(prodSrc))
-		out.Production.Size = sz.size(inSources(prodSrc))
+		prodIt.ColumnsToCheck = colsIn(inSources(prodScopes))
+		out.Production.Size = sz.size(inSources(prodScopes))
 	}
 	prodIt = prodIt.norm()
 	out.Production.Items = prodIt
@@ -381,6 +409,9 @@ func pinPairs(pairs []string) []Pin {
 // norm gives every list a value (an empty list, not null) in a fixed order.
 func (it ServiceItems) norm() ServiceItems {
 	it.OutsideParties, it.DataStores, it.ColumnsToCheck, it.Routes = sorted(it.OutsideParties), sorted(it.DataStores), sorted(it.ColumnsToCheck), sorted(it.Routes)
+	if len(it.Endpoints) > 0 {
+		it.Endpoints = sorted(it.Endpoints)
+	}
 	it.UnpinnedImages = append([]Pin{}, it.UnpinnedImages...)
 	sort.SliceStable(it.UnpinnedImages, func(i, j int) bool {
 		a, b := it.UnpinnedImages[i], it.UnpinnedImages[j]
