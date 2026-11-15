@@ -32,11 +32,27 @@ test("every inline script is listed by hash", () => {
   assert.equal(policy, csp(out));
 });
 
+// The page with each script's text left out, its tags kept: a script's text
+// may say "src =" without referencing a file.
+function withoutScriptText(s) {
+  const lower = s.toLowerCase();
+  let out = "";
+  let at = 0;
+  for (;;) {
+    const open = lower.indexOf("<script", at);
+    if (open < 0) return out + s.slice(at);
+    const body = lower.indexOf(">", open) + 1;
+    const close = lower.indexOf("</script", body);
+    out += s.slice(at, body);
+    at = close < 0 ? s.length : close;
+  }
+}
+
 test("no request is allowed and nothing references a file", () => {
   const out = build();
   assert.ok(!/connect-src/.test(out));
   assert.match(out, /default-src 'none'/);
-  const tags = out.replace(/<meta[^>]*>/, "").replace(/(<script\b[^>]*>)[\s\S]*?<\/script\s*>/gi, "$1</script>");
+  const tags = withoutScriptText(out.replace(/<meta[^>]*>/, ""));
   assert.ok(!/(?:src|href)\s*=\s*["']?(?!data:)/i.test(tags));
   assertOffline(out);
 });
