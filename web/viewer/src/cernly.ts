@@ -8,10 +8,12 @@ import type { Folder } from "./folder";
 type Raw = {
   view(facts: string): Promise<View>;
   compare(a: string, b: string): Promise<Changes>;
+  redact(facts: string): Promise<Upload>;
   scan(source: Folder, name: string): Promise<Scanned>;
   maxBytes?: number;
   maxFiles?: number;
   hash?: string;
+  version?: string;
   plugins?: string[];
   failed?: string;
 };
@@ -49,6 +51,20 @@ export async function tooLarge(files: { name: string; size: number }[]): Promise
   return big && `${big.name} is ${Math.ceil(big.size / 2 ** 20)} MB, more than the ${max! / 2 ** 20} MB this viewer reads.`;
 }
 
+// A facts file prepared for an upload: its text with paths, names, hosts and the repo id
+// replaced by tokens, the token list's text (it stays with the customer), and how many
+// values each category holds.
+export type Upload = { facts: string; map: string; counts: Record<"path" | "name" | "host" | "repo", number> };
+
+// The build the page runs: the extractor's version and the SHA-256 of its module.
+export type Build = { version: string; hash: string };
+
+export async function build(): Promise<Build> {
+  const r = await ready();
+  return { version: r.version ?? "", hash: r.hash ?? "" };
+}
+
+export const redact = async (facts: string) => (await ready()).redact(facts);
 export const view = async (facts: string) => (await ready()).view(facts);
 export const compare = async (a: string, b: string) => (await ready()).compare(a, b);
 export const scan = async (f: Folder) => (await ready()).scan(f, f.name);

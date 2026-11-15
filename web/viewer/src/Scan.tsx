@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { save as download } from "./download";
 import { maxRead, ListFolder, type Folder } from "./folder";
 
 // Past this many files the webkitdirectory list itself is slow: the browser
@@ -47,14 +48,7 @@ export function Scanning({ folder }: { folder: Folder }) {
 
 // After a browser scan: its warnings, and the facts file to keep.
 export function Scanned({ name, facts, warnings, dirty }: { name: string; facts: string; warnings: string[]; dirty: boolean }) {
-  const save = () => {
-    const url = URL.createObjectURL(new Blob([facts], { type: "application/json" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${name}.facts.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
+  const save = () => download(`${name}.facts.json`, facts);
   return (
     <section className="panel scanned" aria-label="This scan">
       <div className="panel-head">

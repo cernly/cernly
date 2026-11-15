@@ -4,7 +4,7 @@
 // starts, since WebKit starts none from inside a Worker), the bundled plugins, the extra trusted
 // keys (test builds only) and the module's SHA-256. The module runs in a
 // Worker from a blob: URL; nothing is fetched. globalThis.cernly then offers
-// view(text), compare(a, b) and scan(source, name), each a promise, and
+// view(text), compare(a, b), redact(text) and scan(source, name), each a promise, and
 // "cernly-ready" fires. If the module cannot start, cernly.failed says why and
 // every call rejects with it.
 (function () {
@@ -25,7 +25,7 @@
   const fail = (e) => {
     const m = "the viewer's module did not start: " + ((e && e.message) || e);
     const no = () => Promise.reject(new Error(m));
-    globalThis.cernly = { failed: m, view: no, compare: no, scan: no, hash: b && b.hash };
+    globalThis.cernly = { failed: m, view: no, compare: no, redact: no, scan: no, hash: b && b.hash };
     for (const w of waiting.values()) w.reject(new Error(m));
     waiting.clear();
     ready();
@@ -82,12 +82,14 @@
         globalThis.cernly = {
           view: (text) => call("view", [text]),
           compare: (a, c) => call("compare", [a, c]),
+          redact: (text) => call("redact", [text]),
           scan: (source, name) => {
             src = source;
             return call("scan", [name]).finally(() => { src = undefined; });
           },
           maxBytes: m.maxBytes,
           maxFiles: m.maxFiles,
+          version: m.version,
           hash: b.hash,
           plugins: b.plugins.map((p) => JSON.parse(p.bundle).manifest.name),
         };

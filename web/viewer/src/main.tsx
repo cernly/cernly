@@ -7,11 +7,13 @@ import { Component, StrictMode, useEffect, useState, type ReactNode } from "reac
 import { createRoot } from "react-dom/client";
 import { Mark } from "@cernly/brand/mark";
 import { compare, ready, scan, tooLarge, view, type Changes as ChangesData, type Scanned as ScannedData, type View } from "./cernly";
+import { Build } from "./Build";
 import { Changes } from "./Changes";
 import { kind, type Folder } from "./folder";
 import { Open } from "./Open";
 import { Confirm, Scanned, Scanning, type Kind } from "./Scan";
 import { Overview } from "./Overview";
+import { Upload } from "./Upload";
 import { AI, Data, Dependencies, Modules, Routes } from "./Views";
 
 // The theme follows the system; the brand tokens read data-theme on <html>.
@@ -53,7 +55,7 @@ type State =
   | { at: "error"; message: string }
   | { at: "confirm"; folder: Folder; kind: Kind; plugins: string[]; maxFiles: number }
   | { at: "scanning"; folder: Folder }
-  | { at: "one"; v: View; name: string; scanned?: ScannedData }
+  | { at: "one"; v: View; name: string; facts: string; scanned?: ScannedData }
   | { at: "two"; c: ChangesData; names: string[] };
 
 async function load(files: File[]): Promise<State> {
@@ -63,7 +65,7 @@ async function load(files: File[]): Promise<State> {
     const big = await tooLarge(files);
     if (big) return { at: "error", message: big };
     const texts = await Promise.all(files.map((f) => f.text()));
-    if (texts.length === 1) return { at: "one", v: await view(texts[0]!), name: current };
+    if (texts.length === 1) return { at: "one", v: await view(texts[0]!), name: current, facts: texts[0]! };
     current = `${files[0]!.name} and ${files[1]!.name}`;
     return { at: "two", c: await compare(texts[0]!, texts[1]!), names: files.map((f) => f.name) };
   } catch (e) {
@@ -83,7 +85,7 @@ async function confirm(folder: Folder): Promise<State> {
 async function scanFolder(folder: Folder): Promise<State> {
   try {
     const s = await scan(folder);
-    return { at: "one", v: s.view, name: folder.name, scanned: s };
+    return { at: "one", v: s.view, name: folder.name, facts: s.facts, scanned: s };
   } catch (e) {
     return { at: "error", message: `${folder.name}: ${e instanceof Error ? e.message : String(e)}` };
   }
@@ -155,10 +157,12 @@ function App() {
       )}
       <Guard key={loads} onFiles={setFiles} onFolder={onFolder}>
         {state.at === "one" && state.scanned && <Scanned name={state.name} facts={state.scanned.facts} warnings={state.scanned.warnings} dirty={state.v.scan.commit.dirty === true} />}
+        {state.at === "one" && <Upload key={state.facts} name={state.name} facts={state.facts} />}
         {(state.at === "one" || state.at === "two") && <Tabs tab={tab} two={state.at === "two"} onTab={(t) => { setTab(t); globalThis.scrollTo?.(0, 0); }} />}
         {state.at === "one" && <One v={state.v} tab={tab} />}
         {state.at === "two" && (tab === "changes" ? <Changes c={state.c} /> : <One v={state.c.to} tab={tab} />)}
       </Guard>
+    <footer><Build /></footer>
     </main>
   );
 }

@@ -3,10 +3,10 @@
 // wasm_exec.js followed by this file, so it needs no request. Messages:
 //
 //   page -> worker  {type: "init", wasm, plugins, trust}
-//                   {type: "call", id, op: "view"|"compare"|"scan", args}
+//                   {type: "call", id, op: "view"|"compare"|"redact"|"scan", args}
 //                   {type: "fs-result", id, ok, value | error}
 //                   {type: "plugin-result", id, value}
-//   worker -> page  {type: "ready", maxBytes, maxFiles} | {type: "failed", error}
+//   worker -> page  {type: "ready", maxBytes, maxFiles, version} | {type: "failed", error}
 //                   {type: "result", id, ok, value | error}
 //                   {type: "fs", id, method, args}
 //                   {type: "plugin", id, module, stdin, opts}
@@ -49,6 +49,7 @@
   const ops = {
     view: (facts) => cernly.view(facts),
     compare: (a, b) => cernly.compare(a, b),
+    redact: (facts) => cernly.redact(facts),
     scan: (name) => cernly.scan(source, name, plugins, trust),
   };
 
@@ -70,7 +71,7 @@
       plugins = m.plugins || [];
       trust = m.trust || [];
       try {
-        addEventListener("cernly-ready", () => postMessage({ type: "ready", maxBytes: cernly.maxBytes, maxFiles: cernly.maxFiles }), { once: true });
+        addEventListener("cernly-ready", () => postMessage({ type: "ready", maxBytes: cernly.maxBytes, maxFiles: cernly.maxFiles, version: cernly.version }), { once: true });
         const go = new Go();
         const { instance } = await WebAssembly.instantiate(m.wasm, go.importObject);
         go.run(instance).then(() => postMessage({ type: "failed", error: "the module stopped" }));
@@ -81,7 +82,7 @@
     }
     if (m.type === "call") {
       try {
-        // view and compare answer JSON text, an {error} object on failure;
+        // view, compare and redact answer JSON text, an {error} object on failure;
         // scan is a promise of JSON text that rejects on failure.
         const text = await ops[m.op](...m.args);
         const value = JSON.parse(text);

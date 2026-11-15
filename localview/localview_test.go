@@ -211,3 +211,26 @@ func TestViewDependencies(t *testing.T) {
 		t.Error("the example scan's dependency is not listed")
 	}
 }
+
+func TestRedact(t *testing.T) {
+	raw := example(t)
+	out, err := Redact(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var up Upload
+	if err := json.Unmarshal(out, &up); err != nil {
+		t.Fatal(err)
+	}
+	var s fact.Scan
+	_ = json.Unmarshal(raw, &s)
+	if strings.Contains(up.Facts, s.Repo) || !strings.HasSuffix(up.Facts, "}\n") || !strings.HasSuffix(up.Map, "}\n") {
+		t.Errorf("facts file: %.200s", up.Facts)
+	}
+	if !strings.Contains(up.Map, s.Repo) || up.Counts["repo"] != 1 {
+		t.Errorf("map %.200s, counts %v", up.Map, up.Counts)
+	}
+	if _, err := Redact([]byte("x")); err == nil {
+		t.Error("a file that is not a scan was redacted")
+	}
+}
