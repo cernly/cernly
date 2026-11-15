@@ -27,7 +27,7 @@ It does not prove more. It cannot stop a page from navigating away with data in 
 
 With one scan open, "Prepare an upload" shows the file before anything is saved: how many values of each kind were replaced, every readable string, and the first 40 lines as they will be saved.
 
-- **Redact paths, names, hosts and the repo id** is on by default; switch it off before saving if you want.
+- **Redact every string the scanner did not write itself** is on by default; switch it off before saving if you want.
 - **Save upload file** writes `<name>.upload.json`.
 - **Save token list** writes `<name>.tokens.json`, only while redaction is on. It turns tokens back into your values. Keep it; it is not uploaded.
 

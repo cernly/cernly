@@ -36,7 +36,7 @@ test("the upload file and the token list, redacted and not", async ({ page }) =>
   // Collapsed until asked for.
   await expect(page.getByTestId("upload-preview")).toHaveCount(0);
   await page.getByRole("button", { name: "Prepare an upload" }).click();
-  const box = page.getByRole("checkbox", { name: "Redact paths, names, hosts and the repo id" });
+  const box = page.getByRole("checkbox", { name: "Redact every string the scanner did not write itself" });
   await expect(box).toBeChecked();
   await expect(page.getByText("This page cannot send anything; you upload the file yourself.")).toBeVisible();
 

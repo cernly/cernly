@@ -44,9 +44,9 @@ export function Upload({ name, facts }: { name: string; facts: string }) {
         <div className="upload-body">
           <label className="check">
             <input type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} />
-            Redact paths, names, hosts and the repo id
+            Redact every string the scanner did not write itself
           </label>
-          <p className="muted">Fact kinds, the scanner's own vocabulary (languages, engines, frameworks), versions, numbers, line numbers and the commit id stay readable.</p>
+          <p className="muted">Fact kinds, the scanner's own vocabulary (languages, engines, frameworks), versions, numbers, line numbers and the commit id stay readable. Every other string becomes a token: paths and routes, hosts, the repo id, and names (images, commands, types, markers and the rest).</p>
           {prepared && "error" in prepared && <p className="error" role="alert">{prepared.error}</p>}
           {!prepared && <p className="muted" role="status">Preparing…</p>}
           {shown !== undefined && prepared && !("error" in prepared) && (
