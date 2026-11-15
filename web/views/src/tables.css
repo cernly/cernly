@@ -1,0 +1,31 @@
+/* The Data view's tables grouped by schema. Brand tokens and the views.css aliases only. */
+.table-groups { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+details.table-group { border: 1px solid var(--edge-panel); border-radius: var(--r-sm); background: var(--surface-200); }
+details.table-group > summary {
+  list-style: none; cursor: pointer; min-height: 44px; padding: 8px 12px 8px 34px; position: relative;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px;
+}
+details.table-group > summary::-webkit-details-marker { display: none; }
+details.table-group > summary::before {
+  content: ""; position: absolute; left: 12px; top: 50%; width: 12px; height: 8px; margin-top: -4px;
+  background: var(--chevron) center / 12px 8px no-repeat; transform: rotate(-90deg); transition: transform 0.15s ease;
+}
+details.table-group[open] > summary::before { transform: none; }
+details.table-group > summary:hover { background: var(--surface-300); }
+details.table-group[open] > summary { border-bottom: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { details.table-group > summary::before { transition: none; } }
+.tg-name { font: 600 14px/20px var(--font-mono); }
+.tg-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--ink-muted); }
+.tg-new { color: var(--brand); font-weight: 600; }
+.tg-check { color: var(--warning); font-weight: 600; }
+
+.new-pill {
+  display: inline-block; margin-left: 8px; padding: 0 6px; font: 600 10px/16px var(--font-mono); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--brand); border: 1px solid var(--brand); border-radius: 999px; vertical-align: 1px;
+}
+div.found-in { display: flex; flex-direction: column; gap: 2px; }
+div.found-in > span { display: flex; flex-wrap: wrap; gap: 0 8px; }
+.check-flag { display: inline-flex; align-items: baseline; gap: 6px; color: var(--warning); font-weight: 600; }
+.check-flag::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--warning); align-self: center; }
+table.tables-list { table-layout: fixed; min-width: 620px; }
+table.tables-list td { overflow-wrap: anywhere; }

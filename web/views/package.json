@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The views of one Cernly scan: types, floor plan, metrics, drift words, the overview pieces. The local viewer and the hosted app both use them.",
+  "description": "The views of one Cernly scan: types, floor plan, metrics, drift words, the overview, routes, data, modules, dependencies and AI pieces. The local viewer and the hosted app both use them.",
   "exports": {
     "./types": "./src/types.ts",
     "./format": "./src/format.ts",
@@ -13,7 +13,19 @@
     "./motion": "./src/motion.ts",
     "./ui": "./src/ui.tsx",
     "./overview": "./src/overview.tsx",
-    "./views.css": "./src/views.css"
+    "./views.css": "./src/views.css",
+    "./routes": "./src/routes.tsx",
+    "./tables": "./src/tables.tsx",
+    "./tables-model": "./src/tables-model.ts",
+    "./unclaimed-model": "./src/unclaimed-model.ts",
+    "./modules": "./src/modules.tsx",
+    "./deps": "./src/deps.tsx",
+    "./deps-model": "./src/deps-model.ts",
+    "./ai": "./src/ai.tsx",
+    "./tables.css": "./src/tables.css",
+    "./deps.css": "./src/deps.css",
+    "./hosts.css": "./src/hosts.css",
+    "./routes.css": "./src/routes.css"
   },
   "peerDependencies": {
     "react": "19.3.0"

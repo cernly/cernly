@@ -14,6 +14,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
+	"github.com/cernly/cernly/depview"
 	"github.com/cernly/cernly/drift"
 	"github.com/cernly/cernly/explain"
 	"github.com/cernly/cernly/fact"
@@ -36,6 +37,8 @@ type View struct {
 	Map         *rules.Map        `json:"map"`
 	Explain     []explain.Rule    `json:"explain"`
 	StackLabels map[string]string `json:"stack_labels"`
+	// Dependencies is the scan's dependencies by service.
+	Dependencies depview.Summary `json:"dependencies"`
 }
 
 // Changes is two scans of one repository, the older first, and what changed.
@@ -134,7 +137,7 @@ func view(raw []byte) (View, *fact.Scan, error) {
 	if err != nil {
 		return View{}, nil, fmt.Errorf("%w: %v", errNotScan, err)
 	}
-	return View{Scan: raw, Map: m, Explain: explain.All(), StackLabels: explain.StackLabels(s, m)}, s, nil
+	return View{Scan: raw, Map: m, Explain: explain.All(), StackLabels: explain.StackLabels(s, m), Dependencies: depview.Of(s, m)}, s, nil
 }
 
 // Of derives one scan's view from its facts file.

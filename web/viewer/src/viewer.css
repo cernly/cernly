@@ -12,3 +12,4 @@
 .seg { display: inline-flex; gap: 6px; }
 .seg .btn[aria-pressed="true"] { --edge: var(--brand); color: var(--ink); font-weight: 600; }
 .stack-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tabs { flex-wrap: wrap; }

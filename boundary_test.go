@@ -127,7 +127,9 @@ func isAllowed(p string) bool {
 
 // The web packages under core/web hold to the same boundary: relative imports
 // stay inside core/, bare ones name only React, the open packages and node.
-var webImport = regexp.MustCompile(`(?m)(?:\bfrom|\bimport|\bimport\()\s*["']([^"']+)["']`)
+// Only import and export statements and import() count: a "from" or
+// "import" in a string or in the page's prose is not an import.
+var webImport = regexp.MustCompile("(?m)(?:^\\s*(?:import|export)\\b[^;\"'`]*?\\bfrom|^\\s*import|\\bimport\\()\\s*[\"']([^\"']+)[\"']")
 
 // webImportProblem says why the import spec in the file at rel (a slash path
 // from core/, like web/views/src/a.ts) is not allowed, or "" when it is.
@@ -206,5 +208,18 @@ func TestWebImportProblem(t *testing.T) {
 		if got := webImportProblem(c.file, c.spec) != ""; got != c.bad {
 			t.Errorf("%s importing %q: rejected %v, want %v", c.file, c.spec, got, c.bad)
 		}
+	}
+}
+
+func TestWebImportPattern(t *testing.T) {
+	src := "import a from \"x1\";\nimport \"./a.css\";\nexport { b } from 'x2';\nimport {\n  c,\n} from \"x3\";\nconst d = await import(\"x4\");\n" +
+		"const e = plural(n, \"import\") + \"from\";\nArray.from(\"no\");\n<span>{plural(k, \"import\")} · from \"no\"</span>\n"
+	var got []string
+	for _, m := range webImport.FindAllStringSubmatch(src, -1) {
+		got = append(got, m[1])
+	}
+	want := []string{"x1", "./a.css", "x2", "x3", "x4"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("imports %v, want %v", got, want)
 	}
 }

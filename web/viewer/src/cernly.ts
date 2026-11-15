@@ -1,3 +1,4 @@
+import type { DependencySummary } from "@cernly/views/deps-model";
 import type { DriftChange, DriftGroup, Explain, MapDoc, Scan } from "@cernly/views/types";
 
 // The WebAssembly module (core/cmd/cernly-viewer) puts `cernly` on globalThis
@@ -5,7 +6,7 @@ import type { DriftChange, DriftGroup, Explain, MapDoc, Scan } from "@cernly/vie
 // module did not start, the page's loader sets `failed` instead.
 type Raw = { view(facts: string): string; compare(a: string, b: string): string; maxBytes?: number; failed?: string };
 
-export type View = { scan: Scan; map: MapDoc; explain: Explain[]; stack_labels: Record<string, string> };
+export type View = { scan: Scan; map: MapDoc; explain: Explain[]; stack_labels: Record<string, string>; dependencies: DependencySummary };
 export type Changes = {
   from: View;
   to: View;
