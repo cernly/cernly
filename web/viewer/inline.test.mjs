@@ -36,7 +36,7 @@ test("no request is allowed and nothing references a file", () => {
   const out = build();
   assert.ok(!/connect-src/.test(out));
   assert.match(out, /default-src 'none'/);
-  const tags = out.replace(/<meta[^>]*>/, "").replace(/(<script\b[^>]*>)[\s\S]*?<\/script>/gi, "$1</script>");
+  const tags = out.replace(/<meta[^>]*>/, "").replace(/(<script\b[^>]*>)[\s\S]*?<\/script\s*>/gi, "$1</script>");
   assert.ok(!/(?:src|href)\s*=\s*["']?(?!data:)/i.test(tags));
   assertOffline(out);
 });
