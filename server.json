@@ -5,11 +5,11 @@
   "description": "Architecture facts from a git repository: services, data stores, third-party providers, env vars, hosts, routes. File and line evidence.",
   "websiteUrl": "https://cernly.dev",
   "repository": { "url": "https://github.com/cernly/cernly", "source": "github" },
-  "version": "0.4.0",
+  "version": "0.4.1",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/cernly/cernly:0.4.0",
+      "identifier": "ghcr.io/cernly/cernly:0.4.1",
       "transport": { "type": "stdio" },
       "runtimeArguments": [
         { "type": "named", "name": "-v", "value": "{repo}:/repo:ro", "description": "Mount the repository to scan, read-only",
