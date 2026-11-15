@@ -19,7 +19,7 @@ jobs:
           go-version-file: go.mod
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: gofmt
@@ -61,15 +61,16 @@ jobs:
           go-version-file: go.mod
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: build
         run: |
-          scripts/release-build.sh v0.0.0 "$RUNNER_TEMP/rel" --binaries
+          scripts/release-build.sh v0.0.0 "$RUNNER_TEMP/rel"
           web/viewer/build.sh "$RUNNER_TEMP/viewer"
           mkdir sums
           cp "$RUNNER_TEMP/rel/binaries.sha256" sums/
+          (cd "$RUNNER_TEMP/rel" && shasum -a 256 *.tar.gz *.zip) > sums/archives.sha256
           cp "$RUNNER_TEMP/viewer/SHA256SUMS" sums/viewer.sha256
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -84,7 +85,10 @@ jobs:
           cat sums-ubuntu-latest/*
           diff -r sums-ubuntu-latest sums-macos-latest
   # The GitHub Action in action.yml, run from this commit on each runner OS:
-  # its facts file is the one `cernly scan` writes.
+  # its facts file is the one `cernly scan` writes. On a pull request this runs
+  # the pull request's own action.yml, as go test runs its code: accepted,
+  # because the workflow token is contents: read and checkout keeps no
+  # credentials.
   action:
     strategy:
       matrix:
@@ -104,6 +108,6 @@ jobs:
           FACTS: ${{ steps.cernly.outputs.facts }}
         run: |
           test "$FACTS" = out/self.facts.json
-          go run ./cmd/cernly scan --out "$RUNNER_TEMP/cli.facts.json" .
+          go run ./cmd/cernly scan --commit "$(git rev-parse HEAD)" --out "$RUNNER_TEMP/cli.facts.json" .
           cmp "$FACTS" "$RUNNER_TEMP/cli.facts.json"
-          jq -e '.repo == "github.com/${{ github.repository }}"' "$FACTS"
+          node -e 'const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); if (s.repo !== process.argv[2]) { console.error("repo", s.repo); process.exit(1); }' "$FACTS" "github.com/$GITHUB_REPOSITORY"

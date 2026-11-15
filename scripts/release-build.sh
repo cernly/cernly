@@ -6,10 +6,13 @@
 #   scripts/release-build.sh <version> <out-dir>              binaries, binaries.sha256 and the archives
 #   scripts/release-build.sh <version> <out-dir> --binaries   binaries and binaries.sha256 only
 #
-# Reproducible because: the toolchain is the one go.mod names, CGO is off,
-# -trimpath drops the build host's paths, -buildvcs=false leaves out the
-# checkout's state, and the archives fix order, owner, mode and dates
-# (SOURCE_DATE_EPOCH, by default the commit's date). The archives need GNU tar.
+# Reproducible because: the toolchain is the one go.mod names (downloaded, if
+# needed, from proxy.golang.org and checked against sum.golang.org), CGO is
+# off, -trimpath drops the build host's paths, -buildvcs=false leaves out the
+# checkout's state, the caller's Go settings (GOFLAGS, go.work, the go env
+# file, other proxies) are ignored, and scripts/archive writes the archives
+# with fixed order, owner, modes and date (SOURCE_DATE_EPOCH, by default the
+# commit's date) using that same toolchain, not the host's tar or zip.
 set -euo pipefail
 
 version="${1:?version}"
@@ -20,7 +23,9 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
 GOTOOLCHAIN="$(sed -n 's/^toolchain //p' go.mod)"
-export GOTOOLCHAIN CGO_ENABLED=0
+export GOTOOLCHAIN CGO_ENABLED=0 GOFLAGS= GOENV=off GOWORK=off GOEXPERIMENT= \
+  GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org \
+  GONOSUMDB= GONOSUMCHECK= GONOPROXY= GOPRIVATE= GOINSECURE=
 : "${SOURCE_DATE_EPOCH:=$(git log -1 --format=%ct)}"
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
@@ -39,18 +44,15 @@ done
 (cd "$bin" && find . -type f | sort | sed 's|^\./||' | xargs shasum -a 256) > "$out/binaries.sha256"
 [ "$only" = --binaries ] && { cat "$out/binaries.sha256"; exit 0; }
 
-tar --version 2>/dev/null | grep -q GNU || { echo "the archives need GNU tar" >&2; exit 1; }
+tool="$(mktemp -d)"
+trap 'rm -rf "$tool"' EXIT
+GOOS= GOARCH= go build -trimpath -buildvcs=false -o "$tool/archive" ./scripts/archive
 for t in $targets; do
-  os="${t%/*}" arch="${t#*/}"
+  os="${t%/*}" arch="${t#*/}" ext=.tar.gz
+  [ "$os" = windows ] && ext=.zip
   d="cernly_${version}_${os}_${arch}"
   cp LICENSE NOTICE README.md "$bin/$d/"
-  find "$bin/$d" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
-  if [ "$os" = windows ]; then
-    (cd "$bin" && find "$d" -print | sort | TZ=UTC zip -qX "$out/$d.zip" -@)
-  else
-    tar -C "$bin" --sort=name --mtime="@$SOURCE_DATE_EPOCH" --owner=0 --group=0 --numeric-owner \
-      --mode=u+rw,go=rX,a-s --format=gnu -cf - "$d" | gzip -9n > "$out/$d.tar.gz"
-  fi
+  "$tool/archive" "$bin/$d" "$out/$d$ext" "$SOURCE_DATE_EPOCH"
 done
 rm -rf "$bin"
 cat "$out/binaries.sha256"

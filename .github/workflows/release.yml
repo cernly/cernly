@@ -1,10 +1,14 @@
 # Release on a version tag (v0.1.0): binaries for Linux, macOS and Windows and
 # the local viewer, with checksums and build provenance (GitHub artifact
 # attestations, signed through Sigstore) on the GitHub release, and the image
-# on ghcr.io with its own attestation. Plain go build, no release tool to trust;
-# the binaries and the viewer are reproducible (scripts/release-build.sh,
-# web/viewer/build.sh), so a rebuild gives the same hashes. Actions pinned by
-# commit, as in ci.yml.
+# on ghcr.io with its own attestation. The tests run in their own job with a
+# read-only token; only the release job can mint an OIDC token or write
+# attestations. The GitHub release is made last: when an attestation fails,
+# nothing is published but the version-tagged image, which has none and so
+# counts as unpublished. Plain go build, no release tool to trust; the
+# binaries, their archives and the viewer are reproducible
+# (scripts/release-build.sh, web/viewer/build.sh), so a rebuild gives the same
+# hashes. Actions pinned by commit, as in ci.yml.
 name: release
 on:
   push:
@@ -12,13 +16,10 @@ on:
 permissions:
   contents: read
 jobs:
-  release:
+  test:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -37,7 +38,7 @@ jobs:
             { echo "server.json does not name version $v"; exit 1; }
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: gofmt
@@ -50,9 +51,7 @@ jobs:
           npm run typecheck
           npm test
       - name: viewer
-        run: |
-          GOOS=js GOARCH=wasm go test -exec "$(go env GOROOT)/lib/wasm/go_js_wasm_exec" ./cmd/cernly-viewer
-          web/viewer/build.sh "$RUNNER_TEMP/viewer"
+        run: GOOS=js GOARCH=wasm go test -exec "$(go env GOROOT)/lib/wasm/go_js_wasm_exec" ./cmd/cernly-viewer
       - name: leak-guard patterns
         run: scripts/test-leak-guard.sh
       - name: docs build
@@ -62,21 +61,46 @@ jobs:
           go run ./cmd/cernly scan --repo local/self . > "$RUNNER_TEMP/a.json"
           go run ./cmd/cernly scan --repo local/self . > "$RUNNER_TEMP/b.json"
           cmp "$RUNNER_TEMP/a.json" "$RUNNER_TEMP/b.json"
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.23.4
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - name: build
         env:
           TAG: ${{ github.ref_name }}
         run: |
+          (cd web && npm ci)
+          web/viewer/build.sh "$RUNNER_TEMP/viewer"
           scripts/release-build.sh "$TAG" dist
           cp "$RUNNER_TEMP/viewer/cernly-viewer.html" dist/
           (cd dist && sha256sum *.tar.gz *.zip cernly-viewer.html binaries.sha256 > checksums.txt)
+      # Every file on the release carries its own attestation, checksums.txt too.
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-checksums: dist/checksums.txt
-      - name: GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/cernly-viewer.html
+            dist/binaries.sha256
+            dist/checksums.txt
+      # The digest is the one the version tag's push reports; :latest follows
+      # only once that digest is attested and the release is made.
       - id: image
         name: image
         env:
@@ -85,13 +109,24 @@ jobs:
         run: |
           img=ghcr.io/${GITHUB_REPOSITORY,,}
           echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          docker build -t "$img:${TAG#v}" -t "$img:latest" .
-          docker push "$img:${TAG#v}"
-          docker push "$img:latest"
+          docker build -t "$img:${TAG#v}" .
+          docker push "$img:${TAG#v}" | tee "$RUNNER_TEMP/push.log"
+          digest=$(sed -n 's/.*digest: \(sha256:[0-9a-f]\{64\}\).*/\1/p' "$RUNNER_TEMP/push.log" | tail -n 1)
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "no digest from the push of $img:${TAG#v}" >&2; exit 1; }
           echo "name=$img" >> "$GITHUB_OUTPUT"
-          echo "digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$img:${TAG#v}" | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ${{ steps.image.outputs.name }}
           subject-digest: ${{ steps.image.outputs.digest }}
           push-to-registry: true
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag
+      - name: latest image
+        env:
+          IMG: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: docker buildx imagetools create --tag "$IMG:latest" "$IMG@$DIGEST"

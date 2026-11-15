@@ -33,17 +33,20 @@ Pin the action by the full commit id of a release, as above, and keep the tag be
 
 | Input | Default | Meaning |
 |---|---|---|
-| `path` | `.` | The checkout to scan. |
+| `path` | `.` | The checkout to scan, relative to the workspace. |
 | `output` | `cernly.facts.json` | Where the facts file is written, relative to the workspace. |
-| `keep-artifact` | `true` | Keep the facts file as a workflow artifact named `cernly-facts`. |
+| `keep-artifact` | `true` | Keep the facts file as a workflow artifact. |
+| `artifact-name` | `cernly-facts` | The artifact's name. It must be unique in the run: give each use of the action its own. |
+
+`path` and `output` must be relative, on one line and without `..`; the action refuses anything else.
 
 The action's output `facts` is the path of the facts file, for later steps such as `cernly gate` or `cernly sbom`.
 
 What the action does, step by step:
 
 1. Installs the Go toolchain that its `go.mod` names (`actions/setup-go`, pinned by commit).
-2. Builds `cernly` from the action's own source at the pinned commit. Go downloads the modules from the Go module proxy and checks each against `go.sum`.
-3. Runs `cernly scan --out <output> <path>`. The scan reads the tracked files from git's objects, runs nothing from the repository and opens no connection.
+2. Builds `cernly` from the action's own source at the pinned commit, with that toolchain only and none of the job's Go settings. Go downloads the modules from `proxy.golang.org` and checks each against `go.sum`.
+3. Runs `cernly scan --commit <HEAD of path> --out <output> -- <path>`. The scan reads the commit's tracked files from git's objects, so an earlier step's edits to the working tree are not in it. It runs nothing from the repository and opens no connection.
 4. If `keep-artifact` is true, uploads the facts file with `actions/upload-artifact` (pinned by commit) to your repository's run.
 
 The job needs only `contents: read`. The repo id comes from the `origin` remote that `actions/checkout` sets, `github.com/<owner>/<repo>`.

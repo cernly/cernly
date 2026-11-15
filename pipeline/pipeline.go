@@ -239,6 +239,9 @@ func OriginID(dir string) string {
 			return id
 		}
 	}
+	if abs, err := filepath.Abs(dir); err == nil {
+		dir = abs // "." names the folder, as a scan of the working tree does
+	}
 	return "local/" + filepath.Base(dir)
 }
 
