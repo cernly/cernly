@@ -27,6 +27,9 @@ import (
 // such limit.
 const MaxFiles = 40_000
 
+// maxFiles is MaxFiles, lowered in tests.
+var maxFiles = MaxFiles
+
 // The label of a scan of a folder without git.
 const (
 	NoCommit   = "0000000000000000000000000000000000000000"
@@ -35,13 +38,24 @@ const (
 
 // Scanned is one browser scan: the facts file, byte for byte what
 // `cernly scan` writes for the same checkout, the warnings it prints, and
-// the scan's view.
+// the scan's view. A scan the page cannot show (past localview.MaxBytes, or
+// a view that fails) keeps its facts, with ViewError instead of View, so
+// the reader can still save them.
 type Scanned struct {
-	Facts    string          `json:"facts"`
-	Warnings []string        `json:"warnings"`
-	View     json.RawMessage `json:"view"`
-	Git      bool            `json:"git"`
+	Facts     string          `json:"facts"`
+	Repo      string          `json:"repo"`
+	Warnings  []string        `json:"warnings"`
+	View      json.RawMessage `json:"view,omitempty"`
+	ViewError string          `json:"view_error,omitempty"`
+	Git       bool            `json:"git"`
+	// Changed is the tracked files that differ from the index, after a dirty
+	// scan (at most MaxChanged): the browser cannot tell a file from a
+	// symbolic link, so the reader checks these are their own edits.
+	Changed []string `json:"changed,omitempty"`
 }
+
+// MaxChanged is the most changed files a dirty scan lists.
+const MaxChanged = 20
 
 // Bundled is a signed plugin the page carries: its bundle (manifest and
 // signature) as JSON and its module.
@@ -55,13 +69,15 @@ type Bundled struct {
 // trustPEM (the test key in test builds, recorded as such in the scan).
 func scanFolder(src js.Value, name string, bundled []Bundled, trustPEM [][]byte) (*Scanned, error) {
 	fsys := jsio.NewFS(src)
-	r, err := repo.OpenFS(fsys, name)
+	r, err := repo.OpenFSMax(fsys, name, maxFiles)
+	var many *repo.TooManyFilesError
+	if errors.As(err, &many) {
+		return nil, fmt.Errorf("%d files to read, more than the %d a browser scan reads; scan this repository with the cernly CLI", many.Files, many.Max)
+	}
 	if err != nil {
 		return nil, err
 	}
-	if n := len(r.Files); n > MaxFiles {
-		return nil, fmt.Errorf("%d files to read, more than the %d a browser scan reads; scan this repository with the cernly CLI", n, MaxFiles)
-	}
+	defer r.Close()
 	_, gitErr := fsys.Stat(".git")
 	ps, err := plugins(bundled, trustPEM)
 	if err != nil {
@@ -73,9 +89,20 @@ func scanFolder(src js.Value, name string, bundled []Bundled, trustPEM [][]byte)
 		// date, as `cernly scan --commit 000... --committed-at 1970-01-01T00:00:00Z`.
 		o.Commit, o.CommittedAt = NoCommit, NoCommitAt
 	}
-	s, warnings, err := pipeline.ScanFS(fsys, name, o)
+	s, warnings, err := pipeline.ScanOpenedFS(r, name, o)
 	if err != nil {
 		return nil, err
+	}
+	out := &Scanned{Repo: s.Repo, Git: gitErr == nil}
+	if g := r.GitFS(); g != nil {
+		for _, u := range g.Unread() {
+			warnings = append(warnings, fmt.Sprintf("git setting %s is outside this folder and was not read; the repo id may differ from the CLI's", u))
+		}
+		if s.Commit.Dirty {
+			if out.Changed, err = g.Changed(fsys, MaxChanged); err != nil {
+				return nil, err
+			}
+		}
 	}
 	if strings.HasPrefix(s.Repo, "local/") {
 		warnings = append(warnings, fmt.Sprintf("repo id %s: no origin remote, so the scan is named after the folder", s.Repo))
@@ -85,14 +112,14 @@ func scanFolder(src js.Value, name string, bundled []Bundled, trustPEM [][]byte)
 		return nil, err
 	}
 	facts := append(data, '\n')
-	v, err := localview.Of(facts)
-	if err != nil {
-		return nil, err
-	}
 	if warnings == nil {
 		warnings = []string{}
 	}
-	return &Scanned{Facts: string(facts), Warnings: warnings, View: v, Git: gitErr == nil}, nil
+	out.Facts, out.Warnings = string(facts), warnings
+	if out.View, err = localview.Of(facts); err != nil {
+		out.View, out.ViewError = nil, err.Error()
+	}
+	return out, nil
 }
 
 func plugins(bundled []Bundled, trustPEM [][]byte) ([]plugin.Plugin, error) {

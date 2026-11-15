@@ -30,7 +30,15 @@ type Index struct {
 	Entries []IndexEntry
 }
 
-const maxIndexBytes = 1 << 30
+const maxIndexBytes = 128 << 20
+
+// TooManyEntriesError is returned by Index when its header counts more
+// entries than SetMaxEntries allows; nothing is allocated for them.
+type TooManyEntriesError struct{ Count, Max int }
+
+func (e *TooManyEntriesError) Error() string {
+	return fmt.Sprintf("the index lists %d entries, more than the %d allowed", e.Count, e.Max)
+}
 
 // Index reads .git/index (versions 2, 3 and 4, and the split index).
 func (r *Repo) Index() (*Index, error) {
@@ -38,7 +46,7 @@ func (r *Repo) Index() (*Index, error) {
 	if err != nil {
 		return nil, fmt.Errorf("index: %w", err)
 	}
-	p, err := parseIndex(data, r.hashLen)
+	p, err := parseIndexMax(data, r.hashLen, r.maxEntries)
 	if err != nil {
 		return nil, fmt.Errorf("index: %w", err)
 	}
@@ -46,6 +54,9 @@ func (r *Repo) Index() (*Index, error) {
 		if p.entries, err = r.mergeSplit(p); err != nil {
 			return nil, fmt.Errorf("index: %w", err)
 		}
+	}
+	if r.maxEntries > 0 && len(p.entries) > r.maxEntries {
+		return nil, &TooManyEntriesError{Count: len(p.entries), Max: r.maxEntries}
 	}
 	sort.SliceStable(p.entries, func(i, j int) bool {
 		a, b := p.entries[i], p.entries[j]
@@ -63,7 +74,11 @@ type parsedIndex struct {
 	link    []byte // the link extension's content (split index)
 }
 
-func parseIndex(data []byte, hl int) (*parsedIndex, error) {
+func parseIndex(data []byte, hl int) (*parsedIndex, error) { return parseIndexMax(data, hl, 0) }
+
+// parseIndexMax is parseIndex that refuses a header count over max (0: none)
+// before it allocates the entries.
+func parseIndexMax(data []byte, hl, max int) (*parsedIndex, error) {
 	if len(data) < 12+hl || string(data[:4]) != "DIRC" {
 		return nil, errors.New("not a git index")
 	}
@@ -76,6 +91,9 @@ func parseIndex(data []byte, hl int) (*parsedIndex, error) {
 	minEntry := 40 + hl + 2 + 1
 	if count < 0 || count > (end-12)/minEntry {
 		return nil, errors.New("entry count does not fit the file")
+	}
+	if max > 0 && count > max {
+		return nil, &TooManyEntriesError{Count: count, Max: max}
 	}
 	p := &parsedIndex{version: version, entries: make([]IndexEntry, 0, count)}
 	off := 12
@@ -196,7 +214,7 @@ func (r *Repo) mergeSplit(p *parsedIndex) ([]IndexEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("shared index: %w", err)
 	}
-	shared, err := parseIndex(data, hl)
+	shared, err := parseIndexMax(data, hl, r.maxEntries)
 	if err != nil {
 		return nil, fmt.Errorf("shared index: %w", err)
 	}

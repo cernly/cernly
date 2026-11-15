@@ -5,8 +5,9 @@
 // engine; the browser lists every file before anything can be skipped). The
 // first two read lazily: a file is opened only when the scan reads it.
 
-export type Stat = { dir: boolean; size: number; mtime: number } | null;
-export type Entry = { name: string; dir: boolean };
+// link marks a symbolic link, never followed; no browser API reports one yet.
+export type Stat = { dir: boolean; link?: boolean; size: number; mtime: number } | null;
+export type Entry = { name: string; dir: boolean; link?: boolean };
 
 export interface Folder {
   name: string;

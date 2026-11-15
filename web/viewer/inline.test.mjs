@@ -74,7 +74,7 @@ test("a page that still references a file is refused", () => {
 
 // Runs boot.js with a fake Worker and returns what the page would see; the
 // worker answers as behave says.
-async function boot(behave) {
+async function boot(behave, extra = {}) {
   const events = [];
   const sent = [];
   let made = 0;
@@ -93,6 +93,7 @@ async function boot(behave) {
   };
   ctx.globalThis = ctx;
   runInNewContext(buildScript(b), ctx);
+  Object.assign(ctx.cernlyBuild, extra);
   runInNewContext(readFileSync(new URL("./boot.js", import.meta.url), "utf8"), ctx);
   await new Promise((r) => setTimeout(r, 20));
   return { ctx, events, sent };
@@ -139,4 +140,38 @@ test("a plugin run asked by the worker runs in a Worker the page starts", async 
   await new Promise((r) => setTimeout(r, 30));
   const res = sent.find((m) => m.type === "plugin-result");
   assert.deepEqual(JSON.parse(JSON.stringify(res)), { type: "plugin-result", id: 3, value: { timedOut: true } });
+});
+
+test("a second scan while one runs is refused; the first still answers", async () => {
+  const { ctx } = await boot((w) => {
+    w.onsend = (m) => {
+      if (m.type === "call" && m.op === "scan") setTimeout(() => w.onmessage({ data: { type: "result", id: m.id, ok: true, value: { facts: "x" } } }), 10);
+    };
+    w.onmessage({ data: { type: "ready" } });
+  });
+  const first = ctx.cernly.scan({}, "acme");
+  await assert.rejects(ctx.cernly.scan({}, "acme"), /already running/);
+  assert.deepEqual(JSON.parse(JSON.stringify(await first)), { facts: "x" });
+  const again = await ctx.cernly.scan({}, "acme");
+  assert.equal(again.facts, "x");
+});
+
+test("a scan past its deadline stops the module, and later calls say why", async () => {
+  const { ctx, sent } = await boot((w) => w.onmessage({ data: { type: "ready" } }), { scanMs: 20 });
+  await assert.rejects(ctx.cernly.scan({}, "acme"), /ran past/);
+  assert.match(ctx.cernly.failed, /ran past/);
+  await assert.rejects(ctx.cernly.view("{}"), /ran past/);
+  assert.ok(sent.some((m) => m.type === "call" && m.op === "scan"));
+});
+
+test("a module that stops after it started says it stopped, and pending calls end", async () => {
+  let worker;
+  const { ctx, events } = await boot((w) => {
+    worker = w;
+    w.onmessage({ data: { type: "ready" } });
+  });
+  const pending = ctx.cernly.view("{}");
+  worker.onmessage({ data: { type: "failed", error: "the module stopped" } });
+  await assert.rejects(pending, /module stopped/);
+  assert.deepEqual(events, ["cernly-ready"]);
 });

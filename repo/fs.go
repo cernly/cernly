@@ -11,21 +11,41 @@ import (
 	"github.com/cernly/cernly/repo/gitfs"
 )
 
+// TooManyFilesError is returned by OpenFSMax when the checkout has more
+// tracked files than allowed. Files may be a lower bound: the count stops
+// where the limit was passed.
+type TooManyFilesError struct{ Files, Max int }
+
+func (e *TooManyFilesError) Error() string {
+	return fmt.Sprintf("%d files, more than the %d allowed", e.Files, e.Max)
+}
+
 // OpenFS is Open without git: the checkout is the work tree in fsys, and its
 // .git folder, when there is one, is read by gitfs. name is for display only.
 // With .git the files are the index's entries (symlinks and submodules
 // dropped), as `git ls-files` gives them; without it, the regular files below
 // the root, as Open's walk outside git does.
-func OpenFS(fsys fs.FS, name string) (*Repo, error) {
+func OpenFS(fsys fs.FS, name string) (*Repo, error) { return OpenFSMax(fsys, name, 0) }
+
+// OpenFSMax is OpenFS that refuses a checkout of more than maxFiles files
+// (0: no limit) with a *TooManyFilesError. The limit also bounds what is read
+// from the .git folder: an index that lists more entries is refused before it
+// is allocated, and a no-git walk stops once it passes the limit.
+func OpenFSMax(fsys fs.FS, name string, maxFiles int) (*Repo, error) {
 	var files []string
 	var g *gitfs.Repo
 	if _, err := fs.Stat(fsys, ".git"); err == nil {
 		if g, err = gitfs.Open(fsys); err != nil {
 			return nil, err
 		}
+		g.SetMaxEntries(maxFiles)
 		ix, err := g.Index()
 		if err != nil {
 			g.Close()
+			var te *gitfs.TooManyEntriesError
+			if errors.As(err, &te) {
+				return nil, &TooManyFilesError{Files: te.Count, Max: maxFiles}
+			}
 			return nil, err
 		}
 		for _, e := range ix.Entries {
@@ -50,6 +70,9 @@ func OpenFS(fsys fs.FS, name string) (*Repo, error) {
 			}
 			if d.Type().IsRegular() {
 				files = append(files, p)
+				if maxFiles > 0 && len(files) > maxFiles {
+					return fs.SkipAll
+				}
 			}
 			return nil
 		})
@@ -62,6 +85,12 @@ func OpenFS(fsys fs.FS, name string) (*Repo, error) {
 		if !inSkippedDir(f) {
 			kept = append(kept, f)
 		}
+	}
+	if maxFiles > 0 && len(kept) > maxFiles {
+		if g != nil {
+			g.Close()
+		}
+		return nil, &TooManyFilesError{Files: len(kept), Max: maxFiles}
 	}
 	sort.Strings(kept)
 	r := &Repo{Root: name, fsys: fsys, git: g}

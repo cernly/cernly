@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -66,6 +67,9 @@ func run(in *sdk.Input) sdk.Output {
 	case "exit":
 		os.Stderr.WriteString("probe failed on purpose\n")
 		os.Exit(3)
+	case "counts":
+		w, p := hugeCounts()
+		return sdk.Output{Facts: []fact.Fact{env(fmt.Sprintf("FD_WRITE_%d", w), "mode.txt"), env(fmt.Sprintf("POLL_ONEOFF_%d", p), "mode.txt")}}
 	case "memory":
 		var keep [][]byte
 		for {

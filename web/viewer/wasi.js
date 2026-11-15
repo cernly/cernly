@@ -10,6 +10,11 @@
   "use strict";
   const E = { SUCCESS: 0, BADF: 8, FAULT: 21, INVAL: 28, IO: 29, NOSYS: 52, NOTSUP: 58 };
   const MS = 1000000n;
+  // The most iovecs one fd_read or fd_write takes (Linux's IOV_MAX) and the
+  // most subscriptions one poll_oneoff takes: a plugin cannot make the host
+  // allocate past them.
+  const maxIovs = 1024;
+  const maxSubs = 64;
   const EPOCH = 1640995200000n * MS;
 
   class Exit {
@@ -103,10 +108,22 @@
       sink.size += data.length;
       return true;
     };
+    // fits says whether n records of size bytes at ptr lie in memory; n is
+    // capped before anything is allocated for them on the host.
+    const fits = (ptr, n, size, cap) => n <= cap && ptr + n * size <= memory.buffer.byteLength;
+    // iovs reads n iovecs at ptr, each inside memory; null when they are not.
     const iovs = (ptr, n) => {
+      ptr >>>= 0;
+      n >>>= 0;
+      if (!fits(ptr, n, 8, maxIovs)) return null;
       const v = mem();
       const list = [];
-      for (let i = 0; i < n; i++) list.push([v.getUint32(ptr + 8 * i, true), v.getUint32(ptr + 8 * i + 4, true)]);
+      for (let i = 0; i < n; i++) {
+        const at = v.getUint32(ptr + 8 * i, true);
+        const len = v.getUint32(ptr + 8 * i + 4, true);
+        if (at + len > memory.buffer.byteLength) return null;
+        list.push([at, len]);
+      }
       return list;
     };
     const wasi = {
@@ -150,8 +167,10 @@
       },
       fd_read(fd, ptr, n, nread) {
         if (fd !== 0) return E.BADF;
+        const list = iovs(ptr, n);
+        if (!list) return E.FAULT;
         let got = 0;
-        for (const [at, len] of iovs(ptr, n)) {
+        for (const [at, len] of list) {
           const chunk = stdin.subarray(stdinAt, stdinAt + len);
           bytes().set(chunk, at);
           stdinAt += chunk.length;
@@ -164,8 +183,10 @@
       fd_write(fd, ptr, n, nwritten) {
         const sink = fd === 1 ? out : fd === 2 ? err : undefined;
         if (!sink) return E.BADF;
+        const list = iovs(ptr, n);
+        if (!list) return E.FAULT;
         let put = 0;
-        for (const [at, len] of iovs(ptr, n)) {
+        for (const [at, len] of list) {
           if (!write(sink, bytes().subarray(at, at + len))) return E.IO;
           put += len;
         }
@@ -192,7 +213,12 @@
       path_open() { return E.BADF; },
       path_filestat_get() { return E.BADF; },
       poll_oneoff(inPtr, outPtr, nsubs, nevents) {
+        nsubs >>>= 0;
+        inPtr >>>= 0;
+        outPtr >>>= 0;
         if (nsubs === 0) return E.INVAL;
+        if (!fits(inPtr, nsubs, 48, Infinity) || !fits(outPtr, nsubs, 32, Infinity)) return E.FAULT;
+        if (nsubs > maxSubs) return E.INVAL;
         const v = mem();
         let n = 0;
         for (let i = 0; i < nsubs; i++) {

@@ -17,10 +17,14 @@ import (
 
 const (
 	maxObject     = 64 << 20  // largest commit or tree read
-	maxDeltaChain = 10000     // longest chain of deltas followed
+	maxDeltaChain = 4095      // longest chain of deltas followed (git's deepest)
 	maxWhole      = 256 << 20 // largest file read whole when the FS has no ReadAt
 	cacheLimit    = 32 << 20  // bytes of decoded pack objects kept per pack
 )
+
+// maxWork bounds the bytes inflated or produced to resolve one packed object.
+// A variable so a test can lower it.
+var maxWork int64 = 1 << 30
 
 // openAt opens name for random access. A file that is no io.ReaderAt is read
 // whole, up to maxWhole.
@@ -80,35 +84,39 @@ var errNoObject = errors.New("object not found")
 // object returns the type ("commit", "tree", "blob", "tag") and content of an
 // object, from a pack or a loose file.
 func (r *Repo) object(id string) (string, []byte, error) {
-	return r.objectDepth(id, 0)
-}
-
-func (r *Repo) objectDepth(id string, depth int) (string, []byte, error) {
 	raw, err := r.rawID(id)
 	if err != nil {
 		return "", nil, err
 	}
-	if err := r.loadPacks(); err != nil {
+	p, off, ok, err := r.findPacked(raw)
+	if err != nil {
 		return "", nil, err
+	}
+	if ok {
+		t, data, err := p.read(r, off)
+		if err != nil {
+			return "", nil, fmt.Errorf("object %s: %w", id, err)
+		}
+		return typeName(t), data, nil
+	}
+	return r.loose(id)
+}
+
+// findPacked looks an id up in every pack.
+func (r *Repo) findPacked(raw []byte) (*pack, int64, bool, error) {
+	if err := r.loadPacks(); err != nil {
+		return nil, 0, false, err
 	}
 	for _, p := range r.packs {
 		off, ok, err := p.find(raw)
 		if err != nil {
-			return "", nil, err
+			return nil, 0, false, err
 		}
 		if ok {
-			t, data, err := p.read(r, off, depth)
-			if err != nil {
-				return "", nil, fmt.Errorf("object %s: %w", id, err)
-			}
-			return typeName(t), data, nil
+			return p, off, true, nil
 		}
 	}
-	t, data, err := r.loose(id)
-	if err != nil {
-		return "", nil, err
-	}
-	return t, data, nil
+	return nil, 0, false, nil
 }
 
 func (r *Repo) rawID(id string) ([]byte, error) {
@@ -318,17 +326,21 @@ func (p *pack) find(id []byte) (int64, bool, error) {
 	return 0, false, nil
 }
 
-// read decodes the object at off, resolving deltas. The base of a delta is
-// read before the delta itself is inflated, so one frame holds data at a time.
-func (p *pack) read(r *Repo, off int64, depth int) (int, []byte, error) {
-	if depth > maxDeltaChain {
-		return 0, nil, errors.New("delta chain too long")
-	}
-	if c, ok := p.cache[off]; ok {
-		return c.typ, c.data, nil
-	}
+// packHeader is the header of one pack entry: a whole object (typ 1-4), an
+// OFS_DELTA (6, base at baseOff) or a REF_DELTA (7, base is baseID).
+type packHeader struct {
+	typ     int
+	size    int64 // inflated size of the entry's own data
+	pos     int64 // where its zlib stream starts
+	baseOff int64
+	baseID  []byte
+}
+
+// header parses the entry at off without inflating anything.
+func (p *pack) header(off int64) (packHeader, error) {
+	var h packHeader
 	if off < 12 || off >= p.dataSize-int64(p.hl) {
-		return 0, nil, errors.New("pack offset out of range")
+		return h, errors.New("pack offset out of range")
 	}
 	var hb [64]byte
 	n := int64(len(hb))
@@ -336,17 +348,17 @@ func (p *pack) read(r *Repo, off int64, depth int) (int, []byte, error) {
 		n = p.dataSize - off
 	}
 	if err := readAt(p.data, hb[:n], off); err != nil {
-		return 0, nil, err
+		return h, err
 	}
 	i := 0
 	c := hb[i]
 	i++
-	typ := int(c>>4) & 7
+	h.typ = int(c>>4) & 7
 	size := uint64(c & 15)
 	shift := uint(4)
 	for c&0x80 != 0 {
 		if i >= int(n) || shift > 56 {
-			return 0, nil, errors.New("bad pack object header")
+			return h, errors.New("bad pack object header")
 		}
 		c = hb[i]
 		i++
@@ -354,70 +366,165 @@ func (p *pack) read(r *Repo, off int64, depth int) (int, []byte, error) {
 		shift += 7
 	}
 	if size > maxObject {
-		return 0, nil, fmt.Errorf("object of %d bytes, over the %d limit", size, maxObject)
+		return h, fmt.Errorf("object of %d bytes, over the %d limit", size, maxObject)
 	}
-	pos := off + int64(i)
-	var base []byte
-	baseType := typ
-	switch typ {
+	h.size = int64(size)
+	h.pos = off + int64(i)
+	switch h.typ {
 	case 1, 2, 3, 4:
 	case 6:
 		if i >= int(n) {
-			return 0, nil, errors.New("bad pack object header")
+			return h, errors.New("bad pack object header")
 		}
 		c = hb[i]
 		i++
 		rel := int64(c & 0x7f)
 		for c&0x80 != 0 {
 			if i >= int(n) {
-				return 0, nil, errors.New("bad pack object header")
+				return h, errors.New("bad pack object header")
 			}
 			c = hb[i]
 			i++
 			rel = (rel+1)<<7 | int64(c&0x7f)
 			if rel < 0 {
-				return 0, nil, errors.New("bad delta offset")
+				return h, errors.New("bad delta offset")
 			}
 		}
-		pos = off + int64(i)
+		h.pos = off + int64(i)
 		if rel <= 0 || rel > off {
-			return 0, nil, errors.New("bad delta offset")
+			return h, errors.New("bad delta offset")
 		}
-		var err error
-		if baseType, base, err = p.read(r, off-rel, depth+1); err != nil {
-			return 0, nil, err
-		}
+		h.baseOff = off - rel
 	case 7:
 		if i+p.hl > int(n) {
-			return 0, nil, errors.New("bad pack object header")
+			return h, errors.New("bad pack object header")
 		}
-		id := hex.EncodeToString(hb[i : i+p.hl])
-		pos = off + int64(i+p.hl)
-		var err error
-		var bt string
-		if bt, base, err = r.objectDepth(id, depth+1); err != nil {
-			return 0, nil, err
-		}
-		baseType = map[string]int{"commit": 1, "tree": 2, "blob": 3, "tag": 4}[bt]
+		h.baseID = append([]byte(nil), hb[i:i+p.hl]...)
+		h.pos = off + int64(i+p.hl)
 	default:
-		return 0, nil, fmt.Errorf("bad pack object type %d", typ)
+		return h, fmt.Errorf("bad pack object type %d", h.typ)
 	}
-	data, err := p.inflate(pos, int64(size))
-	if err != nil {
-		return 0, nil, err
-	}
-	if typ == 6 || typ == 7 {
-		if data, err = applyDelta(base, data); err != nil {
-			return 0, nil, err
-		}
-		typ = baseType
+	return h, nil
+}
+
+// deltaLink is one delta of a chain, with the pack that holds it.
+type deltaLink struct {
+	p   *pack
+	off int64
+	h   packHeader
+}
+
+func typeNumber(name string) int {
+	return map[string]int{"commit": 1, "tree": 2, "blob": 3, "tag": 4}[name]
+}
+
+// put keeps a decoded object for later reads, within cacheLimit per pack.
+func (p *pack) put(off int64, typ int, data []byte) {
+	if len(data) > cacheLimit {
+		return
 	}
 	if p.cacheBytes+len(data) > cacheLimit {
 		p.cache, p.cacheBytes = map[int64]cached{}, 0
 	}
 	p.cache[off] = cached{typ, data}
 	p.cacheBytes += len(data)
-	return typ, data, nil
+}
+
+// read decodes the object at off, resolving deltas without recursion. It first
+// walks the chain reading only headers, then inflates the base and applies
+// each delta in turn, so only the base, one delta and the result are live at
+// once, and the bytes inflated for one object stay within maxWork.
+func (p *pack) read(r *Repo, off int64) (int, []byte, error) {
+	var chain []deltaLink // outermost delta first
+	var full *deltaLink   // the whole object that ends the chain
+	var base []byte
+	baseTyp := 0
+	cur, curOff := p, off
+walk:
+	for {
+		if c, ok := cur.cache[curOff]; ok {
+			baseTyp, base = c.typ, c.data
+			break
+		}
+		h, err := cur.header(curOff)
+		if err != nil {
+			return 0, nil, err
+		}
+		switch h.typ {
+		case 6:
+			chain = append(chain, deltaLink{cur, curOff, h})
+			curOff = h.baseOff
+		case 7:
+			chain = append(chain, deltaLink{cur, curOff, h})
+			bp, boff, ok, err := r.findPacked(h.baseID)
+			if err != nil {
+				return 0, nil, err
+			}
+			if ok {
+				cur, curOff = bp, boff
+				break
+			}
+			id := hex.EncodeToString(h.baseID)
+			t, data, err := r.loose(id)
+			if err != nil {
+				return 0, nil, err
+			}
+			if baseTyp = typeNumber(t); baseTyp == 0 {
+				return 0, nil, fmt.Errorf("delta base %s is a %q object", id, t)
+			}
+			base = data
+			break walk
+		default:
+			full = &deltaLink{cur, curOff, h}
+			baseTyp = h.typ
+			break walk
+		}
+		if len(chain) > maxDeltaChain {
+			return 0, nil, errors.New("delta chain too long")
+		}
+	}
+	var work int64
+	spend := func(n int) error {
+		if work += int64(n); work > maxWork {
+			return fmt.Errorf("delta chain needs more than %d bytes of work", maxWork)
+		}
+		return nil
+	}
+	if full != nil {
+		if err := spend(int(full.h.size)); err != nil {
+			return 0, nil, err
+		}
+		data, err := full.p.inflate(full.h.pos, full.h.size)
+		if err != nil {
+			return 0, nil, err
+		}
+		base = data
+		full.p.put(full.off, baseTyp, base)
+	} else if len(chain) > 0 {
+		if err := spend(len(base)); err != nil {
+			return 0, nil, err
+		}
+	}
+	for i := len(chain) - 1; i >= 0; i-- {
+		l := chain[i]
+		if err := spend(int(l.h.size)); err != nil {
+			return 0, nil, err
+		}
+		delta, err := l.p.inflate(l.h.pos, l.h.size)
+		if err != nil {
+			return 0, nil, err
+		}
+		out, err := applyDelta(base, delta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if err := spend(len(out)); err != nil {
+			return 0, nil, err
+		}
+		base = out // the previous base and the delta are garbage now
+		l.p.put(l.off, baseTyp, base)
+	}
+	return baseTyp, base, nil
 }
 
 func (p *pack) inflate(pos, size int64) ([]byte, error) {
@@ -525,54 +632,86 @@ type TreeEntry struct {
 }
 
 const (
-	maxTreeDepth   = 1024
-	maxTreeEntries = 20_000_000
+	maxTreeDepth       = 1024
+	defaultTreeEntries = 1_000_000 // files and folders visited, without a limit set
+	maxTreeBytes       = 512 << 20 // tree bytes inflated by one walk
 )
 
-// Tree lists every non-directory entry below a tree, by slash path.
+// Tree lists every non-directory entry below a tree, by slash path. A walk is
+// bounded: it visits at most 2*maxEntries entries (1 000 000 without a limit),
+// files and folders together, and inflates at most maxTreeBytes of trees.
 func (r *Repo) Tree(id string) (map[string]TreeEntry, error) {
-	out := map[string]TreeEntry{}
-	if err := r.walkTree(id, "", 0, out); err != nil {
+	w := &treeWalk{r: r, out: map[string]TreeEntry{}, limit: defaultTreeEntries}
+	if r.maxEntries > 0 {
+		w.limit = 2 * r.maxEntries
+	}
+	if err := w.walk(id, "", 0); err != nil {
 		return nil, err
 	}
-	return out, nil
+	return w.out, nil
 }
 
-func (r *Repo) walkTree(id, prefix string, depth int, out map[string]TreeEntry) error {
+type treeWalk struct {
+	r       *Repo
+	out     map[string]TreeEntry
+	entries int
+	limit   int
+	bytes   int64
+}
+
+type treeDir struct{ name, id string }
+
+func (w *treeWalk) walk(id, prefix string, depth int) error {
 	if depth > maxTreeDepth {
 		return errors.New("tree nested too deep")
 	}
-	typ, data, err := r.object(id)
+	dirs, err := w.read(id, prefix)
 	if err != nil {
 		return err
 	}
-	if typ != "tree" {
-		return fmt.Errorf("object %s is a %s, not a tree", id, typ)
+	for _, d := range dirs {
+		if err := w.walk(d.id, prefix+d.name+"/", depth+1); err != nil {
+			return err
+		}
 	}
+	return nil
+}
+
+// read parses one tree, adds its files to out and returns its folders; the
+// tree's data is dropped before the caller descends.
+func (w *treeWalk) read(id, prefix string) ([]treeDir, error) {
+	typ, data, err := w.r.object(id)
+	if err != nil {
+		return nil, err
+	}
+	if typ != "tree" {
+		return nil, fmt.Errorf("object %s is a %s, not a tree", id, typ)
+	}
+	if w.bytes += int64(len(data)); w.bytes > maxTreeBytes {
+		return nil, fmt.Errorf("trees are over %d bytes in all", maxTreeBytes)
+	}
+	var dirs []treeDir
 	for len(data) > 0 {
 		sp := bytes.IndexByte(data, ' ')
 		nul := bytes.IndexByte(data, 0)
-		if sp < 0 || nul < sp || len(data) < nul+1+r.hashLen {
-			return fmt.Errorf("tree %s: bad entry", id)
+		if sp < 0 || nul < sp || len(data) < nul+1+w.r.hashLen {
+			return nil, fmt.Errorf("tree %s: bad entry", id)
 		}
 		mode, err := strconv.ParseUint(string(data[:sp]), 8, 32)
 		if err != nil {
-			return fmt.Errorf("tree %s: bad mode", id)
+			return nil, fmt.Errorf("tree %s: bad mode", id)
+		}
+		if w.entries++; w.entries > w.limit {
+			return nil, errors.New("tree has too many entries")
 		}
 		name := string(data[sp+1 : nul])
-		eid := hex.EncodeToString(data[nul+1 : nul+1+r.hashLen])
-		data = data[nul+1+r.hashLen:]
-		p := prefix + name
+		eid := hex.EncodeToString(data[nul+1 : nul+1+w.r.hashLen])
+		data = data[nul+1+w.r.hashLen:]
 		if mode == 0o40000 {
-			if err := r.walkTree(eid, p+"/", depth+1, out); err != nil {
-				return err
-			}
+			dirs = append(dirs, treeDir{name, eid})
 			continue
 		}
-		if len(out) >= maxTreeEntries {
-			return errors.New("tree has too many entries")
-		}
-		out[p] = TreeEntry{Mode: uint32(mode), ID: eid}
+		w.out[prefix+name] = TreeEntry{Mode: uint32(mode), ID: eid}
 	}
-	return nil
+	return dirs, nil
 }

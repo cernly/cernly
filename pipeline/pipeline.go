@@ -58,6 +58,12 @@ func ScanFS(fsys fs.FS, name string, o ScanOptions) (*fact.Scan, []string, error
 		return nil, nil, err
 	}
 	defer r.Close()
+	return ScanOpenedFS(r, name, o)
+}
+
+// ScanOpenedFS is ScanFS for a repo already opened with repo.OpenFS or
+// repo.OpenFSMax; it does not close r.
+func ScanOpenedFS(r *repo.Repo, name string, o ScanOptions) (*fact.Scan, []string, error) {
 	g := r.GitFS()
 	commit := func(rev string) (string, string, error) {
 		if g == nil {

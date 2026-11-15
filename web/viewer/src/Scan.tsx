@@ -9,6 +9,8 @@ export type Kind = "git" | "git-file" | "plain";
 
 // What the page found in the picked folder, said before anything is scanned.
 export function Confirm({ folder, kind, plugins, maxFiles, onScan, onCancel }: { folder: Folder; kind: Kind; plugins: string[]; maxFiles: number; onScan: () => void; onCancel: () => void }) {
+  // One scan per confirm: a second click before the page moves on is ignored.
+  const [started, setStarted] = useState(false);
   const count = folder instanceof ListFolder ? folder.count : undefined;
   const noHidden = folder instanceof ListFolder && !folder.hidden;
   return (
@@ -20,11 +22,11 @@ export function Confirm({ folder, kind, plugins, maxFiles, onScan, onCancel }: {
       {kind === "git-file" && <p className="error" role="alert">Here <span className="mono">.git</span> is a file: a linked worktree or a submodule, whose repository is outside this folder. Pick the main checkout, or scan this one with the cernly CLI.</p>}
       {count !== undefined && count > manyFiles && <p className="error" role="alert">The browser listed {count.toLocaleString("en")} files in this folder, ignored ones included. A browser that can pick a folder directly (Chrome, Edge) or dropping the folder reads only what the scan needs.</p>}
       <ul className="muted notes">
-        <li>Symlinks and submodules are skipped, as by the CLI. The page cannot see a symlink or a file's executable bit, so a change to either does not mark the scan dirty here.</li>
+        <li>Symlinks and submodules git tracks are skipped, as by the CLI. The browser cannot see a symlink in the folder itself: it reads the file a link points to, even outside this folder, so a scan of a folder without git, or a tracked file replaced by a link, can hold what the CLI would skip. The executable bit is not seen either.</li>
         <li>{plugins.length ? <>Built-in plugins plus {plugins.join(", ")}.</> : <>Built-in plugins only: this page carries no outside plugins.</>} Up to {(maxRead / 2 ** 30).toLocaleString("en")} GB and {maxFiles.toLocaleString("en")} files are read; a larger repository needs the CLI.</li>
       </ul>
       <div className="seg">
-        {kind !== "git-file" && !noHidden && <button type="button" className="btn primary" onClick={onScan}>Scan</button>}
+        {kind !== "git-file" && !noHidden && <button type="button" className="btn primary" disabled={started} onClick={() => { if (started) return; setStarted(true); onScan(); }}>Scan</button>}
         <button type="button" className="btn" onClick={onCancel}>Cancel</button>
       </div>
     </section>
@@ -46,7 +48,7 @@ export function Scanning({ folder }: { folder: Folder }) {
 }
 
 // After a browser scan: its warnings, and the facts file to keep.
-export function Scanned({ name, facts, warnings, dirty }: { name: string; facts: string; warnings: string[]; dirty: boolean }) {
+export function Scanned({ name, repo, facts, warnings, dirty, changed, viewError }: { name: string; repo: string; facts: string; warnings: string[]; dirty: boolean; changed?: string[]; viewError?: string }) {
   const save = () => {
     const url = URL.createObjectURL(new Blob([facts], { type: "application/json" }));
     const a = document.createElement("a");
@@ -62,7 +64,14 @@ export function Scanned({ name, facts, warnings, dirty }: { name: string; facts:
         <button type="button" className="btn" onClick={save}>Save facts.json</button>
       </div>
       <div style={{ padding: "0 16px 12px" }}>
-        <p className="muted">The same file <span className="mono">cernly scan</span> writes for this checkout. Open it here later, or with another scan to see what changed.{dirty ? " Tracked files differ from the commit, so the scan is marked dirty." : ""}</p>
+        {viewError && <p className="error" role="alert">The scan finished but this page cannot show it: {viewError}. Save the facts file and open it with the cernly CLI.</p>}
+        <p className="muted">The same file <span className="mono">cernly scan</span> writes for this checkout, as repo <span className="mono">{repo}</span> (from the folder's own <span className="mono">.git/config</span>; git settings outside the folder, such as a global <span className="mono">url.insteadOf</span>, are not read). Open it here later, or with another scan to see what changed.{dirty ? " Tracked files differ from the commit, so the scan is marked dirty." : ""}</p>
+        {changed && changed.length > 0 && (
+          <div>
+            <p className="muted">Tracked files that differ from the commit{changed.length >= 20 ? " (the first 20)" : ""}. The browser cannot tell a file from a link to one, so check these are your own edits: a link to a file outside this folder would be read as that file.</p>
+            <ul className="notes mono">{changed.map((c) => <li key={c}>{c}</li>)}</ul>
+          </div>
+        )}
         {warnings.length > 0 && <ul className="notes">{warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
       </div>
     </section>
