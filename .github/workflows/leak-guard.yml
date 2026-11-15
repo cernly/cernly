@@ -40,7 +40,7 @@ jobs:
             what=$1
             shift
             status=0
-            hits=$(git grep -I -n -o -P "$@") || status=$?
+            hits=$(git grep -I -n -o -P "$@" 2>/dev/null) || status=$? # stderr stays out of the log: a bad pattern may echo the secret
             case $status in
               0)
                 echo "::error::$what:"
@@ -55,8 +55,8 @@ jobs:
             esac
           }
           check "a private name" -i -e "$PRIVATE_NAMES_RE"
-          check "a local path" -e '/[U]sers/'
+          check "a local path" -e '/[U]sers/|(^|[^[:alnum:]_.])/home/[a-z_]|(^|[\s=:])~/[A-Za-z.]|\b[A-Za-z]:\\+[U]sers\\'
           check "a reference to internal notes" -i -e 'designs? 0[0-9]{2}|docs/desig[n]/'
-          check "key material or a live token" -e '-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(ghp|gho|ghs|github_pat)_[A-Za-z0-9_]{20,}|\bAKIA[0-9A-Z]{16}\b|\bsk_live_[0-9A-Za-z]{10,}'
+          check "key material or a live token" -e '-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(ghp|gho|ghs|ghu|ghr|github_pat)_[A-Za-z0-9_]{20,}|\bAKIA[0-9A-Z]{16}\b|\bsk_(live|test)_[0-9A-Za-z]{10,}|\bglpat-[A-Za-z0-9_-]{20,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bnpm_[A-Za-z0-9]{36}\b'
           check "an import of the embedding application" -e 'architecture-observabilit[y]/'
           exit $failed

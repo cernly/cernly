@@ -29,7 +29,22 @@ jobs:
           test "$(jq -r .version server.json)" = "$v" &&
             test "$(jq -r '.packages[0].identifier' server.json)" = "ghcr.io/cernly/cernly:$v" ||
             { echo "server.json does not name version $v"; exit 1; }
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - run: go vet ./... && go test ./...
+      - name: web
+        working-directory: web
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+      - name: viewer
+        run: |
+          GOOS=js GOARCH=wasm go test -exec "$(go env GOROOT)/lib/wasm/go_js_wasm_exec" ./cmd/cernly-viewer
+          web/viewer/build.sh
       - name: build
         env:
           TAG: ${{ github.ref_name }}

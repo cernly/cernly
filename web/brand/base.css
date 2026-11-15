@@ -24,7 +24,7 @@ button, input, select { font: inherit; color: inherit; }
 .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--ink-muted); text-transform: uppercase; }
 .muted { color: var(--ink-muted); }
 
-/* Wordmark (docs/brand/README.md): "cernly" in lower case, Funnel Display 600, tracking -2%, the mark left of
+/* Wordmark: "cernly" in lower case, Funnel Display 600, tracking -2%, the mark left of
    it at about 1.1 times the cap height. The r gets 4% extra space: tighter, "rn" reads as "m" at small sizes. */
 .wordmark { display: inline-flex; align-items: center; gap: 0.35em; color: var(--ink); text-decoration: none; font: 600 20px/1 var(--font-display); letter-spacing: -0.02em; }
 .wordmark .r { margin-right: 0.04em; }
