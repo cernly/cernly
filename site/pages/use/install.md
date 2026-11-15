@@ -19,7 +19,11 @@ go install github.com/cernly/cernly/cmd/cernly@latest
 
 ## Release binary
 
-Download the archive for Linux, macOS or Windows from [GitHub releases](https://github.com/cernly/cernly/releases), check it against `checksums.txt`, and put `cernly` on your `PATH`.
+Download the archive for Linux, macOS or Windows from [GitHub releases](https://github.com/cernly/cernly/releases), check it against `checksums.txt` and its build provenance ([verify a release](/use/verify/)), and put `cernly` on your `PATH`.
+
+## In CI
+
+The GitHub Action `cernly/cernly`, pinned by commit, runs the scan in your own workflow and sends nothing to Cernly: [scan in CI](/use/ci/).
 
 ## Docker
 

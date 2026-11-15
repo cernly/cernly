@@ -1,6 +1,10 @@
-# Release on a version tag (v0.1.0): binaries for Linux, macOS and Windows with
-# checksums on the GitHub release, and the image on ghcr.io. Plain go build,
-# no release tool to trust; actions pinned by commit, as in ci.yml.
+# Release on a version tag (v0.1.0): binaries for Linux, macOS and Windows and
+# the local viewer, with checksums and build provenance (GitHub artifact
+# attestations, signed through Sigstore) on the GitHub release, and the image
+# on ghcr.io with its own attestation. Plain go build, no release tool to trust;
+# the binaries and the viewer are reproducible (scripts/release-build.sh,
+# web/viewer/build.sh), so a rebuild gives the same hashes. Actions pinned by
+# commit, as in ci.yml.
 name: release
 on:
   push:
@@ -13,6 +17,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -60,22 +66,19 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          mkdir dist
-          for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
-            os=${t%/*}; arch=${t#*/}; ext=; [ "$os" = windows ] && ext=.exe
-            d="cernly_${TAG#v}_${os}_${arch}"
-            mkdir "$d"
-            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w" -o "$d/cernly$ext" ./cmd/cernly
-            cp LICENSE NOTICE README.md "$d/"
-            if [ "$os" = windows ]; then zip -qr "dist/$d.zip" "$d"; else tar -czf "dist/$d.tar.gz" "$d"; fi
-          done
-          (cd dist && sha256sum * > checksums.txt)
+          scripts/release-build.sh "$TAG" dist
+          cp "$RUNNER_TEMP/viewer/cernly-viewer.html" dist/
+          (cd dist && sha256sum *.tar.gz *.zip cernly-viewer.html binaries.sha256 > checksums.txt)
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/checksums.txt
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag
-      - name: image
+      - id: image
+        name: image
         env:
           TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
@@ -85,3 +88,10 @@ jobs:
           docker build -t "$img:${TAG#v}" -t "$img:latest" .
           docker push "$img:${TAG#v}"
           docker push "$img:latest"
+          echo "name=$img" >> "$GITHUB_OUTPUT"
+          echo "digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$img:${TAG#v}" | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true
