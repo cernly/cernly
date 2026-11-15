@@ -5,7 +5,7 @@
    Charts tell series apart by the accent against orange, never green against red or orange.
 
    Theme: dark follows the system unless data-theme="light" or "dark" is set on <html>. The app always sets
-   data-theme (app/lib/appearance.ts); a static page without script still follows the system. */
+   data-theme; a static page without script still follows the system. */
 
 :root {
   color-scheme: light;
@@ -16,7 +16,7 @@
   --tooltip-bg: #161615; --tooltip-ink: #f4f4f2;
   /* The paper (1 Nov): scattered grains, as above the sieve in the mark, instead of the drawing grid. Faint on purpose. */
   --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96' fill='%23c9c8c3'%3E%3Ccircle cx='10' cy='9' r='1.1'/%3E%3Ccircle cx='34' cy='21' r='0.8'/%3E%3Ccircle cx='58' cy='7' r='1'/%3E%3Ccircle cx='83' cy='17' r='0.7'/%3E%3Ccircle cx='22' cy='44' r='0.9'/%3E%3Ccircle cx='47' cy='38' r='1.2'/%3E%3Ccircle cx='71' cy='52' r='0.8'/%3E%3Ccircle cx='90' cy='41' r='1'/%3E%3Ccircle cx='6' cy='71' r='0.8'/%3E%3Ccircle cx='31' cy='82' r='1'/%3E%3Ccircle cx='55' cy='66' r='0.7'/%3E%3Ccircle cx='78' cy='88' r='1.1'/%3E%3Ccircle cx='43' cy='92' r='0.8'/%3E%3Ccircle cx='64' cy='29' r='0.6'/%3E%3Ccircle cx='15' cy='57' r='0.6'/%3E%3Ccircle cx='88' cy='70' r='0.7'/%3E%3C/svg%3E");
-  /* AI tools in charts (web/app/lib/tools.ts): blue, violet, purple, gold; validated on all pairs with the dataviz
+  /* AI tools in charts: blue, violet, purple, gold; validated on all pairs with the dataviz
      validator, distinct from the accent and the warning orange, at least 3:1 on both surfaces. Bots hatch with --tool-hatch. */
   --tool-1: #2f93d2; --tool-2: #7960fb; --tool-3: #8003a6; --tool-4: #b28310; --tool-hatch: var(--surface-200);
   /* The dropdown chevron, stroked in --ink-muted */

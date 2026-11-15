@@ -1,4 +1,4 @@
-// The A3 mark "One answer" (docs/brand): grains above, the sieve, one point below. Drawn with tokens so it
+// The A3 mark "One answer": grains above, the sieve, one point below. Drawn with tokens so it
 // follows the theme: grains --border-strong (about 3:1), bar --ink, point --brand. The app passes point to colour
 // the one dot by a status (the verdict: --brand all clear, --warning to confirm, --danger to act).
 const grains: [number, number, number][] = [
