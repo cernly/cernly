@@ -46,6 +46,7 @@ runs:
         SCAN_PATH: ${{ inputs.path }}
         SCAN_OUT: ${{ inputs.output }}
       run: |
+        mkdir -p "$(dirname "$SCAN_OUT")"
         "$RUNNER_TEMP/cernly-action/cernly" scan --out "$SCAN_OUT" "$SCAN_PATH"
         echo "facts=$SCAN_OUT" >> "$GITHUB_OUTPUT"
     - if: inputs.keep-artifact == 'true'
