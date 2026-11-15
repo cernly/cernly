@@ -1,0 +1,21 @@
+{
+  "name": "cernly-core-web",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "brand",
+    "views",
+    "viewer"
+  ],
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "node --experimental-strip-types --test views/src/*.test.mjs viewer/*.test.mjs"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "@types/react-dom": "19.3.0"
+  }
+}

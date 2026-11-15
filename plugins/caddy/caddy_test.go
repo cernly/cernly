@@ -126,6 +126,82 @@ func TestDuplicateRouteKeepsFirst(t *testing.T) {
 	}
 }
 
+func matchOf(t *testing.T, body string) (string, map[string]any) {
+	t.Helper()
+	res := run(t, map[string]string{"Caddyfile": "example.com {\n" + body + "\n}\n"})
+	if len(res.Facts) != 1 {
+		t.Fatalf("facts = %d, want 1", len(res.Facts))
+	}
+	a := res.Facts[0].Attrs
+	rw, _ := a["rewrite"].(map[string]any)
+	return a["match_type"].(string), rw
+}
+
+func TestMatchTypeAndRewrite(t *testing.T) {
+	for _, c := range []struct {
+		name, body, match, kind, prefix string
+	}{
+		{"handle prefix", "handle /api/* {\n reverse_proxy web:80\n}", "prefix", "none", ""},
+		{"handle_path strips", "handle_path /api/* {\n reverse_proxy web:80\n}", "prefix", "strip", "/api"},
+		{"handle exact", "handle /x {\n reverse_proxy web:80\n}", "exact", "none", ""},
+		{"bare proxy is host", "reverse_proxy web:80", "host", "none", ""},
+		{"uri strip_prefix", "handle /api/* {\n uri strip_prefix /v1\n reverse_proxy web:80\n}", "prefix", "strip", "/v1"},
+		{"rewrite directive", "handle /api/* {\n rewrite * /index.php\n reverse_proxy web:80\n}", "prefix", "unknown", ""},
+	} {
+		m, rw := matchOf(t, c.body)
+		if m != c.match || rw["kind"] != c.kind {
+			t.Errorf("%s: match %q rewrite %v, want %q %q", c.name, m, rw, c.match, c.kind)
+		}
+		if c.prefix != "" && rw["prefix"] != c.prefix {
+			t.Errorf("%s: prefix %v, want %q", c.name, rw["prefix"], c.prefix)
+		}
+	}
+}
+
+func TestRewriteScope(t *testing.T) {
+	// A strip in an enclosing block runs before the nested handle matches: the
+	// nested edge's match is already the app path.
+	_, rw := matchOf(t, "uri strip_prefix /v1\nhandle /api/* {\n reverse_proxy web:80\n}")
+	if rw["kind"] != "none" {
+		t.Errorf("outer strip, nested handle: %v", rw)
+	}
+	// A handler directly in the block sees it.
+	_, rw = matchOf(t, "uri strip_prefix /v1\nreverse_proxy web:80")
+	if rw["kind"] != "strip" || rw["prefix"] != "/v1" {
+		t.Errorf("sibling: %v", rw)
+	}
+	// In a route block the order is literal: a strip before a nested matcher is unknown.
+	_, rw = matchOf(t, "route {\n uri strip_prefix /v1\n handle /api/* {\n  reverse_proxy web:80\n }\n}")
+	if rw["kind"] != "unknown" {
+		t.Errorf("route: %v", rw)
+	}
+	// A rewrite brought in by import counts for the sibling handler.
+	res := run(t, map[string]string{"Caddyfile": "(rw) {\n rewrite * /index.php\n}\nexample.com {\n handle /api/* {\n  import rw\n  reverse_proxy web:80\n }\n}\n"})
+	if len(res.Facts) != 1 {
+		t.Fatalf("facts %d", len(res.Facts))
+	}
+	if rw, _ := res.Facts[0].Attrs["rewrite"].(map[string]any); rw["kind"] != "unknown" {
+		t.Errorf("import: %v", rw)
+	}
+	// An import whose target cannot be resolved (a placeholder) is unknown too.
+	res = run(t, map[string]string{"Caddyfile": "example.com {\n handle /api/* {\n  import {$CONF}\n  reverse_proxy web:80\n }\n}\n"})
+	if rw, _ := res.Facts[0].Attrs["rewrite"].(map[string]any); rw["kind"] != "unknown" {
+		t.Errorf("unresolved import: %v", rw)
+	}
+}
+
+func TestRouteOrderedStrip(t *testing.T) {
+	// A strip after the proxy does not apply to it; before it, it does.
+	_, rw := matchOf(t, "route {\n reverse_proxy web:80\n uri strip_prefix /v1\n}")
+	if rw["kind"] != "none" {
+		t.Errorf("strip after proxy: %v", rw)
+	}
+	_, rw = matchOf(t, "route {\n uri strip_prefix /v1\n reverse_proxy web:80\n}")
+	if rw["kind"] != "strip" || rw["prefix"] != "/v1" {
+		t.Errorf("strip before proxy: %v", rw)
+	}
+}
+
 // Repeated imports of a large file are bounded by the directives produced,
 // not only by the number of import events (39 GB before).
 func TestImportAmplification(t *testing.T) {

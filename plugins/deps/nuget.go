@@ -123,10 +123,10 @@ func (NugetPlugin) Run(r *repo.Repo) plugin.Result {
 		conds := map[string][]string{}
 		for _, pr := range p.ProjectRefs {
 			target := byPath[pr.Path]
-			if pr.Path == "" || target == nil {
-				continue
+			if pr.Path == "" || target == nil || target == p {
+				continue // leaves the repo, not a project the reader holds, or itself
 			}
-			ev := fact.Evidence{Path: p.Path, Line: pr.Line, Unit: p.Dir}
+			ev := fact.Evidence{Path: pr.File, Line: pr.Line, Unit: p.Dir}
 			conds[target.Path] = append(conds[target.Path], pr.Condition)
 			if i, ok := seen[prefix+"project:"+target.Path]; ok {
 				res.Facts[i].Evidence = append(res.Facts[i].Evidence, ev)

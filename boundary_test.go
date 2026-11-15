@@ -11,7 +11,9 @@ import (
 	"go/token"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -121,4 +123,88 @@ func isAllowed(p string) bool {
 		}
 	}
 	return false
+}
+
+// The web packages under core/web hold to the same boundary: relative imports
+// stay inside core/, bare ones name only React, the open packages and node.
+var webImport = regexp.MustCompile(`(?m)(?:\bfrom|\bimport|\bimport\()\s*["']([^"']+)["']`)
+
+// webImportProblem says why the import spec in the file at rel (a slash path
+// from core/, like web/views/src/a.ts) is not allowed, or "" when it is.
+func webImportProblem(rel, spec string) string {
+	if strings.HasPrefix(spec, ".") {
+		resolved := path.Join(path.Dir(rel), spec)
+		if resolved == ".." || strings.HasPrefix(resolved, "../") {
+			return "a relative import that leaves core/"
+		}
+		return ""
+	}
+	if strings.HasPrefix(spec, "node:") {
+		return ""
+	}
+	for _, ok := range []string{"react", "react-dom", "react/jsx-runtime", "react-dom/client", "vite", "@cernly/views", "@cernly/brand"} {
+		if spec == ok || strings.HasPrefix(spec, ok+"/") && strings.HasPrefix(ok, "@") {
+			return ""
+		}
+	}
+	return "a package the open core does not allow (react, react-dom, vite, @cernly/views, @cernly/brand, node:*)"
+}
+
+func TestWebImportsStayInCore(t *testing.T) {
+	var files int
+	err := filepath.WalkDir("web", func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && (d.Name() == "node_modules" || d.Name() == "dist") {
+			return filepath.SkipDir
+		}
+		if d.IsDir() || !strings.HasSuffix(p, ".ts") && !strings.HasSuffix(p, ".tsx") && !strings.HasSuffix(p, ".mjs") {
+			return nil
+		}
+		data, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		files++
+		for _, m := range webImport.FindAllStringSubmatch(string(data), -1) {
+			if why := webImportProblem(filepath.ToSlash(p), m[1]); why != "" {
+				t.Errorf("%s imports %q: %s", p, m[1], why)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if files < 8 {
+		t.Fatalf("web walk saw %d files: the test is not checking core/web", files)
+	}
+}
+
+func TestWebImportProblem(t *testing.T) {
+	for _, c := range []struct {
+		file, spec string
+		bad        bool
+	}{
+		// From core/web/views/src, ../../../../ is the repo root: the app, outside core/.
+		{"web/views/src/a.ts", "../../../../web/app/lib/api", true},
+		{"web/views/src/a.ts", "../../../../../x", true},
+		{"web/views/src/a.ts", "./types", false},
+		{"web/views/src/a.ts", "../../brand/mark", false},
+		{"web/views/src/a.ts", "react", false},
+		{"web/views/src/a.ts", "react/jsx-runtime", false},
+		{"web/views/src/a.ts", "react-dom", false},
+		{"web/views/src/a.ts", "@cernly/views/types", false},
+		{"web/views/src/a.ts", "@cernly/brand/mark", false},
+		{"web/views/src/a.ts", "node:test", false},
+		{"web/views/src/a.ts", "react-router", true},
+		{"web/views/src/a.ts", "@cernly/design/mark", true},
+		{"web/views/src/a.ts", "reactive", true},
+		{"web/views/src/a.ts", "lodash", true},
+	} {
+		if got := webImportProblem(c.file, c.spec) != ""; got != c.bad {
+			t.Errorf("%s importing %q: rejected %v, want %v", c.file, c.spec, got, c.bad)
+		}
+	}
 }

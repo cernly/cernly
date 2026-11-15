@@ -1,0 +1,56 @@
+/* Cernly tokens: the one place colours, type, radii and spacing are defined.
+   Drawing paper, ink, one cyan-teal accent, orange for warnings, warm greys with no blue tint (1 Nov 2026).
+   Light paper is Stone (#f4f4f2): the faint warmth of the dark theme, without the old yellow cast.
+   Every text pair is at least 4.5:1 and every control edge and focus ring at least 3:1, in both themes.
+   Charts tell series apart by the accent against orange, never green against red or orange.
+
+   Theme: dark follows the system unless data-theme="light" or "dark" is set on <html>. The app always sets
+   data-theme (app/lib/appearance.ts); a static page without script still follows the system. */
+
+:root {
+  color-scheme: light;
+  --surface-100: #f4f4f2; --surface-200: #ffffff; --surface-300: #f7f7f6; --grid: #e6e6e3;
+  --ink: #161615; --ink-muted: #575652; --line: #e4e4e1; --edge-panel: #d1d0cc; --border-strong: #84827d;
+  --brand: #00687a; --brand-soft: #e2f0f3; --on-brand: #ffffff; --focus: #00687a;
+  --success: #1d7550; --warning: #8a5a00; --danger: #a4410a; --info: #00687a;
+  --tooltip-bg: #161615; --tooltip-ink: #f4f4f2;
+  /* The paper (1 Nov): scattered grains, as above the sieve in the mark, instead of the drawing grid. Faint on purpose. */
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96' fill='%23c9c8c3'%3E%3Ccircle cx='10' cy='9' r='1.1'/%3E%3Ccircle cx='34' cy='21' r='0.8'/%3E%3Ccircle cx='58' cy='7' r='1'/%3E%3Ccircle cx='83' cy='17' r='0.7'/%3E%3Ccircle cx='22' cy='44' r='0.9'/%3E%3Ccircle cx='47' cy='38' r='1.2'/%3E%3Ccircle cx='71' cy='52' r='0.8'/%3E%3Ccircle cx='90' cy='41' r='1'/%3E%3Ccircle cx='6' cy='71' r='0.8'/%3E%3Ccircle cx='31' cy='82' r='1'/%3E%3Ccircle cx='55' cy='66' r='0.7'/%3E%3Ccircle cx='78' cy='88' r='1.1'/%3E%3Ccircle cx='43' cy='92' r='0.8'/%3E%3Ccircle cx='64' cy='29' r='0.6'/%3E%3Ccircle cx='15' cy='57' r='0.6'/%3E%3Ccircle cx='88' cy='70' r='0.7'/%3E%3C/svg%3E");
+  /* AI tools in charts (web/app/lib/tools.ts): blue, violet, purple, gold; validated on all pairs with the dataviz
+     validator, distinct from the accent and the warning orange, at least 3:1 on both surfaces. Bots hatch with --tool-hatch. */
+  --tool-1: #2f93d2; --tool-2: #7960fb; --tool-3: #8003a6; --tool-4: #b28310; --tool-hatch: var(--surface-200);
+  /* The dropdown chevron, stroked in --ink-muted */
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.75 6 6.25l4.5-4.5' fill='none' stroke='%23575652' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+
+  --font-display: "Funnel Display", "Funnel Sans", system-ui, sans-serif;
+  --font-body: "Funnel Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --display-weight: 700; --display-tracking: -0.02em;
+
+  --r-sm: 4px; --r-md: 6px; --r-lg: 10px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-100: #151413; --surface-200: #1b1a18; --surface-300: #232220; --grid: #1a1917;
+    --ink: #e8e6e1; --ink-muted: #a8a49c; --line: #2d2b28; --edge-panel: #3a3834; --border-strong: #7a766e;
+    --brand: #4cc3d6; --brand-soft: #17292d; --on-brand: #032026; --focus: #4cc3d6;
+    --success: #4cc08f; --warning: #e0a542; --danger: #f08a5b; --info: #4cc3d6;
+    --tooltip-bg: #e8e6e1; --tooltip-ink: #151413;
+    --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96' fill='%2334322e'%3E%3Ccircle cx='10' cy='9' r='1.1'/%3E%3Ccircle cx='34' cy='21' r='0.8'/%3E%3Ccircle cx='58' cy='7' r='1'/%3E%3Ccircle cx='83' cy='17' r='0.7'/%3E%3Ccircle cx='22' cy='44' r='0.9'/%3E%3Ccircle cx='47' cy='38' r='1.2'/%3E%3Ccircle cx='71' cy='52' r='0.8'/%3E%3Ccircle cx='90' cy='41' r='1'/%3E%3Ccircle cx='6' cy='71' r='0.8'/%3E%3Ccircle cx='31' cy='82' r='1'/%3E%3Ccircle cx='55' cy='66' r='0.7'/%3E%3Ccircle cx='78' cy='88' r='1.1'/%3E%3Ccircle cx='43' cy='92' r='0.8'/%3E%3Ccircle cx='64' cy='29' r='0.6'/%3E%3Ccircle cx='15' cy='57' r='0.6'/%3E%3Ccircle cx='88' cy='70' r='0.7'/%3E%3C/svg%3E");
+    --tool-1: #3171a4; --tool-2: #6749e3; --tool-3: #b668d8; --tool-4: #8e701c;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.75 6 6.25l4.5-4.5' fill='none' stroke='%23a8a49c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-100: #151413; --surface-200: #1b1a18; --surface-300: #232220; --grid: #1a1917;
+  --ink: #e8e6e1; --ink-muted: #a8a49c; --line: #2d2b28; --edge-panel: #3a3834; --border-strong: #7a766e;
+  --brand: #4cc3d6; --brand-soft: #17292d; --on-brand: #032026; --focus: #4cc3d6;
+  --success: #4cc08f; --warning: #e0a542; --danger: #f08a5b; --info: #4cc3d6;
+  --tooltip-bg: #e8e6e1; --tooltip-ink: #151413;
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96' fill='%2334322e'%3E%3Ccircle cx='10' cy='9' r='1.1'/%3E%3Ccircle cx='34' cy='21' r='0.8'/%3E%3Ccircle cx='58' cy='7' r='1'/%3E%3Ccircle cx='83' cy='17' r='0.7'/%3E%3Ccircle cx='22' cy='44' r='0.9'/%3E%3Ccircle cx='47' cy='38' r='1.2'/%3E%3Ccircle cx='71' cy='52' r='0.8'/%3E%3Ccircle cx='90' cy='41' r='1'/%3E%3Ccircle cx='6' cy='71' r='0.8'/%3E%3Ccircle cx='31' cy='82' r='1'/%3E%3Ccircle cx='55' cy='66' r='0.7'/%3E%3Ccircle cx='78' cy='88' r='1.1'/%3E%3Ccircle cx='43' cy='92' r='0.8'/%3E%3Ccircle cx='64' cy='29' r='0.6'/%3E%3Ccircle cx='15' cy='57' r='0.6'/%3E%3Ccircle cx='88' cy='70' r='0.7'/%3E%3C/svg%3E");
+  --tool-1: #3171a4; --tool-2: #6749e3; --tool-3: #b668d8; --tool-4: #8e701c;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.75 6 6.25l4.5-4.5' fill='none' stroke='%23a8a49c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}

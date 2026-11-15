@@ -43,7 +43,7 @@ var dotnetLanguages = map[string]bool{"csharp": true, "fsharp": true, "vb": true
 // multi-module build, pytest's discovery); the others run their own folder.
 var recursive = map[string]bool{"maven": true, "gradle": true, "dotnet": true, "pytest": true, "unittest": true}
 
-func covers(run, suite fact.Fact) bool {
+func runCovers(run, suite fact.Fact) bool {
 	tool := run.Str("tool")
 	lang := suite.Str("language")
 	if runFamily[tool] == "dotnet" {
@@ -54,6 +54,14 @@ func covers(run, suite fact.Fact) bool {
 		return false
 	}
 	dir, path := run.Str("dir"), suite.Str("path")
+	if _, ok := run.Attrs["projects"]; ok && runFamily[tool] == "dotnet" {
+		for _, p := range run.Strs("projects") {
+			if p == path {
+				return true
+			}
+		}
+		return false
+	}
 	if recursive[tool] {
 		return inside(path, dir)
 	}
@@ -84,7 +92,7 @@ func tests(m *Map, facts []fact.Fact) []TestPresence {
 		}
 		jobs := map[JobRef]bool{}
 		for _, r := range runs {
-			if !covers(r, s) {
+			if !runCovers(r, s) {
 				continue
 			}
 			base.Runs = append(base.Runs, r.Key)
@@ -108,7 +116,7 @@ func tests(m *Map, facts []fact.Fact) []TestPresence {
 		onService := false
 		seen := map[string]bool{}
 		for _, l := range m.Links {
-			if seen[l.Service] || !anyInside(dirs, l.Sources) {
+			if seen[l.Service] || !anyCovered(dirs, l.Sources, l.Excluded) {
 				continue
 			}
 			seen[l.Service] = true
@@ -132,12 +140,10 @@ func tests(m *Map, facts []fact.Fact) []TestPresence {
 	return out
 }
 
-func anyInside(dirs, sources []string) bool {
+func anyCovered(dirs, sources, excluded []string) bool {
 	for _, d := range dirs {
-		for _, s := range sources {
-			if inside(d, s) {
-				return true
-			}
+		if covers(d, sources, excluded) {
+			return true
 		}
 	}
 	return false

@@ -914,6 +914,41 @@ func TestNugetLockDirectUnknownVersion(t *testing.T) {
 	}
 }
 
+// A ProjectReference in a root props file, excluded for its own target by a
+// condition on $(MSBuildProjectName), gives no self dependency, and the other
+// projects get it with the condition decided true.
+func TestNuGetPropsProjectRefNoSelf(t *testing.T) {
+	got := nugetFacts(t, map[string]string{
+		"Directory.Build.props": `<Project>
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/Analyzers/Analyzers.csproj" Condition="'$(MSBuildProjectName)' != 'Analyzers'" />
+  </ItemGroup>
+</Project>
+`,
+		"src/Analyzers/Analyzers.csproj": `<Project Sdk="Microsoft.NET.Sdk" />`,
+		"src/Api/Api.csproj":             `<Project Sdk="Microsoft.NET.Sdk" />`,
+	})
+	if f, ok := got["dependency:nuget:src/Analyzers/Analyzers.csproj:project:src/Analyzers/Analyzers.csproj"]; ok {
+		t.Errorf("self dependency: %+v", f)
+	}
+	d, ok := got["dependency:nuget:src/Api/Api.csproj:project:src/Analyzers/Analyzers.csproj"]
+	if !ok || d.Attrs["ext"] != nil || d.Evidence[0].Path != "Directory.Build.props" || d.Evidence[0].Line != 3 {
+		t.Errorf("api reference: %v %+v", ok, d)
+	}
+}
+
+// A project that references itself, here through an unconditional reference
+// in a props file, gets no dependency on itself.
+func TestNuGetNoSelfDependency(t *testing.T) {
+	got := nugetFacts(t, map[string]string{
+		"Directory.Build.props":          "<Project>\n  <ItemGroup>\n    <ProjectReference Include=\"$(MSBuildThisFileDirectory)src/Analyzers/Analyzers.csproj\" />\n  </ItemGroup>\n</Project>\n",
+		"src/Analyzers/Analyzers.csproj": `<Project Sdk="Microsoft.NET.Sdk" />`,
+	})
+	if f, ok := got["dependency:nuget:src/Analyzers/Analyzers.csproj:project:src/Analyzers/Analyzers.csproj"]; ok {
+		t.Errorf("self dependency: %+v", f)
+	}
+}
+
 // A diamond of -r includes (every level includes the next one many times)
 // is expanded once per file, not once per path.
 func TestRequirementsIncludeDiamond(t *testing.T) {

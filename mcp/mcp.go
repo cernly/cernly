@@ -32,7 +32,7 @@ const (
 // Sections of the map the get_map tool serves, in the map's own order.
 // metrics and modules are objects in the map, so each is served as one item;
 // their lists are served as sections of their own too, so they can be paged.
-var sections = []string{"stacks", "links", "images", "ci_images", "attached", "parties", "internal", "unknown", "own", "routes", "ai_tools", "findings",
+var sections = []string{"stacks", "links", "images", "ci_images", "attached", "parties", "internal", "unknown", "own", "routes", "endpoints", "ai_tools", "findings",
 	"tables", "tests", "confirmations", "dismissed", "metrics", "modules",
 	"metrics_services", "module_packages", "module_edges", "module_cycles"}
 
@@ -51,7 +51,7 @@ func NewServer(src *Source, version string) *sdk.Server {
 			return nil, summarise(src), nil
 		})
 	sdk.AddTool(s, &sdk.Tool{Name: "find_facts", Annotations: readOnly,
-		Description: "Search the facts. Filter by kind, by text in the key or attributes, and by evidence path prefix; results are in canonical order and paged."},
+		Description: "Search the facts. Filter by kind (for example endpoint or auth_policy for the routes an app registers and their auth), by text in the key or attributes, and by evidence path prefix; results are in canonical order and paged."},
 		func(_ context.Context, _ *sdk.CallToolRequest, in FindInput) (*sdk.CallToolResult, FindOutput, error) {
 			out, err := find(src, in)
 			return nil, out, err
@@ -67,7 +67,7 @@ func NewServer(src *Source, version string) *sdk.Server {
 			return nil, GetOutput{}, fmt.Errorf("no %s fact with key %q", in.Kind, in.Key)
 		})
 	sdk.AddTool(s, &sdk.Tool{Name: "get_map", Annotations: readOnly,
-		Description: "One section of the map derived from the facts: " + strings.Join(sections, ", ") + ". Optionally filtered by text; paged."},
+		Description: "One section of the map derived from the facts: " + strings.Join(sections, ", ") + ". The endpoints section lists the app endpoints per service with their auth state and the routes that reach them. Optionally filtered by text; paged."},
 		func(_ context.Context, _ *sdk.CallToolRequest, in MapInput) (*sdk.CallToolResult, MapOutput, error) {
 			out, err := mapSection(src, in)
 			return nil, out, err
@@ -192,7 +192,7 @@ type GetOutput struct {
 }
 
 type MapInput struct {
-	Section string `json:"section" jsonschema:"one of stacks, links, images, ci_images, attached, parties, internal, unknown, own, routes, ai_tools, findings, tables, tests, confirmations, dismissed, metrics, modules, metrics_services, module_packages, module_edges, module_cycles"`
+	Section string `json:"section" jsonschema:"one of stacks, links, images, ci_images, attached, parties, internal, unknown, own, routes, endpoints, ai_tools, findings, tables, tests, confirmations, dismissed, metrics, modules, metrics_services, module_packages, module_edges, module_cycles"`
 	Text    string `json:"text,omitempty" jsonschema:"case-insensitive text to find in an item"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"page size, default 50, at most 500"`
 	Offset  int    `json:"offset,omitempty" jsonschema:"number of matches to skip"`

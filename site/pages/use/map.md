@@ -25,11 +25,12 @@ cernly map [flags] <facts.json>
 | Section | What it says |
 |---|---|
 | `stacks` | Each deployment stack and whether it is production, from the CI jobs that start it. |
-| `links` | Which Dockerfile and source folder build which service. |
+| `links` | Which Dockerfile and source folder build which service. When the build names a project, the link is narrowed to it and what it references; the folders left out are listed. |
 | `images`, `ci_images` | Images and how well they are pinned: digest, version or floating. |
 | `parties` | Third-party providers and the services that use them, with the signals: SDK, env var, host. |
 | `attached`, `internal`, `unknown`, `own` | Outside hosts sorted into provider, internal, unidentified and your own domains. |
 | `routes` | What web servers and proxies serve, and which service is behind them. |
+| `endpoints` | The endpoints each service registers, with their auth and the routes that reach them. |
 | `tables` | Database tables merged across migrations and ORM models. |
 | `tests` | Test suites per service and the CI jobs that run them. |
 | `modules` | The import graph of the repo's own packages. |

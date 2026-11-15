@@ -38,6 +38,9 @@ const (
 	// the repo's own packages.
 	KindSourceSize = "source_size"
 	KindImport     = "import"
+	// The HTTP endpoints the code registers, and the host-level auth policies that cover them.
+	KindEndpoint   = "endpoint"
+	KindAuthPolicy = "auth_policy"
 )
 
 type Evidence struct {

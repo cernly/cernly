@@ -1,0 +1,32 @@
+/* Base styles shared by the app and the site: the grain paper, links, focus, text helpers and the
+   wordmark. Layout and components stay in each app. */
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background-color: var(--surface-100);
+  background-image: var(--paper-grain);
+  background-size: 96px 96px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 20px;
+}
+a { color: var(--ink); text-decoration-color: var(--border-strong); }
+a:hover { color: var(--brand); }
+h1, h2, h3, p { margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.display { font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: var(--display-tracking); }
+.mono { font-family: var(--font-mono); }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--ink-muted); text-transform: uppercase; }
+.muted { color: var(--ink-muted); }
+
+/* Wordmark (docs/brand/README.md): "cernly" in lower case, Funnel Display 600, tracking -2%, the mark left of
+   it at about 1.1 times the cap height. The r gets 4% extra space: tighter, "rn" reads as "m" at small sizes. */
+.wordmark { display: inline-flex; align-items: center; gap: 0.35em; color: var(--ink); text-decoration: none; font: 600 20px/1 var(--font-display); letter-spacing: -0.02em; }
+.wordmark .r { margin-right: 0.04em; }
+.wordmark svg { width: 1.1em; height: 1.1em; flex: none; }
+

@@ -10,4 +10,18 @@ builder.Services.AddHttpClient("rates", c => c.BaseAddress = new Uri("https://ap
 builder.Services.AddShopInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+app.MapGet("/health", () => "ok").AllowAnonymous();
+
+var api = app.MapGroup("/api").RequireAuthorization();
+api.MapGet("/orders", ListOrders);
+api.MapGet("/orders/{id:int}", GetOrder);
+
+app.MapControllers();
+app.MapRazorPages();
+
 app.Run();
+
+static IResult ListOrders() => Results.Ok();
+
+static IResult GetOrder(int id) => Results.Ok(id);

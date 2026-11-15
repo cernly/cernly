@@ -28,7 +28,7 @@ type Plugin struct{}
 func init() { plugin.Register(Plugin{}) }
 
 func (Plugin) Name() string    { return "caddy" }
-func (Plugin) Version() string { return "0.1.1" }
+func (Plugin) Version() string { return "0.2.0" }
 
 func (Plugin) Watches(p string) bool { return defaults.IsCaddyfile(p) }
 
@@ -73,6 +73,7 @@ type reader struct {
 	root     string // the Caddyfile the routes belong to
 	snippets map[string][]caddyfile.Node
 	stack    []string // snippets and files being imported, the root first
+	ordered  bool     // inside a route block: directives apply in the written order
 	nimports int      // imports expanded, per site and for the top level
 	nodes    int      // tokens of the directives produced or visited while expanding root
 	over     bool     // the budget is used up
@@ -324,6 +325,55 @@ type matcher struct {
 	paths, methods []string
 	other          bool   // a matcher type the reader does not split out
 	named          string // @name, when the handler used one
+	rw             string // "", "strip" or "unknown": how the path changes before the upstream
+	rwPrefix       string
+}
+
+// matchType classifies the path matcher: prefix (/a/*), exact (/a), host (no
+// path matcher), or other (a named matcher that tests more, globs, mixed types).
+func (m matcher) matchType() string {
+	if m.other {
+		return "other"
+	}
+	if len(m.paths) == 0 {
+		return "host"
+	}
+	typ := ""
+	for _, p := range m.paths {
+		t := "exact"
+		switch {
+		case strings.Count(p, "*") == 0:
+		case strings.Count(p, "*") == 1 && strings.HasSuffix(p, "*"):
+			t = "prefix"
+		default:
+			return "other"
+		}
+		if typ != "" && typ != t {
+			return "other"
+		}
+		typ = t
+	}
+	return typ
+}
+
+func (m matcher) rewrite() map[string]any {
+	switch m.rw {
+	case "strip":
+		return map[string]any{"kind": "strip", "prefix": m.rwPrefix}
+	case "unknown":
+		return map[string]any{"kind": "unknown"}
+	}
+	return map[string]any{"kind": "none"}
+}
+
+// withRewrite adds one path rewrite; a second one is no longer readable.
+func (m matcher) withRewrite(kind, prefix string) matcher {
+	if m.rw != "" || kind == "unknown" {
+		m.rw, m.rwPrefix = "unknown", ""
+		return m
+	}
+	m.rw, m.rwPrefix = kind, prefix
+	return m
 }
 
 func (m matcher) key() string {
@@ -355,6 +405,9 @@ func (m matcher) and(n matcher) matcher {
 	if n.other {
 		out.other, out.named = true, n.named
 	}
+	if n.rw != "" {
+		out = out.withRewrite(n.rw, n.rwPrefix)
+	}
 	return out
 }
 
@@ -378,6 +431,7 @@ func (rd *reader) site(p string, addrTokens []caddyfile.Token, body []caddyfile.
 		return
 	}
 	rd.nimports = 0
+	rd.ordered = false
 	rd.directives(p, s, body, matcher{}, nil, 0)
 }
 
@@ -392,6 +446,29 @@ func (rd *reader) directives(p string, s *site, nodes []caddyfile.Node, under ma
 			s.named[name] = namedMatcher(name, n)
 		}
 	}
+	// A rewrite in this block changes the path for the handlers in it. A
+	// nested handle matches after it (the default directive order), so it gets
+	// the incoming matcher, not this one; a route block keeps the written order.
+	ordered := rd.ordered
+	apply := func(mt matcher, ns []caddyfile.Node) matcher {
+		for _, n := range ns {
+			switch n.Name() {
+			case "rewrite":
+				mt = mt.withRewrite("unknown", "")
+			case "uri":
+				if len(n.Args) == 3 && n.Args[1].Text == "strip_prefix" {
+					mt = mt.withRewrite("strip", "/"+strings.Trim(n.Args[2].Text, "/"))
+				} else if len(n.Args) > 1 {
+					mt = mt.withRewrite("unknown", "")
+				}
+			case "import":
+				mt = mt.withRewrite("unknown", "") // contents cannot be seen
+			}
+		}
+		return mt
+	}
+	local := apply(under, rd.rewriteNodes(p, nodes, 0))
+	cur := under // route block: only what was written before a handler counts
 	for _, n := range nodes {
 		if rd.spend(n) {
 			return
@@ -399,6 +476,11 @@ func (rd *reader) directives(p string, s *site, nodes []caddyfile.Node, under ma
 		name := n.Name()
 		args := n.Args[1:]
 		m, rest := rd.matcherArg(s, args)
+		h := local
+		if ordered {
+			cur = apply(cur, rd.rewriteNodes(p, []caddyfile.Node{n}, 0))
+			h = cur
+		}
 		switch name {
 		case "import":
 			if len(args) == 0 {
@@ -421,11 +503,24 @@ func (rd *reader) directives(p string, s *site, nodes []caddyfile.Node, under ma
 				}
 				rd.leave()
 			}
-		case "handle", "handle_path", "route":
-			rd.directives(p, s, n.Block, under.and(m), via, depth+1)
+		case "handle":
+			rd.nested(false, p, s, n.Block, under.and(m), via, depth+1)
+		case "route":
+			in := under
+			if routeRewritesBeforeMatcher(n.Block) {
+				in = in.withRewrite("unknown", "")
+			}
+			rd.nested(true, p, s, n.Block, in.and(m), via, depth+1)
+		case "handle_path":
+			if len(m.paths) == 1 && !m.other {
+				m = m.withRewrite("strip", "/"+strings.Trim(strings.TrimSuffix(m.paths[0], "*"), "/"))
+			} else {
+				m = m.withRewrite("unknown", "")
+			}
+			rd.nested(false, p, s, n.Block, under.and(m), via, depth+1)
 		case "reverse_proxy":
 			ups := upstreams(rest, n.Block)
-			rd.emit(s, under.and(m), "proxy", n, via, func(a map[string]any) {
+			rd.emit(s, h.and(m), "proxy", n, via, func(a map[string]any) {
 				list := make([]any, 0, len(ups))
 				for _, u := range ups {
 					list = append(list, u.attrs())
@@ -434,7 +529,7 @@ func (rd *reader) directives(p string, s *site, nodes []caddyfile.Node, under ma
 			})
 		case "php_fastcgi":
 			ups := upstreams(rest, nil)
-			rd.emit(s, under.and(m), "fastcgi", n, via, func(a map[string]any) {
+			rd.emit(s, h.and(m), "fastcgi", n, via, func(a map[string]any) {
 				list := make([]any, 0, len(ups))
 				for _, u := range ups {
 					list = append(list, u.attrs())
@@ -442,13 +537,13 @@ func (rd *reader) directives(p string, s *site, nodes []caddyfile.Node, under ma
 				a["upstreams"] = list
 			})
 		case "respond":
-			rd.emit(s, under.and(m), "respond", n, via, func(a map[string]any) {
+			rd.emit(s, h.and(m), "respond", n, via, func(a map[string]any) {
 				if st := status(rest); st != 0 {
 					a["status"] = st
 				}
 			})
 		case "redir":
-			rd.emit(s, under.and(m), "redirect", n, via, func(a map[string]any) {
+			rd.emit(s, h.and(m), "redirect", n, via, func(a map[string]any) {
 				if len(rest) > 0 {
 					a["target"] = redact.Userinfo(rest[0].Text)
 				}
@@ -457,7 +552,7 @@ func (rd *reader) directives(p string, s *site, nodes []caddyfile.Node, under ma
 				}
 			})
 		case "file_server":
-			rd.emit(s, under.and(m), "file_server", n, via, nil)
+			rd.emit(s, h.and(m), "file_server", n, via, nil)
 		}
 	}
 }
@@ -569,7 +664,8 @@ func (rd *reader) emit(s *site, m matcher, action string, n caddyfile.Node, via 
 	for _, a := range s.addrs {
 		addrs = append(addrs, a.attrs())
 	}
-	attrs := map[string]any{"file": rd.root, "addresses": addrs, "action": action}
+	attrs := map[string]any{"file": rd.root, "addresses": addrs, "action": action,
+		"match_type": m.matchType(), "rewrite": m.rewrite()}
 	if len(m.paths) > 0 {
 		attrs["paths"] = fact.Strings(m.paths)
 	}
@@ -595,4 +691,77 @@ func uniqEvidence(ev []fact.Evidence) []fact.Evidence {
 		}
 	}
 	return out
+}
+
+// rewriteNodes returns the rewrite and uri directives of a block, and the
+// import directives whose contents are not readable (as unknown markers named
+// "import"); imports of snippets and tracked files are expanded.
+func (rd *reader) rewriteNodes(p string, nodes []caddyfile.Node, depth int) []caddyfile.Node {
+	return rd.rewriteSeen(p, nodes, depth, map[string]bool{})
+}
+
+// rewriteSeen reads each snippet and file once per call, so cycles and diamonds
+// of imports stay linear.
+func (rd *reader) rewriteSeen(p string, nodes []caddyfile.Node, depth int, seen map[string]bool) []caddyfile.Node {
+	var out []caddyfile.Node
+	for _, n := range nodes {
+		switch n.Name() {
+		case "rewrite", "uri":
+			out = append(out, n)
+		case "import":
+			if len(n.Args) < 2 || depth > 4 {
+				continue
+			}
+			arg := n.Args[1].Text
+			if snip, ok := rd.snippets[arg]; ok {
+				if !seen["s "+arg] {
+					seen["s "+arg] = true
+					out = append(out, rd.rewriteSeen(p, snip, depth+1, seen)...)
+				}
+				continue
+			}
+			if strings.Contains(arg, "{") {
+				out = append(out, caddyfile.Node{Args: []caddyfile.Token{{Text: "import"}}})
+				continue
+			}
+			for _, f := range rd.importFiles(p, arg) {
+				if seen["f "+f] {
+					continue
+				}
+				seen["f "+f] = true
+				errs := len(rd.res.Errors)
+				if sub, ok := rd.parseFile(f); ok {
+					out = append(out, rd.rewriteSeen(f, sub, depth+1, seen)...)
+				}
+				rd.res.Errors = rd.res.Errors[:errs]
+			}
+		}
+	}
+	return out
+}
+
+// routeRewritesBeforeMatcher: in a route block, a rewrite followed by a nested
+// matcher (handle, handle_path, route) applies in the written order.
+func routeRewritesBeforeMatcher(block []caddyfile.Node) bool {
+	seen := false
+	for _, n := range block {
+		switch n.Name() {
+		case "rewrite", "uri":
+			seen = true
+		case "handle", "handle_path", "route":
+			if seen {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// nested walks a block in its own order mode: route blocks keep the written
+// order, handle blocks apply their rewrites to all their handlers.
+func (rd *reader) nested(ordered bool, p string, s *site, block []caddyfile.Node, under matcher, via []fact.Evidence, depth int) {
+	prev := rd.ordered
+	rd.ordered = ordered
+	rd.directives(p, s, block, under, via, depth)
+	rd.ordered = prev
 }

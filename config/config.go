@@ -64,14 +64,15 @@ type Repo struct {
 // Gate rules and levels. The rules package applies them; the names live here
 // so the hint file can be checked when it is read.
 const (
-	GateNewOutsideParty    = "new_outside_party"
-	GateNewSensitiveColumn = "new_sensitive_column"
-	GateNewUnpinnedImage   = "new_unpinned_image"
-	GateNewProductionStack = "new_production_stack"
-	GateNewDependency      = "new_dependency"
-	GateNewTransitive      = "new_transitive_dependency"
-	GateLicenceNotAllowed  = "licence_not_allowed"
-	GateLoosened           = "gate_loosened"
+	GateNewOutsideParty      = "new_outside_party"
+	GateNewSensitiveColumn   = "new_sensitive_column"
+	GateNewUnpinnedImage     = "new_unpinned_image"
+	GateNewProductionStack   = "new_production_stack"
+	GateNewDependency        = "new_dependency"
+	GateNewTransitive        = "new_transitive_dependency"
+	GateLicenceNotAllowed    = "licence_not_allowed"
+	GateNewAnonymousEndpoint = "new_anonymous_public_endpoint"
+	GateLoosened             = "gate_loosened"
 
 	LevelOff   = "off"
 	LevelWarn  = "warn"
@@ -80,7 +81,7 @@ const (
 
 // GateRules lists every gate rule, in report order.
 var GateRules = []string{GateNewOutsideParty, GateNewSensitiveColumn, GateNewUnpinnedImage,
-	GateNewProductionStack, GateNewDependency, GateNewTransitive, GateLicenceNotAllowed, GateLoosened}
+	GateNewProductionStack, GateNewDependency, GateNewTransitive, GateLicenceNotAllowed, GateNewAnonymousEndpoint, GateLoosened}
 
 // GateDefault is a rule's level when no side names it: warn, except
 // new_transitive_dependency, which is off (one direct dependency can bring

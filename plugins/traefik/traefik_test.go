@@ -59,3 +59,39 @@ func TestURLCredentials(t *testing.T) {
 		t.Errorf("upstream = %s", got)
 	}
 }
+
+func TestMatchTypeAndRewrite(t *testing.T) {
+	label := func(name, rule string, extra ...string) string {
+		s := "  " + name + ":\n    image: x\n    labels:\n      - traefik.http.routers." + name + ".rule=" + rule + "\n"
+		for _, e := range extra {
+			s += "      - " + e + "\n"
+		}
+		return s
+	}
+	compose := "services:\n" +
+		label("pre", "PathPrefix(`/api`)") +
+		label("exa", "Path(`/x`)") +
+		label("hst", "Host(`a.example.com`)") +
+		label("rgx", "PathRegexp(`^/a`)") +
+		label("str", "PathPrefix(`/s`)", "traefik.http.routers.str.middlewares=sp", "traefik.http.middlewares.sp.stripprefix.prefixes=/s") +
+		label("ext", "PathPrefix(`/e`)", "traefik.http.routers.ext.middlewares=sp@file") +
+		label("und", "PathPrefix(`/u`)", "traefik.http.routers.und.middlewares=nope") +
+		label("rep", "PathPrefix(`/r`)", "traefik.http.routers.rep.middlewares=rp", "traefik.http.middlewares.rp.replacepath.path=/z") +
+		label("add", "PathPrefix(`/d`)", "traefik.http.routers.add.middlewares=ap", "traefik.http.middlewares.ap.addprefix.prefix=/z") +
+		label("aut", "PathPrefix(`/t`)", "traefik.http.routers.aut.middlewares=au", "traefik.http.middlewares.au.basicauth.users=admin:x")
+	r := repotest.Files(t, map[string]string{"compose.yaml": compose})
+	got := map[string]string{}
+	for _, f := range (Plugin{}).Run(r).Facts {
+		rw, _ := f.Attrs["rewrite"].(map[string]any)
+		got[f.Attrs["router"].(string)] = fmt.Sprintf("%v %v %v", f.Attrs["match_type"], rw["kind"], rw["prefix"])
+	}
+	for n, want := range map[string]string{
+		"pre": "prefix none <nil>", "exa": "exact none <nil>", "hst": "host none <nil>", "rgx": "regex none <nil>",
+		"str": "prefix strip /s", "ext": "prefix unknown <nil>", "und": "prefix unknown <nil>",
+		"rep": "prefix unknown <nil>", "add": "prefix unknown <nil>", "aut": "prefix none <nil>",
+	} {
+		if got[n] != want {
+			t.Errorf("%s: %q, want %q", n, got[n], want)
+		}
+	}
+}

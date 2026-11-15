@@ -12,7 +12,7 @@ order: 110
 ## What gets written
 
 - **Context and scope:** the system, the routes it serves and its outside parties from the map.
-- **Building blocks:** per stack its services and data stores, size per service, and the module graph of the repo's own packages.
+- **Building blocks:** per stack its services and data stores, size per service (and, for a narrowed link, the folders left out), an endpoints table per service with the auth the code states and the routes that reach it, and the module graph of the repo's own packages.
 - **Deployment:** stacks, which is production and why, the images they run.
 - **Cross-cutting concepts:** data (tables, columns to check) and the AI coding tools the repo is set up for.
 - **Risks and technical debt:** the map's findings, grouped by rule.

@@ -22,7 +22,28 @@ type RouteEdge struct {
 	Action   string   `json:"action"`
 	Upstream string   `json:"upstream,omitempty"`
 	To       string   `json:"to,omitempty"`
+	Rewrite  *Rewrite `json:"rewrite,omitempty"` // how the path changes before the upstream; absent on older scans
 	From     []string `json:"from"`
+}
+
+// Rewrite is how a route changes the request path: none, strip (the prefix is
+// removed), replace (the prefix becomes To) or unknown (not readable).
+type Rewrite struct {
+	Kind   string `json:"kind"`
+	Prefix string `json:"prefix,omitempty"`
+	To     string `json:"to,omitempty"`
+}
+
+func rewriteOf(f fact.Fact) *Rewrite {
+	rw, ok := f.Attrs["rewrite"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	out := &Rewrite{}
+	out.Kind, _ = rw["kind"].(string)
+	out.Prefix, _ = rw["prefix"].(string)
+	out.To, _ = rw["to"].(string)
+	return out
 }
 
 // routes joins route facts to the stacks whose services mount their file. A
@@ -82,7 +103,7 @@ func routes(m *Map, facts []fact.Fact) {
 		if len(ups) == 0 {
 			ups = []map[string]any{nil}
 		}
-		base := RouteEdge{Route: f.Key, Sites: sites, Match: match(f), Action: f.Str("action")}
+		base := RouteEdge{Route: f.Key, Sites: sites, Match: match(f), Action: f.Str("action"), Rewrite: rewriteOf(f)}
 		at := mounts[f.Str("file")]
 		if on := f.Str("labels_on"); on != "" {
 			at = nil

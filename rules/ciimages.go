@@ -24,6 +24,9 @@ type CIImage struct {
 	Contexts   []string  `json:"contexts"`
 	Sources    []string  `json:"sources"`
 	Precision  string    `json:"precision"`
+	Narrowing  Narrowing `json:"narrowing"`
+	Narrowed   []string  `json:"narrowed,omitempty"`
+	Excluded   []string  `json:"excluded,omitempty"`
 	TestOnly   bool      `json:"test_only"`  // every CI job that builds it is a test job
 	Deployment string    `json:"deployment"` // not_seen: nothing in this repo shows where it runs
 	Detail     string    `json:"detail"`
@@ -148,6 +151,8 @@ func ciImages(m *Map, facts []fact.Fact) []CIImage {
 		img.From = uniq(img.From)
 		img.Contexts = uniq(a.contexts)
 		img.Sources = inContexts(a.recipe.Strs("sources"), img.Contexts)
+		img.Narrowing, img.Narrowed, img.Excluded = narrow(a.recipe, img.Sources, facts)
+		img.Precision = precisionOf(img.Narrowing)
 		img.TestOnly = a.test && len(img.Builds) > 0
 		sort.Slice(img.Builds, func(i, j int) bool {
 			x, y := img.Builds[i], img.Builds[j]

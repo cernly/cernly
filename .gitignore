@@ -2,3 +2,6 @@
 !schema/example.facts.json
 /cernly
 /site/public/
+node_modules/
+/web/*/dist/
+/dist/

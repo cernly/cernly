@@ -1,0 +1,27 @@
+{
+  "name": "@cernly/views",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The views of one Cernly scan: types, floor plan, metrics, drift words, the overview pieces. The local viewer and the hosted app both use them.",
+  "exports": {
+    "./types": "./src/types.ts",
+    "./format": "./src/format.ts",
+    "./floorplan": "./src/floorplan.ts",
+    "./metrics": "./src/metrics.ts",
+    "./drift": "./src/drift.ts",
+    "./motion": "./src/motion.ts",
+    "./ui": "./src/ui.tsx",
+    "./overview": "./src/overview.tsx",
+    "./views.css": "./src/views.css"
+  },
+  "peerDependencies": {
+    "react": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "7.0.2"
+  }
+}

@@ -16,6 +16,17 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Rules (map)
 
+- 0.17.1: an endpoint row whose registrations disagree on anonymous access
+  (auth `unknown` with an `AllowAnonymous` marker) gets no fallback policy.
+- 0.17.0: a link or CI image whose recipe builds .NET entrypoints is narrowed
+  to their project closure (`narrowing`, `narrowed` and `excluded` on
+  `links[]` and `ci_images[]`, precision `entrypoint`). `endpoints[]` lists one
+  row per endpoint and service, with its auth state and the routes that reach
+  it; the `endpoint_anonymous_public` finding; `rewrite` and `match_type` on
+  `routes[]`; `metrics.endpoints`. The production route count matches a
+  route's stack by name, so it counts routes it missed before.
+- 0.16.0: a dotnet `test_run` with `projects` (a solution's list) covers only
+  the suites at those folders.
 - 0.15.0: .NET support. NuGet drivers and SDK names match case-insensitively, a
   NuGet SDK name ending in `.*` matches its package family, and compose and
   kubernetes look an engine up by its full image path first (`mssql/server`).
@@ -52,12 +63,15 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Plugin caddy
 
+- 0.2.0: `match_type` and `rewrite` on routes.
 - 0.1.1: a repeated route keeps the first upstreams. Import cycles and URL
   credentials are handled.
 - 0.1.0: first version.
 
 ## Plugin commands
 
+- 0.3.3: a `dotnet test` of a tracked `.sln` or `.slnx` records the folders
+  of the projects it lists (`projects`) on the test run.
 - 0.3.2: a stack whose last compose file is an override file (`compose.override.yml`)
   is named `default`, as compose names it.
 - 0.3.1: `dotnet test` is a test run (dotnet), with its directory taken from a
@@ -100,11 +114,23 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Plugin dockerfile
 
+- 0.2.0: `dotnet publish` and `dotnet build` entrypoints are resolved to
+  project folders; `other_commands` lists RUN commands that are neither a known
+  build nor setup.
 - 0.1.1: ADD URLs and remote build contexts drop credentials.
 - 0.1.0: first version.
 
 ## Plugin dotnet
 
+- 0.2.1: a RequireAuthorization or AllowAnonymous on a route group inside an
+  `if` decides an endpoint's auth only when the endpoint is under the same
+  condition, else the state is `unknown` and the marker shows its condition. A
+  fully qualified `AllowAnonymous` or `Authorize` on a lambda is read. A Choose
+  cut at its caps gives an unresolved ProjectReference import, so narrowing
+  keeps the link.
+- 0.2.0: ASP.NET endpoints (minimal APIs, controllers, Razor Pages, Blazor)
+  and `auth_policy` facts; linked items and unresolved ProjectReferences as
+  item imports.
 - 0.1.0: test suites, the project graph, EF Core tables, environment variables
   and outbound hosts.
 
@@ -128,6 +154,7 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Plugin nginx
 
+- 0.3.0: `match_type` and `rewrite` on routes.
 - 0.2.0: route keys carry the listen scheme and port. Include cycles and URL
   credentials are handled.
 - 0.1.0: first version.
@@ -157,5 +184,6 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Plugin traefik
 
+- 0.2.0: `match_type` and `rewrite` on routes.
 - 0.1.1: URL credentials are dropped.
 - 0.1.0: first version.

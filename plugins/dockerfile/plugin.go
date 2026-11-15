@@ -7,6 +7,7 @@ import (
 
 	"github.com/cernly/cernly/defaults"
 	"github.com/cernly/cernly/fact"
+	"github.com/cernly/cernly/internal/dotnetsln"
 	"github.com/cernly/cernly/internal/imageref"
 	"github.com/cernly/cernly/plugin"
 	"github.com/cernly/cernly/repo"
@@ -17,11 +18,19 @@ type Plugin struct{}
 func init() { plugin.Register(Plugin{}) }
 
 func (Plugin) Name() string    { return "dockerfile" }
-func (Plugin) Version() string { return "0.1.1" }
+func (Plugin) Version() string { return "0.2.0" }
 
 func isDockerfile(base string) bool { return defaults.MatchBase(defaults.Get().Files.Dockerfile, base) }
 
-func (Plugin) Watches(p string) bool { return isDockerfile(path.Base(p)) }
+// Watches Dockerfiles, and the solutions and project files a dotnet
+// entrypoint is resolved against.
+func (Plugin) Watches(p string) bool {
+	switch strings.ToLower(path.Ext(p)) {
+	case ".sln", ".slnx", ".csproj", ".fsproj", ".vbproj":
+		return true
+	}
+	return isDockerfile(path.Base(p))
+}
 
 // Run reports one image_recipe per named stage and per final stage: the
 // external base images, the build-context paths that end up in it (directly or
@@ -45,7 +54,7 @@ func (Plugin) Run(r *repo.Repo) plugin.Result {
 			if st.name == "" && st.index != len(stages)-1 {
 				continue
 			}
-			res.Facts = append(res.Facts, recipe(file, stages, st))
+			res.Facts = append(res.Facts, recipe(r, file, stages, st))
 		}
 	}
 	return res
@@ -80,6 +89,8 @@ func lookup(stages []*stage, ref string, before int) *stage {
 }
 
 type collector struct {
+	repo     *repo.Repo
+	others   map[string]bool
 	stages   []*stage
 	bases    map[string]map[string]any
 	sources  map[string]bool
@@ -144,6 +155,10 @@ func (c *collector) visit(file string, st *stage, outputs []string) {
 		c.remote[rs.url] = true
 		c.ev(rs.line, 0, file)
 	}
+	for _, o := range st.others {
+		c.others[o.word] = true
+		c.ev(o.line, o.endLine, file)
+	}
 	for _, b := range st.builds {
 		if outputs != nil && !covered(b.output, outputs) {
 			continue
@@ -151,17 +166,93 @@ func (c *collector) visit(file string, st *stage, outputs []string) {
 		e := map[string]any{"kind": b.kind, "raw": b.raw}
 		switch b.kind {
 		case "go":
-			if p, ok := st.contextPath(b.pkg); ok {
+			if p, ok := st.contextPath(b.pkg); ok && !b.unresolved {
 				e["path"], e["resolved"] = p, true
 			} else {
 				e["path"], e["resolved"] = b.pkg, false
 			}
 		case "npm":
 			e["workspace"] = b.pkg
+		case "dotnet":
+			c.dotnet(e, st, b.pkg, b.unresolved)
 		}
-		c.entries[b.kind+"|"+b.raw] = e
+		p, _ := e["path"].(string)
+		c.entries[b.kind+"|"+p+"|"+b.raw] = e
 		c.ev(b.line, b.endLine, file)
 	}
+}
+
+// dotnet fills a dotnet entrypoint: the repo path of what is built and, when
+// it can be read, the project folders. A path that is not tracked, a variable,
+// a folder with several projects, a cd before the build or several named
+// projects stays unresolved.
+func (c *collector) dotnet(e map[string]any, st *stage, pkg string, unresolved bool) {
+	e["path"], e["resolved"] = pkg, false
+	rel, ok := st.contextPath(pkg)
+	if unresolved || !ok || strings.ContainsAny(pkg, "$`") {
+		return
+	}
+	var projects []string
+	switch strings.ToLower(path.Ext(rel)) {
+	case ".csproj", ".fsproj", ".vbproj":
+		if c.repo.Has(rel) {
+			projects = []string{path.Dir(rel)}
+		}
+	case ".sln", ".slnx":
+		if c.repo.Has(rel) {
+			if data, err := c.repo.Read(rel); err == nil {
+				projects, _ = dotnetsln.Projects(data, rel)
+			}
+		}
+	default:
+		projects = c.folderProjects(rel)
+	}
+	if len(projects) == 0 {
+		return
+	}
+	e["path"], e["resolved"] = rel, true
+	list := make([]any, len(projects))
+	for i, p := range projects {
+		list[i] = p
+	}
+	e["projects"] = list
+}
+
+// folderProjects reads the project or solution files tracked directly in a
+// folder: its one project, else its one solution.
+func (c *collector) folderProjects(dir string) []string {
+	in := func(exts ...string) []string {
+		return c.repo.Match(func(base string) bool {
+			e := strings.ToLower(path.Ext(base))
+			for _, x := range exts {
+				if e == x {
+					return true
+				}
+			}
+			return false
+		})
+	}
+	direct := func(files []string) []string {
+		var out []string
+		for _, f := range files {
+			if path.Dir(f) == dir {
+				out = append(out, f)
+			}
+		}
+		return out
+	}
+	if p := direct(in(".csproj", ".fsproj", ".vbproj")); len(p) == 1 {
+		return []string{dir}
+	} else if len(p) > 1 {
+		return nil
+	}
+	if s := direct(in(".sln", ".slnx")); len(s) == 1 {
+		if data, err := c.repo.Read(s[0]); err == nil {
+			p, _ := dotnetsln.Projects(data, s[0])
+			return p
+		}
+	}
+	return nil
 }
 
 // covered reports whether a build output is one of the copied paths or lies
@@ -186,8 +277,8 @@ func cleanSrc(s string) string {
 	return c
 }
 
-func recipe(file string, stages []*stage, st *stage) fact.Fact {
-	c := &collector{stages: stages, bases: map[string]map[string]any{}, sources: map[string]bool{},
+func recipe(r *repo.Repo, file string, stages []*stage, st *stage) fact.Fact {
+	c := &collector{repo: r, others: map[string]bool{}, stages: stages, bases: map[string]map[string]any{}, sources: map[string]bool{},
 		remote: map[string]bool{}, entries: map[string]map[string]any{}, seen: map[string]bool{}}
 	c.visit(file, st, nil)
 	attrs := map[string]any{
@@ -200,6 +291,9 @@ func recipe(file string, stages []*stage, st *stage) fact.Fact {
 	}
 	if len(c.remote) > 0 {
 		attrs["remote_sources"] = fact.SortedSet(c.remote)
+	}
+	if len(c.others) > 0 {
+		attrs["other_commands"] = fact.SortedSet(c.others)
 	}
 	return fact.Fact{
 		Kind:     fact.KindImageRecipe,

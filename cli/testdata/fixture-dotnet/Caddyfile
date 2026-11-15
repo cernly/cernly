@@ -1,0 +1,6 @@
+shop.shopfront.io {
+	handle_path /static/* {
+		file_server
+	}
+	reverse_proxy web:8080
+}

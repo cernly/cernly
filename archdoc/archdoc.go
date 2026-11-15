@@ -274,7 +274,11 @@ func (d *doc) buildingBlocks() {
 			if f.Kind == fact.KindDatastore {
 				d.p("    ContainerDb(%s, %s, %s)\n", mid("c", f.Key), q(f.Str("name")), q(strings.TrimSpace(f.Str("engine")+" "+f.Str("version"))))
 			} else {
-				d.p("    Container(%s, %s, %s)\n", mid("c", f.Key), q(f.Str("name")), q(tech))
+				note := ""
+				if n := d.endpointNote(f.Key); n != "" {
+					note = ", " + q(n)
+				}
+				d.p("    Container(%s, %s, %s%s)\n", mid("c", f.Key), q(f.Str("name")), q(tech), note)
 			}
 		}
 		d.p("  }\n")
@@ -319,6 +323,13 @@ func (d *doc) buildingBlocks() {
 			from := []string{f.Key}
 			if l := d.link(f.Key); l != nil {
 				code = strings.Join(l.Sources, ", ")
+				if l.Narrowing.State == "narrowed" {
+					code += " (narrowed to " + strings.Join(l.Narrowed, ", ")
+					if len(l.Excluded) > 0 {
+						code += "; excluded " + strings.Join(l.Excluded, ", ")
+					}
+					code += ")"
+				}
 				from = append(from, l.From...)
 			} else if im := d.image(f.Key); im != nil {
 				code = "third-party image " + im.ImageRepo
@@ -333,6 +344,9 @@ func (d *doc) buildingBlocks() {
 			d.p("| %s | %s | %s | %s | %s |\n", cell(f.Str("name")), cell(kind), cell(code), cell(size), d.cite(from...))
 		}
 		d.p("\n")
+		for _, f := range boxes {
+			d.endpoints(f)
+		}
 	}
 	if len(d.m.CIImages) > 0 {
 		d.p("### Images built in CI that no stack runs\n\n| Image | Dockerfile | Pushed to | Evidence |\n|---|---|---|---|\n")
@@ -350,6 +364,58 @@ func (d *doc) buildingBlocks() {
 		d.p("\n")
 	}
 	d.moduleGraphs()
+}
+
+// endpointNote is the endpoint count in a container's description, or "" when
+// the service has none. The count includes rows on broad links.
+func (d *doc) endpointNote(key string) string {
+	sm := d.service(key)
+	if sm == nil || sm.Endpoints == nil || sm.Endpoints.Total == 0 {
+		return ""
+	}
+	e := sm.Endpoints
+	return fmt.Sprintf("%s: %d required, %d anonymous, %d unknown", plural(e.Total, "endpoint", "endpoints"), e.Required, e.Anonymous, e.Unknown)
+}
+
+// endpoints is the endpoints table of one service: method, path, auth and the
+// routes that reach it (only the edges to this service: the same route key
+// can reach other services from other stacks). A row on a broad link (the link keeps more than one
+// app) is marked, because the endpoint may belong to another app.
+func (d *doc) endpoints(f fact.Fact) {
+	var rows []rules.EndpointRow
+	for _, r := range d.m.Endpoints {
+		if r.Service == f.Key {
+			rows = append(rows, r)
+		}
+	}
+	if len(rows) == 0 {
+		return
+	}
+	d.p("Endpoints of %s:\n\n| Method | Path | Auth | Routes | Evidence |\n|---|---|---|---|---|\n", md(f.Str("name")))
+	for _, r := range rows {
+		auth := r.Auth.State
+		if len(r.Auth.Markers) > 0 {
+			auth += " (" + strings.Join(r.Auth.Markers, ", ") + ")"
+		}
+		path := r.Path
+		if r.Link == "broad" {
+			path += " (broad link: the endpoint may belong to another app)"
+		}
+		var via []string
+		for _, key := range r.Routes {
+			for _, e := range d.m.Routes {
+				if e.Route == key && e.To == r.Service {
+					via = append(via, strings.Join(e.Sites, ", ")+" "+e.Match)
+				}
+			}
+		}
+		routes := strings.Join(via, "; ")
+		if r.Public {
+			routes += " (public)"
+		}
+		d.p("| %s | %s | %s | %s | %s |\n", cell(r.Method), cell(path), cell(auth), cell(strings.TrimSpace(routes)), d.cite(r.From...))
+	}
+	d.p("\n")
 }
 
 // moduleGraphs draws each service's own packages and their imports (Go).

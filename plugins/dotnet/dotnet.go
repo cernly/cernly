@@ -21,16 +21,17 @@ type Plugin struct{}
 func init() { plugin.Register(Plugin{}) }
 
 func (Plugin) Name() string    { return "dotnet" }
-func (Plugin) Version() string { return "0.1.0" }
+func (Plugin) Version() string { return "0.2.1" }
 
 func (Plugin) Watches(p string) bool {
 	b := path.Base(p)
 	lb := strings.ToLower(b)
 	switch path.Ext(lb) {
-	case ".csproj", ".fsproj", ".vbproj", ".cs", ".fs", ".vb":
+	case ".csproj", ".fsproj", ".vbproj", ".cs", ".fs", ".vb", ".cshtml", ".razor":
 		return true
 	}
-	return (strings.HasPrefix(lb, "directory.") && strings.HasSuffix(lb, ".props")) ||
+	return (strings.HasPrefix(lb, "directory.") && (strings.HasSuffix(lb, ".props") || strings.HasSuffix(lb, ".targets"))) ||
+		strings.HasSuffix(lb, ".targets") || strings.HasSuffix(lb, ".props") ||
 		(strings.HasPrefix(lb, "appsettings") && strings.HasSuffix(lb, ".json"))
 }
 
@@ -60,7 +61,7 @@ func (s *state) tokens(p string) ([]token, error) {
 }
 
 // producers each add one kind of fact from the shared state.
-var producers = []func(*state, *plugin.Result){testSuites, imports, efTables, envOutbound}
+var producers = []func(*state, *plugin.Result){testSuites, imports, efTables, envOutbound, endpoints}
 
 // Run reads the projects once and runs every producer over them. Project files
 // that do not parse are reported by deps-nuget, which reads the same projects,
@@ -81,7 +82,8 @@ func (Plugin) Run(r *repo.Repo) plugin.Result {
 
 var sourceExt = map[string]string{".cs": "csharp", ".fs": "fsharp", ".vb": "vb"}
 
-// sources gives each project folder the source files below it, leaving out
+// sources gives each project folder the source files (and the .cshtml and
+// .razor files) below it, leaving out
 // nested folders that hold another project: a file belongs to the nearest
 // project folder above it. A folder whose projects are all non-SDK-style
 // (legacy .NET Framework) gets no sources: such a project gets its dependency
@@ -96,7 +98,7 @@ func sources(r *repo.Repo, projects []*msbuild.Project) map[string][]string {
 		return out
 	}
 	for _, f := range r.Files {
-		if sourceExt[strings.ToLower(path.Ext(f))] == "" {
+		if ext := strings.ToLower(path.Ext(f)); sourceExt[ext] == "" && ext != ".cshtml" && ext != ".razor" {
 			continue
 		}
 		for d := path.Dir(f); ; d = path.Dir(d) {
@@ -185,23 +187,40 @@ func testSuites(s *state, res *plugin.Result) {
 }
 
 // imports reports one import per ProjectReference between two projects of the
-// repo, keyed by project file paths; a reference that leaves the repo or names
-// a project it does not hold gives none. A project referenced twice (per
-// target framework) is one fact with both lines. A reference under a condition
-// that stays undecided keeps it in ext.condition: with several, the edge holds
-// when any does (msbuild.AnyCondition).
+// repo, keyed by project file paths; a reference that leaves the repo gives
+// none. A project referenced twice (per target framework) is one fact with
+// both lines. A reference under a condition that stays undecided keeps it in
+// ext.condition: with several, the edge holds when any does
+// (msbuild.AnyCondition). A reference that is not resolved, or that names no
+// project the reader holds (missing, untracked, not parsed, or matching
+// several tracked paths only case-insensitively), is an import with item
+// ProjectReference and ext.unresolved, like an unresolved linked item.
 func imports(s *state, res *plugin.Result) {
 	for _, p := range s.projects {
 		idx := map[string]int{}
 		var order []string
 		conds := map[string][]string{}
+		var unresolved []msbuild.Link
 		for _, ref := range p.ProjectRefs {
+			if ref.Path == "" && !ref.Unresolved {
+				continue // leaves the repo
+			}
 			to := s.byPath[ref.Path]
-			if ref.Path == "" || to == nil || to == p {
+			if to == nil {
+				// As written when it is not resolved or comes from a props or
+				// imported file, so the reason shows text that is in the file.
+				inc := ref.Path
+				if ref.Unresolved || ref.File != p.Path {
+					inc = ref.Include
+				}
+				unresolved = append(unresolved, msbuild.Link{Item: "ProjectReference", Include: inc, Unresolved: true, File: ref.File, Line: ref.Line, Condition: ref.Condition})
+				continue
+			}
+			if to == p {
 				continue
 			}
 			conds[to.Path] = append(conds[to.Path], ref.Condition)
-			ev := fact.Evidence{Path: p.Path, Line: ref.Line, Unit: p.Dir}
+			ev := fact.Evidence{Path: ref.File, Line: ref.Line, Unit: p.Dir}
 			if i, ok := idx[to.Path]; ok {
 				res.Facts[i].Evidence = append(res.Facts[i].Evidence, ev)
 				continue
@@ -217,5 +236,49 @@ func imports(s *state, res *plugin.Result) {
 				res.Facts[idx[to]].Attrs["ext"] = map[string]any{"condition": c}
 			}
 		}
+		linkedItems(p, unresolved, res)
+	}
+}
+
+// linkedItems reports the items and imports of a project that reach outside
+// its folder as import facts with an item attr, so the closure of an image's
+// entrypoints includes code that is built in from elsewhere. Evidence: the
+// item line. An unresolved path has no to_dir and ext.unresolved. refs are
+// the project's unresolved ProjectReferences, reported the same way.
+func linkedItems(p *msbuild.Project, refs []msbuild.Link, res *plugin.Result) {
+	idx := map[string]int{}
+	if !p.SDKStyle {
+		// A legacy project's references are not read: what it pulls in is unknown.
+		res.Facts = append(res.Facts, fact.Fact{Kind: fact.KindImport, Key: "import:dotnet:" + p.Path + ":?", Plugin: "dotnet",
+			Attrs: map[string]any{"language": "dotnet", "from": p.Path, "to": p.Path, "from_dir": p.Dir, "item": "Project",
+				"ext": map[string]any{"unresolved": true}},
+			Evidence: []fact.Evidence{{Path: p.Path, Line: 1, Unit: p.Dir}}})
+	}
+	for _, l := range append(append([]msbuild.Link(nil), p.Links...), refs...) {
+		to := l.Path
+		if l.Unresolved {
+			to = l.Include
+		}
+		key := "import:dotnet:" + p.Path + ":" + l.Item + ":" + to
+		ev := fact.Evidence{Path: l.File, Line: l.Line, Unit: p.Dir}
+		if i, ok := idx[key]; ok {
+			res.Facts[i].Evidence = append(res.Facts[i].Evidence, ev)
+			continue
+		}
+		attrs := map[string]any{"language": "dotnet", "from": p.Path, "to": to, "from_dir": p.Dir, "item": l.Item}
+		ext := map[string]any{}
+		if l.Unresolved {
+			ext["unresolved"] = true
+		} else {
+			attrs["to_dir"] = l.Dir
+		}
+		if l.Condition != "" {
+			ext["condition"] = l.Condition
+		}
+		if len(ext) > 0 {
+			attrs["ext"] = ext
+		}
+		idx[key] = len(res.Facts)
+		res.Facts = append(res.Facts, fact.Fact{Kind: fact.KindImport, Key: key, Plugin: "dotnet", Attrs: attrs, Evidence: []fact.Evidence{ev}})
 	}
 }

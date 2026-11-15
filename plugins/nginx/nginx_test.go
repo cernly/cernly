@@ -128,6 +128,73 @@ func TestCredentials(t *testing.T) {
 	}
 }
 
+func TestMatchTypeAndRewrite(t *testing.T) {
+	root := t.TempDir()
+	conf := "events {}\nhttp {\n  server {\n    listen 80;\n    server_name example.net;\n" +
+		"    location /api/ { proxy_pass http://web:8080; }\n" +
+		"    location /v1/ { proxy_pass http://web:8080/; }\n" +
+		"    location /v2/ { proxy_pass http://web:8080/other/; }\n" +
+		"    location = /x { proxy_pass http://web:8080; }\n" +
+		"    location ~ ^/a { proxy_pass http://web:8080; }\n" +
+		"    location /rw/ { rewrite ^/rw/(.*) /$1 break; proxy_pass http://web:8080; }\n" +
+		"    location /var/ { proxy_pass http://$up; }\n" +
+		"    location / { proxy_pass http://web:8080; }\n" +
+		"  }\n}\n"
+	os.WriteFile(filepath.Join(root, "nginx.conf"), []byte(conf), 0o644)
+	r, err := repo.Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := Plugin{}.Run(r)
+	got := map[string]string{}
+	for _, f := range res.Facts {
+		rw, _ := f.Attrs["rewrite"].(map[string]any)
+		got[fmt.Sprint(f.Attrs["paths"])] = fmt.Sprintf("%v %v %v %v", f.Attrs["match_type"], rw["kind"], rw["prefix"], rw["to"])
+	}
+	for p, want := range map[string]string{
+		"[/api/]": "prefix none <nil> <nil>",
+		"[/v1/]":  "prefix replace /v1/ /",
+		"[/v2/]":  "prefix replace /v2/ /other/",
+		"[= /x]":  "exact none <nil> <nil>",
+		"[~ ^/a]": "regex none <nil> <nil>",
+		"[/rw/]":  "prefix unknown <nil> <nil>",
+		"[/var/]": "prefix unknown <nil> <nil>",
+		"[/]":     "prefix none <nil> <nil>",
+	} {
+		if got[p] != want {
+			t.Errorf("%s: %q, want %q", p, got[p], want)
+		}
+	}
+}
+
+func TestRewriteInAncestorsIsUnknown(t *testing.T) {
+	for name, conf := range map[string]string{
+		"server":   "server { listen 80; server_name example.net; rewrite ^/api/(.*)$ /$1 break; location /api/ { proxy_pass http://web; } }\n",
+		"if":       "server { listen 80; server_name example.net; location /api/ { if ($x) { rewrite ^ /y break; } proxy_pass http://web; } }\n",
+		"nested":   "server { listen 80; server_name example.net; location /a/ { rewrite ^ /y break; location /a/b/ { proxy_pass http://web; } } }\n",
+		"serverif": "server { listen 80; server_name example.net; if ($x) { rewrite ^ /y break; } location /api/ { proxy_pass http://web; } }\n",
+	} {
+		root := t.TempDir()
+		os.WriteFile(filepath.Join(root, "nginx.conf"), []byte("events {}\nhttp {\n"+conf+"}\n"), 0o644)
+		r, err := repo.Open(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, f := range (Plugin{}).Run(r).Facts {
+			if p, _ := f.Attrs["paths"].([]any); len(p) == 1 && (p[0] == "/api/" || p[0] == "/a/b/") {
+				found = true
+				if rw, _ := f.Attrs["rewrite"].(map[string]any); rw["kind"] != "unknown" {
+					t.Errorf("%s: rewrite = %v", name, rw)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s: route missing", name)
+		}
+	}
+}
+
 // Repeated includes of a large file are bounded by the directives produced,
 // not only by the number of include events (31 GB before).
 func TestIncludeAmplification(t *testing.T) {

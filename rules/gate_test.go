@@ -36,7 +36,7 @@ func TestGatePolicy(t *testing.T) {
 	got := levels(Policy(s))
 	want := "new_outside_party=block/repo new_sensitive_column=warn/default new_unpinned_image=off/repo " +
 		"new_production_stack=warn/default new_dependency=block/operator new_transitive_dependency=off/default " +
-		"licence_not_allowed=warn/default gate_loosened=warn/default "
+		"licence_not_allowed=warn/default new_anonymous_public_endpoint=warn/default gate_loosened=warn/default "
 	if got != want {
 		t.Errorf("policy = %s\nwant     %s", got, want)
 	}
@@ -178,5 +178,35 @@ func TestGateImageUpgrade(t *testing.T) {
 	}
 	if want := "[service:compose:prod:cache service:compose:prod:db]"; fmt.Sprint(got) != want {
 		t.Errorf("new_unpinned_image on %v, want %s", got, want)
+	}
+}
+
+func TestGateNewAnonymousEndpoint(t *testing.T) {
+	f := Finding{Rule: FindingEndpointAnonymousPublic, Subject: "endpoint:a", Detail: "route:r (AllowAnonymous)", From: []string{"endpoint:a"}}
+	base, head := gateScan(), gateScan()
+	r := Gate(base, head, &Map{}, &Map{Findings: []Finding{f}})
+	if len(r.Findings) != 1 || r.Findings[0].Rule != config.GateNewAnonymousEndpoint || r.Findings[0].Level != config.LevelWarn ||
+		r.Findings[0].Subject != "endpoint:a" || r.Blocked {
+		t.Fatalf("%+v", r)
+	}
+	if r := Gate(base, head, &Map{Findings: []Finding{f}}, &Map{Findings: []Finding{f}}); len(r.Findings) != 0 {
+		t.Errorf("in both: %+v", r.Findings)
+	}
+	head = gateScan(fact.DeclaredGate{Rule: config.GateNewAnonymousEndpoint, Level: config.LevelBlock, By: config.ByRepo, Line: 2})
+	if r := Gate(base, head, &Map{}, &Map{Findings: []Finding{f}}); !r.Blocked {
+		t.Errorf("block: %+v", r)
+	}
+}
+
+// A base map from before route rewrites has no way to have had the finding.
+func TestGateEndpointOldBase(t *testing.T) {
+	f := Finding{Rule: FindingEndpointAnonymousPublic, Subject: "endpoint:a", Detail: "route:r", From: []string{"endpoint:a"}}
+	old := &Map{Routes: []RouteEdge{{Route: "route:r"}}}
+	if r := Gate(gateScan(), gateScan(), old, &Map{Findings: []Finding{f}}); len(r.Findings) != 0 {
+		t.Errorf("old base: %+v", r.Findings)
+	}
+	cur := &Map{Routes: []RouteEdge{{Route: "route:r", Rewrite: &Rewrite{Kind: "none"}}}}
+	if r := Gate(gateScan(), gateScan(), cur, &Map{Findings: []Finding{f}}); len(r.Findings) != 1 {
+		t.Errorf("current base: %+v", r.Findings)
 	}
 }
