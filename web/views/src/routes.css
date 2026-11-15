@@ -6,4 +6,4 @@
 .flow .node.ext { border-style: dashed; color: var(--muted); }
 .flow .paths { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .flow .arrow { text-align: center; color: var(--muted); font-family: var(--mono); }
-@media (max-width: 700px) { .flow { grid-template-columns: minmax(0, 1fr); } .flow .arrow { transform: rotate(90deg); } }
+@media (max-width: 700px) { .flow { grid-template-columns: minmax(0, 1fr); } .flow .arrow { justify-self: center; width: 1em; transform: rotate(90deg); } .flow .paths { min-width: 0; overflow-wrap: anywhere; } }
