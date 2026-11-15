@@ -34,6 +34,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./... && go test ./...
       - name: web
         working-directory: web
@@ -44,7 +46,16 @@ jobs:
       - name: viewer
         run: |
           GOOS=js GOARCH=wasm go test -exec "$(go env GOROOT)/lib/wasm/go_js_wasm_exec" ./cmd/cernly-viewer
-          web/viewer/build.sh
+          web/viewer/build.sh "$RUNNER_TEMP/viewer"
+      - name: leak-guard patterns
+        run: scripts/test-leak-guard.sh
+      - name: docs build
+        run: go run ./cmd/cernly-site
+      - name: deterministic
+        run: |
+          go run ./cmd/cernly scan --repo local/self . > "$RUNNER_TEMP/a.json"
+          go run ./cmd/cernly scan --repo local/self . > "$RUNNER_TEMP/b.json"
+          cmp "$RUNNER_TEMP/a.json" "$RUNNER_TEMP/b.json"
       - name: build
         env:
           TAG: ${{ github.ref_name }}
