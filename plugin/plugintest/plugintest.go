@@ -19,7 +19,6 @@ import (
 	"crypto/ed25519"
 	"encoding/json"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -30,7 +29,6 @@ import (
 
 	"github.com/cernly/cernly/config"
 	"github.com/cernly/cernly/fact"
-	"github.com/cernly/cernly/pipeline"
 	"github.com/cernly/cernly/plugin"
 	"github.com/cernly/cernly/plugin/sdk"
 	"github.com/cernly/cernly/plugin/wasm"
@@ -78,16 +76,7 @@ func Build(t testing.TB, pkg string) []byte {
 	if b, ok := built[pkg]; ok {
 		return b
 	}
-	out := filepath.Join(t.TempDir(), "plugin.wasm")
-	cmd := exec.Command("go", "build", "-trimpath", "-buildvcs=false", "-o", out, pkg)
-	cmd.Env = append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm", "CGO_ENABLED=0")
-	if msg, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("build %s for wasip1: %v\n%s", pkg, err, msg)
-	}
-	b, err := os.ReadFile(out)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b := compile(t, pkg)
 	built[pkg] = b
 	return b
 }
@@ -123,6 +112,7 @@ func Sign(t testing.TB, module []byte, m sdk.Manifest) wasm.Bundle {
 func Load(t testing.TB, pkg string, m sdk.Manifest, lim ...wasm.Limits) plugin.Plugin {
 	t.Helper()
 	module := Build(t, pkg)
+	useRunner(t)
 	var l wasm.Limits
 	if len(lim) > 0 {
 		l = lim[0]
@@ -138,7 +128,7 @@ func Load(t testing.TB, pkg string, m sdk.Manifest, lim ...wasm.Limits) plugin.P
 // replaced by ModuleHash.
 func Scan(t testing.TB, dir string, ps ...plugin.Plugin) []byte {
 	t.Helper()
-	s, warnings, err := pipeline.ScanWorkTree(dir, "local/"+filepath.Base(dir), SHA, CommittedAt, ps, config.Operator{})
+	s, warnings, err := scanWorkTree(dir, "local/"+filepath.Base(dir), SHA, CommittedAt, ps, config.Operator{})
 	if err != nil {
 		t.Fatal(err)
 	}

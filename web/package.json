@@ -9,13 +9,15 @@
   ],
   "scripts": {
     "typecheck": "tsc",
-    "test": "node --experimental-strip-types --test views/src/*.test.mjs viewer/*.test.mjs"
+    "test": "node --experimental-strip-types --test views/src/*.test.mjs viewer/*.test.mjs",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.1",
     "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "typescript": "7.0.2",
-    "@types/react-dom": "19.3.0"
+    "typescript": "7.0.2"
   }
 }

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
-import { assertOffline, csp, inlinePage, loader, scriptBodies, sha256 } from "./inline.mjs";
+import { assertOffline, buildScript, csp, inlinePage, scriptBodies, sha256 } from "./inline.mjs";
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>t</title>
 <script type="module" crossorigin src="./assets/index-abc.js"></script>
@@ -11,11 +12,8 @@ const files = {
   "assets/index-abc.js": 'console.log("hi </script> there");',
   "assets/index-abc.css": '@font-face{src:url(data:font/woff2;base64,AAAA)}body{margin:0}',
 };
-const build = () => inlinePage(html, {
-  read: (p) => files[p.replace(/^\.\//, "")],
-  wasm: Uint8Array.from([0, 97, 115, 109]),
-  wasmExec: "globalThis.Go = class {};",
-});
+const b = { b64: "AwA=", hash: "ab", wasmExec: "globalThis.Go = class {};" };
+const build = () => inlinePage(html, { read: (p) => files[p.replace(/^\.\//, "")], build: b });
 
 test("one policy, the first child of head", () => {
   const out = build();
@@ -28,8 +26,9 @@ test("every inline script is listed by hash", () => {
   const policy = /content="([^"]+)"/.exec(out)[1];
   const bodies = scriptBodies(out);
   assert.equal(bodies.length, 3);
-  for (const b of bodies) assert.ok(policy.includes(`'${sha256(b)}'`), "missing hash for a script");
+  for (const s of bodies) assert.ok(policy.includes(`'${sha256(s)}'`), "missing hash for a script");
   assert.match(policy, /'wasm-unsafe-eval'/);
+  assert.match(policy, /worker-src blob:/);
   assert.equal(policy, csp(out));
 });
 
@@ -37,18 +36,19 @@ test("no request is allowed and nothing references a file", () => {
   const out = build();
   assert.ok(!/connect-src/.test(out));
   assert.match(out, /default-src 'none'/);
-  assert.ok(!/(?:src|href)\s*=\s*["']?(?!data:)/i.test(out.replace(/<meta[^>]*>/, "")));
+  const tags = out.replace(/<meta[^>]*>/, "").replace(/(<script\b[^>]*>)[\s\S]*?<\/script>/gi, "$1</script>");
+  assert.ok(!/(?:src|href)\s*=\s*["']?(?!data:)/i.test(tags));
   assertOffline(out);
 });
 
 test("</script inside a script does not end it", () => {
   const out = build();
-  assert.ok(scriptBodies(out).some((b) => b.includes("<\\/script>")));
+  assert.ok(scriptBodies(out).some((s) => s.includes("<\\/script>")));
 });
 
 test("replacement patterns in a script stay text", () => {
-  const out = inlinePage(html, { read: (p) => (p.endsWith("js") ? "x='$&$`$\\'';" : files["assets/index-abc.css"]), wasm: Uint8Array.from([0]), wasmExec: "" });
-  assert.ok(out.length < 3000);
+  const out = inlinePage(html, { read: (p) => (p.endsWith("js") ? "x='$&$`$\\'';" : files["assets/index-abc.css"]), build: { ...b, wasmExec: "" } });
+  assert.ok(out.includes("x='$&$`$\\'';"));
 });
 
 test("a page that still references a file is refused", () => {
@@ -56,31 +56,71 @@ test("a page that still references a file is refused", () => {
   assert.throws(() => assertOffline('<style>a{background:url(x.png)}</style>'), /still references/);
 });
 
-// Runs the loader with a WebAssembly that refuses the module, or bytes atob
-// cannot read, and returns what the page would see.
-async function start(b64, instantiate) {
+// Runs boot.js with a fake Worker and returns what the page would see; the
+// worker answers as behave says.
+async function boot(behave) {
   const events = [];
+  const sent = [];
+  let made = 0;
+  class FakeWorker {
+    // The first Worker is the scan worker; later ones are plugin runs, which never answer here.
+    constructor() { if (made++ === 0) setTimeout(() => behave(this), 0); }
+    postMessage(m) { sent[sent.length] = m; if (this.onsend) this.onsend(m); }
+    terminate() { this.ended = true; }
+  }
   const ctx = {
-    atob, Uint8Array, JSON,
-    Go: class { importObject = {}; run() {} },
-    WebAssembly: { instantiate },
+    atob, Uint8Array, ArrayBuffer, JSON, Promise, Error, setTimeout, clearTimeout, Blob, Response, DecompressionStream,
+    URL: { createObjectURL: () => "blob:x" },
+    Worker: FakeWorker,
     Event: class { constructor(type) { this.type = type; } },
-    dispatchEvent: (e) => events.push(e.type),
+    dispatchEvent: (e) => { events[events.length] = e.type; },
   };
-  runInNewContext(loader(b64), ctx);
-  await new Promise((r) => setTimeout(r, 0));
-  return { cernly: ctx.cernly, events };
+  ctx.globalThis = ctx;
+  runInNewContext(buildScript(b), ctx);
+  runInNewContext(readFileSync(new URL("./boot.js", import.meta.url), "utf8"), ctx);
+  await new Promise((r) => setTimeout(r, 20));
+  return { ctx, events, sent };
 }
 
 test("a module that does not start still answers, with the error", async () => {
-  for (const [b64, instantiate] of [
-    ["AGFzbQ==", () => Promise.reject(new Error("CompileError: truncated"))],
-    ["%%%", () => Promise.resolve({})],
-  ]) {
-    const { cernly, events } = await start(b64, instantiate);
-    assert.deepEqual(events, ["cernly-ready"]);
-    assert.match(cernly.failed, /did not start/);
-    assert.match(JSON.parse(cernly.view("{}")).error, /did not start/);
-    assert.match(JSON.parse(cernly.compare("{}", "{}")).error, /did not start/);
-  }
+  const { ctx, events } = await boot((w) => w.onmessage({ data: { type: "failed", error: "CompileError: truncated" } }));
+  assert.deepEqual(events, ["cernly-ready"]);
+  assert.match(ctx.cernly.failed, /did not start: CompileError/);
+  await assert.rejects(ctx.cernly.view("{}"), /did not start/);
+  await assert.rejects(ctx.cernly.scan({}, "x"), /did not start/);
+});
+
+test("a worker that cannot start is an error, not a wait", async () => {
+  const { ctx, events } = await boot((w) => w.onerror({ message: "refused", preventDefault() {} }));
+  assert.deepEqual(events, ["cernly-ready"]);
+  assert.match(ctx.cernly.failed, /refused/);
+});
+
+test("calls go to the worker and folder reads are answered by the page", async () => {
+  const { ctx, events, sent } = await boot((w) => {
+    w.onsend = (m) => {
+      if (m.type === "call" && m.op === "view") w.onmessage({ data: { type: "result", id: m.id, ok: true, value: { map: 1 } } });
+      if (m.type === "call" && m.op === "scan") w.onmessage({ data: { type: "fs", id: 7, method: "stat", args: [".git"] } });
+      if (m.type === "fs-result") w.onmessage({ data: { type: "result", id: 2, ok: true, value: { seen: m.value } } });
+    };
+    w.onmessage({ data: { type: "ready", maxBytes: 5, maxFiles: 6 } });
+  });
+  assert.deepEqual(events, ["cernly-ready"]);
+  assert.equal(ctx.cernly.maxFiles, 6);
+  assert.equal(ctx.cernly.hash, "ab");
+  assert.deepEqual(await ctx.cernly.view("{}"), { map: 1 });
+  const folder = { stat: async (p) => ({ dir: p === ".git", size: 0, mtime: 0 }) };
+  assert.deepEqual(await ctx.cernly.scan(folder, "acme"), { seen: { dir: true, size: 0, mtime: 0 } });
+  const init = sent.find((m) => m.type === "init");
+  assert.ok(init && init.wasm);
+});
+
+test("a plugin run asked by the worker runs in a Worker the page starts", async () => {
+  const { sent } = await boot((w) => {
+    w.onmessage({ data: { type: "ready" } });
+    w.onmessage({ data: { type: "plugin", id: 3, module: new Uint8Array(1), stdin: new Uint8Array(1), opts: { timeoutMs: 5 } } });
+  });
+  await new Promise((r) => setTimeout(r, 30));
+  const res = sent.find((m) => m.type === "plugin-result");
+  assert.deepEqual(JSON.parse(JSON.stringify(res)), { type: "plugin-result", id: 3, value: { timedOut: true } });
 });

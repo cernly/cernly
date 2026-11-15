@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -47,14 +48,57 @@ func ScanWorkTree(dir, repoID, sha, committedAt string, ps []plugin.Plugin, op c
 	return scan(dir, ScanOptions{RepoID: repoID, Commit: sha, CommittedAt: committedAt, Plugins: ps, Operator: op}, true)
 }
 
-func scan(dir string, o ScanOptions, labelOnly bool) (*fact.Scan, []string, error) {
-	repoID, sha, committedAt, ps, op := o.RepoID, o.Commit, o.CommittedAt, o.Plugins, o.Operator
-	labelHEAD := sha == ""
-	r, sha, err := openRepo(dir, sha, labelOnly)
+// ScanFS scans the work tree in fsys without running git, for a build with no
+// processes (the browser). Its commit and origin come from the .git folder in
+// fsys, read by gitfs; name only names a repo without an origin. On a git
+// checkout the result equals Scan's.
+func ScanFS(fsys fs.FS, name string, o ScanOptions) (*fact.Scan, []string, error) {
+	r, err := repo.OpenFS(fsys, name)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer r.Close()
+	g := r.GitFS()
+	commit := func(rev string) (string, string, error) {
+		if g == nil {
+			return "", "", errors.New("no .git folder")
+		}
+		id := rev
+		if rev == "HEAD" {
+			var err error
+			if id, err = g.Head(); err != nil {
+				return "", "", err
+			}
+		}
+		c, err := g.Commit(id)
+		return id, c.CommittedAt, err
+	}
+	origin := func() string {
+		if g != nil {
+			if id := remoteID(g.OriginURL()); id != "" {
+				return id
+			}
+		}
+		return "local/" + name
+	}
+	return scanRepo(r, o.Commit, o, commit, origin)
+}
+
+func scan(dir string, o ScanOptions, labelOnly bool) (*fact.Scan, []string, error) {
+	r, sha, err := openRepo(dir, o.Commit, labelOnly)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer r.Close()
+	return scanRepo(r, sha, o, func(rev string) (string, string, error) { return gitCommit(r.Root, rev) }, func() string { return OriginID(r.Root) })
+}
+
+// scanRepo is everything after opening the repo. commit says a revision's id
+// and committer date, origin names the repo when o gives no id.
+func scanRepo(r *repo.Repo, sha string, o ScanOptions, commit func(rev string) (string, string, error), origin func() string) (*fact.Scan, []string, error) {
+	repoID, committedAt, ps, op := o.RepoID, o.CommittedAt, o.Plugins, o.Operator
+	labelHEAD := o.Commit == ""
+	var err error
 	// Without a commit the working tree is read but labelled with HEAD: say
 	// so when the two differ. A given commit is read from git, never dirty.
 	dirty := false
@@ -83,7 +127,7 @@ func scan(dir string, o ScanOptions, labelOnly bool) (*fact.Scan, []string, erro
 		if rev == "" {
 			rev = "HEAD"
 		}
-		gs, gt, err := gitCommit(r.Root, rev)
+		gs, gt, err := commit(rev)
 		if err != nil {
 			return nil, nil, fmt.Errorf("commit unknown (pass --commit and --committed-at outside a git checkout): %w", err)
 		}
@@ -95,7 +139,7 @@ func scan(dir string, o ScanOptions, labelOnly bool) (*fact.Scan, []string, erro
 		}
 	}
 	if repoID == "" {
-		repoID = OriginID(r.Root)
+		repoID = origin()
 	}
 	s := &fact.Scan{
 		Schema:    fact.SchemaID,

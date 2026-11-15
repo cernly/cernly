@@ -1,11 +1,15 @@
-// Folds the Vite build and the WebAssembly module into one offline HTML file
+// Folds the Vite build, the WebAssembly module (deflated by
+// internal/cmd/deflate, so its bytes depend on the pinned Go only), the scan
+// worker, the WASI shim and the bundled plugins into one offline HTML file,
 // and writes its Content-Security-Policy. Node built-ins only.
 //
-//   node inline.mjs <vite dist dir> <cernly-viewer.wasm> <wasm_exec.js> <out.html>
+//   node inline.mjs --dist <vite dist dir> --wasm <cernly-viewer.wasm.deflate> --hash <sha256 of the module>
+//     --wasm-exec <wasm_exec.js> --out <out.html> [--plugin <bundle.json>=<module.wasm.deflate>]... [--trust <key.pub>]...
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseArgs } from "node:util";
 
 const SCRIPT = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
 
@@ -26,6 +30,8 @@ export function csp(html) {
     `script-src ${[...new Set(hashes)].join(" ")} 'wasm-unsafe-eval'`,
     "style-src 'unsafe-inline'",
     "img-src data:",
+    // The module runs in a Worker made from a blob: URL; so does each plugin.
+    "worker-src blob:",
     "font-src data:",
     "base-uri 'none'",
     "form-action 'none'",
@@ -50,17 +56,20 @@ function safeScript(body) {
   return out;
 }
 
-// Starts the module. If it cannot (a truncated file, a browser that refuses
-// it), cernly answers every call with that error and "cernly-ready" still
-// fires, so the page shows it instead of waiting.
-export const loader = (b64) =>
-  `const fail=e=>{const m="the viewer's module did not start: "+(e&&e.message||e),err=()=>JSON.stringify({error:m});` +
-  `globalThis.cernly={failed:m,view:err,compare:err};dispatchEvent(new Event("cernly-ready"))};` +
-  `try{const b=atob("${b64}"),bytes=new Uint8Array(b.length);for(let i=0;i<b.length;i++)bytes[i]=b.charCodeAt(i);` +
-  `const go=new Go();WebAssembly.instantiate(bytes,go.importObject).then(r=>go.run(r.instance)).catch(fail)}catch(e){fail(e)}`;
+const here = dirname(fileURLToPath(import.meta.url));
+const own = (name) => readFileSync(join(here, name), "utf8");
+
+// The script that sets globalThis.cernlyBuild for boot.js. b64 is the
+// deflated module in base64; plugins are {bundle (JSON text), module (deflated
+// module, base64)}; trust lists extra PEM public keys (test builds only).
+export function buildScript({ b64, hash, wasmExec, plugins = [], trust = [] }) {
+  const build = { wasm: b64, hash, worker: wasmExec + "\n" + own("worker.js"), wasi: own("wasi.js"), plugins, trust };
+  return `globalThis.cernlyBuild=${JSON.stringify(build)};`;
+}
 
 // html is Vite's index.html; read(path) returns a file of the build as text.
-export function inlinePage(html, { read, wasm, wasmExec }) {
+// build is what buildScript takes.
+export function inlinePage(html, { read, build }) {
   let page = html;
   let app = "";
   page = page.replace(/<script\b([^>]*)\ssrc\s*=\s*["']([^"']+)["']([^>]*)>\s*<\/script>/gi, (_, _a, src) => {
@@ -74,7 +83,7 @@ export function inlinePage(html, { read, wasm, wasmExec }) {
   });
   page = page.replace(/<link\b[^>]*\brel\s*=\s*["'](?:modulepreload|icon|preload)["'][^>]*>/gi, "");
   if (!app) throw new Error("no application script in the page");
-  const classic = `<script>${safeScript(wasmExec)}</script>\n<script>${loader(Buffer.from(wasm).toString("base64"))}</script>`;
+  const classic = `<script>${safeScript(buildScript(build))}</script>\n<script>${safeScript(own("boot.js"))}</script>`;
   page = page.replace(/<\/head>/i, () => `${classic}\n</head>`);
   page = page.replace(/<\/body>/i, () => `<script type="module">${app}</script>\n</body>`);
   const policy = csp(page);
@@ -84,12 +93,22 @@ export function inlinePage(html, { read, wasm, wasmExec }) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const [dist, wasm, wasmExec, out] = process.argv.slice(2);
-  if (!out) {
-    console.error("usage: node inline.mjs <dist dir> <wasm> <wasm_exec.js> <out.html>");
+  const { values: v } = parseArgs({
+    options: {
+      dist: { type: "string" }, wasm: { type: "string" }, hash: { type: "string" }, "wasm-exec": { type: "string" }, out: { type: "string" },
+      plugin: { type: "string", multiple: true, default: [] }, trust: { type: "string", multiple: true, default: [] },
+    },
+  });
+  if (!v.dist || !v.wasm || !v.hash || !v["wasm-exec"] || !v.out) {
+    console.error("usage: node inline.mjs --dist <dir> --wasm <module.deflate> --hash <sha256> --wasm-exec <wasm_exec.js> --out <out.html> [--plugin <bundle.json>=<module.deflate>]... [--trust <key.pub>]...");
     process.exit(2);
   }
-  const read = (p) => readFileSync(join(dist, p.replace(/^\.\//, "")), "utf8");
-  const page = inlinePage(read("index.html"), { read, wasm: readFileSync(wasm), wasmExec: readFileSync(wasmExec, "utf8") });
-  writeFileSync(out, page);
+  const read = (p) => readFileSync(join(v.dist, p.replace(/^\.\//, "")), "utf8");
+  const b64 = (f) => readFileSync(f).toString("base64");
+  const plugins = v.plugin.map((pair) => {
+    const [bundle, module] = pair.split("=");
+    return { bundle: readFileSync(bundle, "utf8").trim(), module: b64(module) };
+  });
+  const build = { b64: b64(v.wasm), hash: v.hash, wasmExec: readFileSync(v["wasm-exec"], "utf8"), plugins, trust: v.trust.map((f) => readFileSync(f, "utf8")) };
+  writeFileSync(v.out, inlinePage(read("index.html"), { read, build }));
 }

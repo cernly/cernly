@@ -1,8 +1,10 @@
 //go:build js && wasm
 
 // Command cernly-viewer is the local viewer's WebAssembly module. It sets
-// globalThis.cernly.view(facts) and .compare(a, b), each returning JSON, then
-// fires "cernly-ready". It reads nothing but the strings it is given.
+// globalThis.cernly.view(facts) and .compare(a, b), each returning JSON, and
+// .scan(source, name, plugins, trust), a promise of the scan of the folder
+// the page picked (see scan.go), then fires "cernly-ready". It reads nothing
+// but what it is given.
 package main
 
 import (
@@ -35,7 +37,17 @@ func register() {
 	api.Set("compare", js.FuncOf(func(_ js.Value, args []js.Value) any {
 		return result(localview.Compare(arg(args, 0), arg(args, 1)))
 	}))
+	api.Set("scan", js.FuncOf(func(_ js.Value, args []js.Value) any {
+		src, name, bundled, trust, err := scanArgs(args)
+		return promise(func() (any, error) {
+			if err != nil {
+				return nil, err
+			}
+			return scanFolder(src, name, bundled, trust)
+		})
+	}))
 	api.Set("maxBytes", localview.MaxBytes)
+	api.Set("maxFiles", MaxFiles)
 	js.Global().Set("cernly", api)
 	js.Global().Call("dispatchEvent", js.Global().Get("Event").New("cernly-ready"))
 }

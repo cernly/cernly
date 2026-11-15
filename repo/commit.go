@@ -72,6 +72,9 @@ func BranchRef(dir, branch string) (string, error) {
 
 // Close stops the object reader of a commit view; a no-op for a checkout.
 func (r *Repo) Close() error {
+	if r.git != nil {
+		r.git.Close()
+	}
 	if r.cat == nil {
 		return nil
 	}

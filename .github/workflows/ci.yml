@@ -26,18 +26,37 @@ jobs:
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
       - run: go test ./...
-      # The views and the local viewer: its offline and CSP tests, the WebAssembly module's
-      # exports (a js/wasm build, which go test ./... skips) and the one-file build.
+      # The views and the local viewer: its offline and CSP tests, the folder sources and the
+      # WASI shim.
       - name: web
         working-directory: web
         run: |
           npm ci
           npm run typecheck
           npm test
+      # The browser build (js/wasm, which go test ./... skips): the module's exports, the
+      # plugin runner and the java plugin's goldens through web/viewer/wasi.js, from modules
+      # built here for wasip1.
+      - name: js/wasm
+        run: |
+          pre="$RUNNER_TEMP/wasm"
+          mkdir -p "$pre"
+          GOOS=wasip1 GOARCH=wasm go build -trimpath -buildvcs=false -o "$pre/probe.wasm" ./plugin/wasm/testdata/probe
+          GOOS=wasip1 GOARCH=wasm go build -trimpath -buildvcs=false -o "$pre/java.wasm" ./wasmplugins/java
+          CERNLY_PLUGINTEST_WASM="$pre" GOOS=js GOARCH=wasm go test -exec "$(go env GOROOT)/lib/wasm/go_js_wasm_exec" ./cmd/cernly-viewer ./plugin/wasm ./wasmplugins/java
+      # The page as released (no signed java bundle yet: built-ins only), then with the test
+      # key for the browser tests: a scan in Chromium, Firefox and WebKit gives the CLI's bytes.
       - name: viewer
         run: |
-          GOOS=js GOARCH=wasm go test -exec "$(go env GOROOT)/lib/wasm/go_js_wasm_exec" ./cmd/cernly-viewer
           web/viewer/build.sh
+          CERNLY_VIEWER_TEST_PLUGINS=1 web/viewer/build.sh "$RUNNER_TEMP/viewer-test"
+      - name: browser tests
+        working-directory: web
+        env:
+          CERNLY_VIEWER_PAGE: ${{ runner.temp }}/viewer-test/cernly-viewer.html
+        run: |
+          npx playwright install --with-deps chromium firefox webkit
+          npx playwright test
       - name: docs build
         run: go run ./cmd/cernly-site
       - name: deterministic

@@ -38,7 +38,7 @@ func fixture(t *testing.T, mode string) *repo.Repo {
 			t.Fatal(err)
 		}
 	}
-	r, err := repo.Open(dir)
+	r, err := repo.OpenFS(os.DirFS(dir), filepath.Base(dir))
 	if err != nil {
 		t.Fatal(err)
 	}
