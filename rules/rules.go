@@ -17,7 +17,7 @@ import (
 const (
 	SchemaID = "cernly.map/v1"
 	// Bump on any change to the map output; see CHANGELOG.md.
-	Version = "0.17.1"
+	Version = "0.17.2"
 )
 
 type Settings struct {

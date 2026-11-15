@@ -221,38 +221,48 @@ func (c *collector) dotnet(e map[string]any, st *stage, pkg string, unresolved b
 // folderProjects reads the project or solution files tracked directly in a
 // folder: its one project, else its one solution.
 func (c *collector) folderProjects(dir string) []string {
-	in := func(exts ...string) []string {
-		return c.repo.Match(func(base string) bool {
-			e := strings.ToLower(path.Ext(base))
-			for _, x := range exts {
-				if e == x {
-					return true
-				}
-			}
-			return false
-		})
-	}
-	direct := func(files []string) []string {
-		var out []string
-		for _, f := range files {
-			if path.Dir(f) == dir {
-				out = append(out, f)
-			}
-		}
-		return out
-	}
-	if p := direct(in(".csproj", ".fsproj", ".vbproj")); len(p) == 1 {
+	files := dotnetFiles(c.repo)[dir]
+	if len(files.projects) == 1 {
 		return []string{dir}
-	} else if len(p) > 1 {
+	} else if len(files.projects) > 1 {
 		return nil
 	}
-	if s := direct(in(".sln", ".slnx")); len(s) == 1 {
-		if data, err := c.repo.Read(s[0]); err == nil {
-			p, _ := dotnetsln.Projects(data, s[0])
+	if len(files.solutions) == 1 {
+		if data, err := c.repo.Read(files.solutions[0]); err == nil {
+			p, _ := dotnetsln.Projects(data, files.solutions[0])
 			return p
 		}
 	}
 	return nil
+}
+
+// dotnetFolder holds the project and solution files tracked directly in one folder.
+type dotnetFolder struct{ projects, solutions []string }
+
+type dotnetFilesKey struct{}
+
+// dotnetFiles indexes the repo's .NET project and solution files by folder,
+// once per scan.
+func dotnetFiles(r *repo.Repo) map[string]dotnetFolder {
+	return r.Memo(dotnetFilesKey{}, func() any {
+		out := map[string]dotnetFolder{}
+		for _, f := range r.Match(func(base string) bool {
+			switch strings.ToLower(path.Ext(base)) {
+			case ".csproj", ".fsproj", ".vbproj", ".sln", ".slnx":
+				return true
+			}
+			return false
+		}) {
+			d := out[path.Dir(f)]
+			if e := strings.ToLower(path.Ext(f)); e == ".sln" || e == ".slnx" {
+				d.solutions = append(d.solutions, f)
+			} else {
+				d.projects = append(d.projects, f)
+			}
+			out[path.Dir(f)] = d
+		}
+		return out
+	}).(map[string]dotnetFolder)
 }
 
 // covered reports whether a build output is one of the copied paths or lies

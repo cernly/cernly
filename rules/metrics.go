@@ -59,6 +59,20 @@ type EndpointCounts struct {
 	Unknown   int `json:"unknown"`
 }
 
+// Add counts one endpoint by its auth state; any state but required and
+// anonymous counts as unknown.
+func (c *EndpointCounts) Add(state string) {
+	c.Total++
+	switch state {
+	case "required":
+		c.Required++
+	case "anonymous":
+		c.Anonymous++
+	default:
+		c.Unknown++
+	}
+}
+
 // Pin is one image_pinning finding: its subject and its detail.
 type Pin struct {
 	Subject string `json:"subject"`
@@ -160,15 +174,16 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	for _, f := range facts {
 		byKey[f.Key] = f
 	}
-	role := map[string]string{} // stack name -> role
+	role := map[string]string{} // stack key -> role
 	for _, st := range m.Stacks {
-		role[st.Stack[strings.LastIndex(st.Stack, ":")+1:]] = st.Role
+		role[st.Stack] = st.Role
 	}
 	prod := func(stack string) bool { r := role[stack]; return r == RoleProduction || r == RoleUnconfirmed }
 
 	// Subjects and the sources of their code.
 	type subject struct {
 		key, stack, recipe string
+		stackKey           string
 		sources            []string
 		scopes             []scope
 	}
@@ -188,11 +203,11 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	}
 	for _, f := range facts {
 		if f.Kind == fact.KindService {
-			subs = append(subs, subject{f.Key, f.Str("stack"), recipeOf[f.Key], uniq(sources[f.Key]), scopes[f.Key]})
+			subs = append(subs, subject{f.Key, f.Str("stack"), recipeOf[f.Key], stackKeyOf(f), uniq(sources[f.Key]), scopes[f.Key]})
 		}
 	}
 	for _, c := range m.CIImages {
-		subs = append(subs, subject{c.Image, "", c.Recipe, uniq(sources[c.Image]), scopes[c.Image]})
+		subs = append(subs, subject{c.Image, "", c.Recipe, "", uniq(sources[c.Image]), scopes[c.Image]})
 	}
 	inSources := func(ss []scope) func(string) bool {
 		return func(p string) bool { return coversAny(p, ss) }
@@ -293,8 +308,8 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	var prodScopes []scope
 	for _, s := range subs {
 		r := RoleNone
-		if s.stack != "" {
-			r = role[s.stack]
+		if s.stackKey != "" {
+			r = role[s.stackKey]
 			if r == "" {
 				r = RoleNone
 			}
@@ -312,15 +327,7 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 				continue
 			}
 			it.Endpoints = append(it.Endpoints, row.Endpoint)
-			ec.Total++
-			switch row.Auth.State {
-			case "required":
-				ec.Required++
-			case "anonymous":
-				ec.Anonymous++
-			default:
-				ec.Unknown++
-			}
+			ec.Add(row.Auth.State)
 		}
 		if ec.Total > 0 {
 			sm.Endpoints = &ec
@@ -332,7 +339,7 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 			sm.Coupling = g.coupling(pk)
 		}
 		out.Services = append(out.Services, sm)
-		if s.stack != "" && prod(s.stack) {
+		if s.stackKey != "" && prod(s.stackKey) {
 			prodSrc = append(prodSrc, s.sources...)
 			prodScopes = append(prodScopes, s.scopes...)
 			prodPins = append(prodPins, pinsOf(s)...)
@@ -347,7 +354,7 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	for _, f := range facts {
 		if f.Kind == fact.KindDatastore {
 			all.DataStores = append(all.DataStores, f.Key)
-			if prod(f.Str("stack")) {
+			if prod(stackKeyOf(f)) {
 				prodIt.DataStores = append(prodIt.DataStores, f.Key)
 				prodPins = append(prodPins, pinsOf(subject{key: f.Key})...)
 			}
@@ -364,7 +371,7 @@ func metrics(m *Map, facts []fact.Fact) *Metrics {
 	}
 	for _, r := range m.Routes {
 		all.Routes = append(all.Routes, r.Route)
-		if r.Stack != "" && prod(r.Stack[strings.LastIndex(r.Stack, ":")+1:]) {
+		if r.Stack != "" && prod(r.Stack) {
 			prodIt.Routes = append(prodIt.Routes, r.Route)
 		}
 	}
@@ -434,4 +441,16 @@ func sorted(xs []string) []string {
 	out := append([]string{}, xs...)
 	slices.Sort(out)
 	return out
+}
+
+// stackKeyOf is the key of the stack a service or datastore fact belongs to:
+// its kind from the fact key (service:<kind>:<stack>:<name>) and its stack
+// attribute, so stacks of the same name in different kinds stay apart.
+func stackKeyOf(f fact.Fact) string {
+	st := f.Str("stack")
+	parts := strings.SplitN(f.Key, ":", 3)
+	if st == "" || len(parts) < 3 {
+		return ""
+	}
+	return "stack:" + parts[1] + ":" + st
 }
