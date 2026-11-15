@@ -63,29 +63,6 @@ const (
 	className
 )
 
-// vocabulary lists the attribute keys whose string values are the scanner's
-// own words (enums and short identifiers of schema/scan.v1.schema.json),
-// kept as they are. TestVocabularyFollowsSchema fails when the schema
-// restricts another attribute this list lacks.
-var vocabulary = setOf(
-	"kind", "type", "engine", "language", "framework", "method", "scope",
-	"ecosystem", "tool", "usage", "action", "match_type", "state", "pinning",
-	"scheme", "version", "normalised", "lifecycle", "dialect", "provider",
-	"item", "origins", "role", "markers", "native_type", "events", "status",
-)
-
-// restricted keys are vocabulary only for the listed values: the same key
-// carries free text in other facts (via names an SDK package in a datastore
-// fact; source is a file in a route fact). Any other value falls to the class
-// given.
-var restricted = map[string]struct {
-	values map[string]bool
-	other  int
-}{
-	"via":    {setOf("literal_url", "sdk", "env_var"), className},
-	"source": {setOf("builtin", "wasm", "codeowners", "convention", "invocation"), classPath},
-}
-
 // pathKeys are attributes whose strings are file or URL paths, tokenized
 // per segment. target and source inside mounts are handled in classOf.
 var pathKeys = setOf(
@@ -118,18 +95,21 @@ func setOf(xs ...string) map[string]bool {
 var (
 	wholeURL = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9+.-]*://\S+$`)
 	hostPort = regexp.MustCompile(`^([^:]+):([0-9]+)$`)
-	extRe    = regexp.MustCompile(`^\.[a-z0-9]{1,8}$`)
 )
 
 type redactor struct {
 	ids  map[string]map[string]int // category -> value -> number
 	vals map[string][]string       // category -> values by number
-	// The fact being walked, for the one attribute whose meaning depends on it.
-	enumColumn bool
+	// plugins are the names of the scan's plugin runs: a fact's plugin
+	// stays readable only when it names one of them.
+	plugins map[string]bool
+	// readable is every distinct string the copy keeps as it is, so the
+	// page can show all of them, not only what the preview's lines hold.
+	readable map[string]bool
 }
 
 func newRedactor() *redactor {
-	r := &redactor{ids: map[string]map[string]int{}, vals: map[string][]string{}}
+	r := &redactor{ids: map[string]map[string]int{}, vals: map[string][]string{}, plugins: map[string]bool{}, readable: map[string]bool{}}
 	for _, c := range categories {
 		r.ids[c] = map[string]int{}
 	}
@@ -151,9 +131,25 @@ func (r *redactor) token(cat, v string) string {
 	return cat + "-" + strconv.Itoa(n)
 }
 
+// keep returns s as it is and remembers it as readable.
+func (r *redactor) keep(s string) string {
+	if s != "" {
+		r.readable[s] = true
+	}
+	return s
+}
+
 // Scan returns a redacted deep copy of s and the token list. The input is
 // not changed.
 func Scan(s fact.Scan) (fact.Scan, Map) {
+	out, m, _ := ScanReadable(s)
+	return out, m
+}
+
+// ScanReadable is Scan, and also returns every distinct string the copy
+// keeps readable (outside the schema id and the commit), sorted: the
+// scanner's own words, plugin names, versions and the like.
+func ScanReadable(s fact.Scan) (fact.Scan, Map, []string) {
 	r := newRedactor()
 	out := fact.Scan{
 		Schema:    s.Schema,
@@ -165,6 +161,10 @@ func Scan(s fact.Scan) (fact.Scan, Map) {
 	if s.Plugins != nil {
 		out.Plugins = make([]fact.PluginRun, len(s.Plugins))
 		for i, p := range s.Plugins {
+			r.plugins[p.Name] = true
+			r.keep(p.Name)
+			r.keep(p.Version)
+			p.Signer = r.name(p.Signer)
 			p.Errors = r.errors(p.Errors)
 			out.Plugins[i] = p
 		}
@@ -175,7 +175,12 @@ func Scan(s fact.Scan) (fact.Scan, Map) {
 			out.Facts[i] = r.fact(f)
 		}
 	}
-	return out, r.tokens()
+	readable := make([]string, 0, len(r.readable))
+	for v := range r.readable {
+		readable = append(readable, v)
+	}
+	sort.Strings(readable)
+	return out, r.tokens(), readable
 }
 
 func (r *redactor) tokens() Map {
@@ -226,8 +231,17 @@ func (r *redactor) config(c *fact.ScanConfig) *fact.ScanConfig {
 			x.Name = r.name(x.Name)
 			nd.Stacks = append(nd.Stacks, x)
 		}
-		nd.Gate = append(nd.Gate, d.Gate...)
+		for _, x := range d.Gate {
+			var lic []string
+			for _, l := range x.Licences {
+				lic = append(lic, r.name(l))
+			}
+			x.Licences = lic
+			r.keep(x.Rule)
+			nd.Gate = append(nd.Gate, x)
+		}
 		for _, x := range d.Tags {
+			x.Key = r.name(x.Key)
 			x.Value = r.name(x.Value)
 			nd.Tags = append(nd.Tags, x)
 		}
@@ -238,8 +252,10 @@ func (r *redactor) config(c *fact.ScanConfig) *fact.ScanConfig {
 }
 
 func (r *redactor) fact(f fact.Fact) fact.Fact {
-	r.enumColumn = f.Kind == fact.KindDBColumn && f.Attrs["enum"] == true
-	out := fact.Fact{Kind: f.Kind, Plugin: f.Plugin}
+	out := fact.Fact{Kind: f.Kind, Plugin: r.name(f.Plugin)}
+	if r.plugins[f.Plugin] {
+		out.Plugin = r.keep(f.Plugin)
+	}
 	if rest, ok := strings.CutPrefix(f.Key, f.Kind+":"); ok {
 		out.Key = f.Kind + ":" + r.name(rest)
 	} else {
@@ -296,29 +312,23 @@ func (r *redactor) value(parent, key string, v any) any {
 	return v // numbers, booleans, null
 }
 
+// classOf says how a string under key is redacted: kept when the scanner
+// writes it there (words, checked), else by the key's class.
 func (r *redactor) classOf(parent, key, s string) int {
 	if parent == "mounts" && (key == "target" || key == "source") {
 		return classPath
 	}
-	if rs, ok := restricted[key]; ok {
-		if rs.values[s] {
-			return classVocab
-		}
-		return rs.other
+	if !strings.ContainsAny(s, `/\`) && (words[key][s] || checked[key] != nil && checked[key](s)) {
+		return classVocab
 	}
 	switch {
-	case key == "type" && r.enumColumn:
-		return className // an enum's own name
 	case pathKeys[key]:
 		return classPath
 	case hostKeys[key]:
 		return classHost
-	case vocabulary[key]:
-		// A vocabulary word has no slash; one that does is free text.
-		if strings.ContainsAny(s, `/\`) {
-			return className
-		}
-		return classVocab
+	}
+	if c, ok := otherClass[key]; ok {
+		return c
 	}
 	return className
 }
@@ -335,7 +345,7 @@ func (r *redactor) str(parent, key, s string) string {
 	}
 	switch class {
 	case classVocab:
-		return s
+		return r.keep(s)
 	case classPath:
 		return r.pathText(s)
 	case classHost:
@@ -406,14 +416,15 @@ func (r *redactor) segment(seg string, last bool) string {
 		return seg
 	}
 	if wellKnown[seg] {
-		return seg
+		return r.keep(seg)
 	}
 	if last {
-		if i := strings.LastIndex(seg, "."); i > 0 && extRe.MatchString(seg[i:]) {
+		if i := strings.LastIndex(seg, "."); i >= 0 && extensions[strings.ToLower(seg[i:])] {
 			stem := seg[:i]
 			if strings.Trim(stem, "*?") == "" {
-				return seg
+				return r.keep(seg)
 			}
+			r.keep(seg[i:])
 			return r.token(catPath, stem) + seg[i:]
 		}
 	}

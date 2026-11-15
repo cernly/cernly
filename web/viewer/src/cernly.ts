@@ -54,7 +54,7 @@ export async function tooLarge(files: { name: string; size: number }[]): Promise
 // A facts file prepared for an upload: its text with paths, names, hosts and the repo id
 // replaced by tokens, the token list's text (it stays with the customer), and how many
 // values each category holds.
-export type Upload = { facts: string; map: string; counts: Record<"path" | "name" | "host" | "repo", number> };
+export type Upload = { facts: string; map: string; counts: Record<"path" | "name" | "host" | "repo", number>; readable: string[] };
 
 // The build the page runs: the extractor's version and the SHA-256 of its module.
 export type Build = { version: string; hash: string };

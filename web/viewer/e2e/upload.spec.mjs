@@ -47,6 +47,11 @@ test("the upload file and the token list, redacted and not", async ({ page }) =>
   for (const p of paths) expect(preview).not.toContain(p);
   expect(preview.split("\n").length).toBeLessThanOrEqual(41);
   await expect(page.getByTestId("upload-counts")).toHaveText(/^Redacted: \d+ paths, \d+ names, \d+ hosts, 1 repo id\.$/);
+  const readable = page.getByTestId("upload-readable");
+  await expect(readable.locator("summary")).toHaveText(/^\d+ readable words? stays? in the whole file/);
+  await readable.locator("summary").click();
+  await expect(readable.locator("li").first()).toBeVisible();
+  expect(await readable.textContent()).not.toContain(scan.facts[0].attrs.name);
   await expect(page.getByText("Keep the token list: it turns the tokens back into your names.")).toBeVisible();
 
   const upload = await saved(page, "Save upload file");

@@ -52,6 +52,13 @@ export function Upload({ name, facts }: { name: string; facts: string }) {
           {shown !== undefined && prepared && !("error" in prepared) && (
             <>
               <p className="muted" data-testid="upload-counts">{on ? `Redacted: ${counts(prepared.counts)}.` : "Nothing is redacted: the file is the scan as it is."}</p>
+              {on && (
+                <details className="readable" data-testid="upload-readable">
+                  <summary>{prepared.readable.length === 1 ? "1 readable word stays" : `${prepared.readable.length} readable words stay`} in the whole file (besides the schema id and the commit)</summary>
+                  <p className="muted">Check that none of these is yours to keep private before you save.</p>
+                  <ul className="mono">{prepared.readable.map((w) => <li key={w}>{w}</li>)}</ul>
+                </details>
+              )}
               <pre className="preview mono" tabIndex={0} aria-label="The first lines of the upload file" data-testid="upload-preview">{shown}</pre>
               <div className="seg">
                 <button type="button" className="btn primary" onClick={() => save(`${base}.upload.json`, text!)}>Save upload file</button>

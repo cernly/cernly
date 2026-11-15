@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,7 +39,8 @@ func handMade() fact.Scan {
 		Plugins: []fact.PluginRun{{
 			Name: "dotnet", Version: "0.1.0", Source: "wasm", SHA256: strings.Repeat("b", 64), Signer: "acme-key", Status: "partial",
 			Errors: []fact.LocationError{{Path: "src/Shop.Web/Program.cs", Line: 12, Message: "cannot read Shop.Web"}},
-		}},
+		}, {Name: "compose", Version: "0.4.1", Source: "builtin", Status: "ok"}, {Name: "go", Version: "0.4.1", Source: "builtin", Status: "ok"},
+			{Name: "prisma", Version: "0.4.1", Source: "builtin", Status: "ok"}, {Name: "caddy", Version: "0.4.1", Source: "builtin", Status: "ok"}},
 		Facts: []fact.Fact{
 			{
 				Kind: "service", Key: "service:compose:production:api", Plugin: "compose",
@@ -105,7 +107,7 @@ func TestRules(t *testing.T) {
 		t.Errorf("commit or extractor changed: %+v %+v", got.Commit, got.Extractor)
 	}
 	p := got.Plugins[0]
-	if p.Name != "dotnet" || p.Version != "0.1.0" || p.Source != "wasm" || p.SHA256 != in.Plugins[0].SHA256 || p.Signer != "acme-key" || p.Status != "partial" {
+	if p.Name != "dotnet" || p.Version != "0.1.0" || p.Source != "wasm" || p.SHA256 != in.Plugins[0].SHA256 || !strings.HasPrefix(p.Signer, "name-") || p.Status != "partial" {
 		t.Errorf("plugin run changed: %+v", p)
 	}
 	if e := p.Errors[0]; e.Line != 12 || !strings.HasPrefix(e.Message, "name-") || !strings.HasSuffix(e.Path, ".cs") || strings.Contains(e.Path, "Shop") {
@@ -128,10 +130,10 @@ func TestRules(t *testing.T) {
 	if s := d.Stacks[0]; !strings.HasPrefix(s.Stack, "name-") || s.Role != "production" || !strings.HasPrefix(s.Name, "name-") {
 		t.Errorf("stack %+v", s)
 	}
-	if g := d.Gate[0]; g.Rule != "licence_not_allowed" || g.Level != "block" || g.Licences[0] != "GPL-3.0" {
+	if g := d.Gate[0]; g.Rule != "licence_not_allowed" || g.Level != "block" || !strings.HasPrefix(g.Licences[0], "name-") {
 		t.Errorf("gate %+v", g)
 	}
-	if tg := d.Tags[0]; tg.Key != "team" || !strings.HasPrefix(tg.Value, "name-") || tg.By != "repo" {
+	if tg := d.Tags[0]; !strings.HasPrefix(tg.Key, "name-") || !strings.HasPrefix(tg.Value, "name-") || tg.By != "repo" {
 		t.Errorf("tag %+v", tg)
 	}
 
@@ -403,7 +405,7 @@ func TestGoldens(t *testing.T) {
 // structural are the schema properties with an enum or a pattern that Scan
 // keeps by position, not by the vocabulary: plugin run fields, the commit,
 // the declared gate and sides, and tag keys.
-var structural = setOf("name", "sha", "sha256", "by", "level", "key")
+var structural = setOf("name", "sha", "sha256", "by", "level", "key", "status")
 
 // TestVocabularyFollowsSchema fails when the schema restricts an attribute
 // to an enum or a short-identifier pattern and the vocabulary does not know
@@ -434,8 +436,7 @@ func TestVocabularyFollowsSchema(t *testing.T) {
 			if props, ok := x["properties"].(map[string]any); ok {
 				for name, sub := range props {
 					m, _ := sub.(map[string]any)
-					_, isRestricted := restricted[name]
-					if m != nil && restrictedByName(m) && !vocabulary[name] && !isRestricted && !structural[name] {
+					if m != nil && restrictedByName(m) && words[name] == nil && checked[name] == nil && !structural[name] {
 						missing[name] = true
 					}
 				}
@@ -451,11 +452,60 @@ func TestVocabularyFollowsSchema(t *testing.T) {
 	}
 	walk(doc)
 	for name := range missing {
-		t.Errorf("attribute %q is restricted by the schema but is not in the vocabulary", name)
+		t.Errorf("attribute %q is restricted by the schema but has no word list", name)
 	}
-	for name := range vocabulary {
+	for name := range words {
 		if pathKeys[name] || hostKeys[name] {
 			t.Errorf("%q is both vocabulary and a path or host key", name)
+		}
+	}
+}
+
+// The review's cases (RES 831): strings under keys the scanner also uses for
+// its own words are kept only when they are those words.
+func TestFreeTextUnderVocabularyKeys(t *testing.T) {
+	secret := []string{
+		`[Authorize(Roles = "PayrollAdmins")]`, `RequireAuthorization() (if User.IsInRole("PayrollAdmins"))`,
+		"PlanTier", "Acme.Billing.OrderStatus", `Unsupported("acme_type")`, "varchar(64) check (org = 'acme')", "Acme.Money",
+		"acmeproduct", "acme-prod", "billing-portal", "LicenseRef-Acme-Internal", "acme_division", "acme-key",
+		"github.com/acme/payroll", ".acme",
+	}
+	in := fact.Scan{
+		Schema: fact.SchemaID, Repo: "example.com/acme/shop",
+		Commit: fact.Commit{SHA: strings.Repeat("a", 40), CommittedAt: "2026-11-01T10:00:00Z"},
+		Config: &fact.ScanConfig{Declared: &fact.Declared{
+			Gate: []fact.DeclaredGate{{Rule: "licence_not_allowed", Level: "block", By: "repo", Licences: []string{"LicenseRef-Acme-Internal", "GPL-3.0"}}},
+			Tags: []fact.DeclaredTag{{Key: "acme_division", Value: "x", By: "repo"}},
+		}},
+		Plugins: []fact.PluginRun{{Name: "dotnet", Version: "0.1.0", Source: "wasm", Signer: "acme-key", Status: "ok"}},
+		Facts: []fact.Fact{
+			{Kind: "endpoint", Key: "endpoint:a", Plugin: "dotnet", Attrs: map[string]any{"auth": map[string]any{"state": "required", "markers": []any{
+				`[Authorize(Roles = "PayrollAdmins")]`, `RequireAuthorization() (if User.IsInRole("PayrollAdmins"))`, "[Authorize]"}}},
+				Evidence: []fact.Evidence{{Path: "charts/billing.acme", Line: 1}}},
+			{Kind: "db_column", Key: "db_column:a", Plugin: "dotnet", Attrs: map[string]any{"type": "PlanTier", "native_type": "varchar(64) check (org = 'acme')"}},
+			{Kind: "db_column", Key: "db_column:b", Plugin: "dotnet", Attrs: map[string]any{"type": "Acme.Billing.OrderStatus", "native_type": "Acme.Money"}},
+			{Kind: "db_column", Key: "db_column:c", Plugin: "dotnet", Attrs: map[string]any{"type": `Unsupported("acme_type")`, "native_type": "nvarchar(320)"}},
+			{Kind: "db_column", Key: "db_column:d", Plugin: "dotnet", Attrs: map[string]any{"type": "String[]", "native_type": "Decimal(10,2)"}},
+			{Kind: "catalog_entity", Key: "catalog_entity:a", Plugin: "github.com/acme/payroll", Attrs: map[string]any{"kind": "acmeproduct", "lifecycle": "acme-prod", "type": "billing-portal"}},
+			{Kind: "catalog_entity", Key: "catalog_entity:b", Plugin: "dotnet", Attrs: map[string]any{"kind": "component", "lifecycle": "production", "type": "service"}},
+		},
+	}
+	got, _, readable := ScanReadable(in)
+	text := canon(t, got)
+	for _, s := range secret {
+		if strings.Contains(text, s) || slices.Contains(readable, s) {
+			t.Errorf("%q survived", s)
+		}
+	}
+	for _, s := range []string{"[Authorize]", "nvarchar(320)", "String[]", "Decimal(10,2)", "component", "production", "service", "dotnet"} {
+		if !slices.Contains(readable, s) {
+			t.Errorf("%q was tokenized; readable: %q", s, readable)
+		}
+	}
+	// Licence ids are the customer's policy: every one is a token.
+	for _, l := range got.Config.Declared.Gate[0].Licences {
+		if !strings.HasPrefix(l, "name-") {
+			t.Errorf("licence %q kept", l)
 		}
 	}
 }

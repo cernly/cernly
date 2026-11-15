@@ -25,7 +25,7 @@ It does not prove more. It cannot stop a page from navigating away with data in 
 
 ## Prepare an upload
 
-With one scan open, "Prepare an upload" shows the file before anything is saved: how many values of each kind were replaced, and the first 40 lines as they will be saved.
+With one scan open, "Prepare an upload" shows the file before anything is saved: how many values of each kind were replaced, every readable string, and the first 40 lines as they will be saved.
 
 - **Redact paths, names, hosts and the repo id** is on by default; switch it off before saving if you want.
 - **Save upload file** writes `<name>.upload.json`.
@@ -42,15 +42,15 @@ A value becomes a token and a number: `path-1`, `name-1`, `host-1`, `repo-1`. Th
 | `path` | File and folder paths, and URL paths such as `/api/Catalog/{id}`, one token per segment. Folders and extensions stay: `Controllers/Catalog.cs` becomes `path-1/path-2.cs`. Well-known names such as `Dockerfile`, `go.mod` and `.github` stay. |
 | `host` | Hosts and registries, and the host of any URL. Ports and URL schemes stay; a query or fragment becomes a name token and a user name or password is dropped. |
 | `repo` | The repo id. |
-| `name` | Every other string: service, package and variable names, images, commands, messages, tag values, the rest of a fact's key. |
+| `name` | Every other string: service, package and variable names, images, commands, messages, tags, licences, signers, type names: anything the scanner did not write itself. |
 
 ## What stays readable
 
 | Kept | Examples |
 |---|---|
 | Fact kinds and plugin names | `service`, `dependency`, `compose` |
-| The scanner's vocabulary | languages, engines, frameworks, ecosystems, HTTP methods, scopes, pinning, version schemes |
+| The scanner's vocabulary | languages, engines, frameworks, ecosystems, HTTP methods, scopes, pinning, version schemes, bare `[Authorize]`, column types such as `varchar(64)` |
 | Numbers and flags | versions, line numbers, counts, booleans |
-| Identity of the scan | the commit id and date, the scanner's and each plugin's version, source, hash and signer |
+| Identity of the scan | the commit id and date, the scanner's and each plugin's name, version, source and hash |
 
 The token list's schema is `cernly.redaction/v1`.

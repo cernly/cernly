@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -229,6 +230,9 @@ func TestRedact(t *testing.T) {
 	}
 	if !strings.Contains(up.Map, s.Repo) || up.Counts["repo"] != 1 {
 		t.Errorf("map %.200s, counts %v", up.Map, up.Counts)
+	}
+	if len(up.Readable) == 0 || slices.Contains(up.Readable, s.Repo) {
+		t.Errorf("readable %v", up.Readable)
 	}
 	if _, err := Redact([]byte("x")); err == nil {
 		t.Error("a file that is not a scan was redacted")
