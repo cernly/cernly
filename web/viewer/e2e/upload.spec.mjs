@@ -53,6 +53,7 @@ test("the upload file and the token list, redacted and not", async ({ page }) =>
   await expect(readable.locator("li").first()).toBeVisible();
   expect(await readable.textContent()).not.toContain(scan.facts[0].attrs.name);
   await expect(page.getByText("Keep the token list: it turns the tokens back into your names.")).toBeVisible();
+  await expect(page.getByTestId("upload-commit")).toContainText("redaction protects private commits only");
 
   const upload = await saved(page, "Save upload file");
   expect(upload.name).toBe("repo.upload.json");

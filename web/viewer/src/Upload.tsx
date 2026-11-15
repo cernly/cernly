@@ -65,6 +65,7 @@ export function Upload({ name, facts }: { name: string; facts: string }) {
                 {on && <button type="button" className="btn" onClick={() => save(`${base}.tokens.json`, prepared.map)}>Save token list</button>}
               </div>
               {on && <p className="muted">Keep the token list: it turns the tokens back into your names. It is not part of the upload.</p>}
+              {on && <p className="muted" data-testid="upload-commit">The commit id stays readable. If this commit is on a public remote, anyone can read its files there, so redaction protects private commits only.</p>}
             </>
           )}
           <p className="muted">This page cannot send anything; you upload the file yourself.</p>
