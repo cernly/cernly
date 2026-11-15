@@ -41,6 +41,9 @@ hit akia "$tok" "k=AKIA$(rep 16 A)"
 hit asia "$tok" "k=ASIA$(rep 16 A)"
 hit xoxc "$tok" "t=xo""xc-1234567890-$a"
 hit xoxe "$tok" "t=xo""xe-1234567890-$a"
+hit xoxd "$tok" "t=xo""xd-1234567890-$a"
+hit rk_live "$tok" "k=rk_li""ve_$a"
+hit rk_test "$tok" "k=rk_te""st_$a"
 hit privkey "$tok" "-----BEGIN RSA PRIV""ATE KEY-----"
 hit users "$path" "/Us""ers/someone/project"
 hit users-lower "$path" "/us""ers/someone/project"
@@ -50,6 +53,12 @@ hit tilde "$path" "cd ~""/project"
 hit tilde-quoted-dot "$path" 'open("~''/.ssh/id_rsa")'
 hit tilde-quoted-dir "$path" 'p = "~''/src/some/checkout"'
 hit winpath "$path" 'C:\Us''ers\someone'
+hit winpath-slash "$path" 'C:/Us''ers/someone'
+hit winpath-slash-lower "$path" '"C:/us''ers/someone/project"'
+hit dot-home "$path" "cd ./ho""me/someone"
+hit dotdot-home "$path" "cd ../ho""me/someone"
+hit tilde-quoted-dev "$path" 'p = "~''/Development/Projects/x"'
+hit tilde-quoted-dev-lower "$path" 'p = "~''/development/x"'
 hit winpath-lower "$path" 'C:\us''ers\name\project'
 miss aspnet "$path" 'return Redirect("~/Home/Index");'
 miss aspnet-lower "$path" 'return Redirect("~/home/index");'
