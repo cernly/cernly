@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cernly/cernly/depview"
 	"github.com/cernly/cernly/explain"
 	"github.com/cernly/cernly/fact"
 	"github.com/cernly/cernly/pipeline"
@@ -184,5 +185,29 @@ func TestCompareDifferentRepos(t *testing.T) {
 	_, err := Compare(example(t), other)
 	if err == nil || !strings.Contains(err.Error(), "two repositories") || !strings.Contains(err.Error(), s.Repo) || !strings.Contains(err.Error(), "example.org/other") {
 		t.Fatalf("err %v", err)
+	}
+}
+
+func TestViewDependencies(t *testing.T) {
+	raw := example(t)
+	out, err := Of(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var v struct {
+		Dependencies depview.Summary `json:"dependencies"`
+	}
+	if err := json.Unmarshal(out, &v); err != nil {
+		t.Fatal(err)
+	}
+	var s fact.Scan
+	_ = json.Unmarshal(raw, &s)
+	m, _ := pipeline.Map(raw, rules.Settings{})
+	want := depview.Of(&s, m)
+	if !reflect.DeepEqual(v.Dependencies, want) {
+		t.Errorf("dependencies %+v, want %+v", v.Dependencies, want)
+	}
+	if n := v.Dependencies.Counts["direct"] + v.Dependencies.Counts["transitive"]; n == 0 {
+		t.Error("the example scan's dependency is not listed")
 	}
 }

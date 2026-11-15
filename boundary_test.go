@@ -13,7 +13,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -127,7 +126,8 @@ func isAllowed(p string) bool {
 
 // The web packages under core/web hold to the same boundary: relative imports
 // stay inside core/, bare ones name only React, the open packages and node.
-var webImport = regexp.MustCompile(`(?m)(?:\bfrom|\bimport|\bimport\()\s*["']([^"']+)["']`)
+// Import and export declarations and import() count, read by webImports: a
+// "from" or "import" in a string, a comment or the page's prose is not one.
 
 // webImportProblem says why the import spec in the file at rel (a slash path
 // from core/, like web/views/src/a.ts) is not allowed, or "" when it is.
@@ -167,9 +167,9 @@ func TestWebImportsStayInCore(t *testing.T) {
 			return err
 		}
 		files++
-		for _, m := range webImport.FindAllStringSubmatch(string(data), -1) {
-			if why := webImportProblem(filepath.ToSlash(p), m[1]); why != "" {
-				t.Errorf("%s imports %q: %s", p, m[1], why)
+		for _, spec := range webImports(string(data)) {
+			if why := webImportProblem(filepath.ToSlash(p), spec); why != "" {
+				t.Errorf("%s imports %q: %s", p, spec, why)
 			}
 		}
 		return nil
@@ -206,5 +206,20 @@ func TestWebImportProblem(t *testing.T) {
 		if got := webImportProblem(c.file, c.spec) != ""; got != c.bad {
 			t.Errorf("%s importing %q: rejected %v, want %v", c.file, c.spec, got, c.bad)
 		}
+	}
+}
+
+func TestWebImportPattern(t *testing.T) {
+	src := "import a from \"x1\";\nimport \"./a.css\";\nexport { b } from 'x2';\nimport {\n  c,\n} from \"x3\";\nconst d = await import(\"x4\");\n" +
+		"const e = plural(n, \"import\") + \"from\";\nArray.from(\"no\");\n<span>{plural(k, \"import\")} · from \"no\"</span>\n" +
+		"export { f } from \"x5\"; export { g } from \"x6\"; import { \"n-1\" as h } from \"x7\";\n" +
+		"import { plural } from \"./format\"; import { api } from \"../../../../web/app/lib/api\"\n" +
+		"import x // ;\nfrom \"x8\"\n" +
+		"/* import y from \"no\" */ // import z from \"no\"\nconst r = s.replace(/[\"']\\//g, \"\"); const t = `import q from \"no\" ${a}`;\n" +
+		"export * as ns from \"x9\";\nexport const k = 1;\nexport type { T } from \"x10\";\nimport type { U } from \"x11\";\n"
+	got := strings.Join(webImports(src), ",")
+	want := "x1,./a.css,x2,x3,x4,x5,x6,x7,./format,../../../../web/app/lib/api,x8,x9,x10,x11"
+	if got != want {
+		t.Errorf("imports %v, want %v", got, want)
 	}
 }

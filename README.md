@@ -56,7 +56,8 @@ visible in the facts file. The formats are `schema/scan.v1.schema.json` and `sch
 ## Local viewer
 
 `web/viewer/build.sh` builds `dist/viewer/cernly-viewer.html`: one file that opens one or two facts files from
-disk and shows the map, the findings and what changed between them. The map is derived in the page by the same Go
+disk and shows the map, the findings, the AI tooling set up, the routes and hosts, the tables, the dependencies per
+service, the module graph, and what changed between two scans. The map is derived in the page by the same Go
 code, compiled to WebAssembly. The page makes no requests: its Content-Security-Policy allows none, and every script
 in it is listed by hash. The build is reproducible (Go 1.26.10, `-trimpath`, the committed lockfile): build it
 yourself and compare with `dist/viewer/SHA256SUMS`, or with the hash we publish.

@@ -229,3 +229,10 @@ ul.attention > li.leave { animation: fade-out 280ms ease-in both; }
 .verdict-items { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .verdict-items a.badge { text-decoration: none; min-height: 28px; padding: 4px 10px; }
 .verdict-items a.badge:hover { --edge: var(--ink); color: var(--ink); }
+
+/* link-styled buttons, the folded alternative under a snippet, and text for screen readers only */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+button.linkish { background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--border-strong); cursor: pointer; font: inherit; }
+button.linkish:hover { color: var(--brand); }
+details.snippet-alt > summary { cursor: pointer; color: var(--ink-muted); font-size: 12px; min-height: 28px; display: inline-flex; align-items: center; }
+details.snippet-alt > summary:hover { color: var(--ink); }

@@ -1,0 +1,35 @@
+/* The Routes view's hosts nobody claims. Brand tokens and the views.css aliases only. */
+.unclaimed-todo { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); font-size: 14px; }
+.unclaimed-note { padding: 0 var(--space-4) var(--space-3); font-size: 13px; }
+
+ul.host-rows { list-style: none; margin: 0; padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+.host-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2) var(--space-4); align-items: center;
+  padding: 10px 12px; background: var(--surface-200); border: 1px solid var(--edge-panel); border-radius: var(--r-sm);
+}
+.host-row.quiet { grid-template-columns: minmax(0, 1fr); border-color: var(--line); }
+@media (max-width: 640px) { .host-row { grid-template-columns: minmax(0, 1fr); } }
+.host-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.host-name { font: 500 14px/20px var(--font-mono); overflow-wrap: anywhere; }
+.host-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 13px; }
+.host-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+@media (max-width: 640px) { .host-actions { justify-content: flex-start; } }
+
+/* The chip says how the code uses the host; a call is drawn stronger than an example value. */
+.host-chip {
+  display: inline-flex; align-items: center; font: 500 11px/16px var(--font-mono); letter-spacing: 0.04em;
+  padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-muted);
+}
+.host-chip.called { color: var(--ink); border-color: var(--warning); }
+.host-state { font-size: 13px; font-weight: 600; padding: 1px 8px; border-radius: var(--r-sm); border: 1px solid var(--brand); color: var(--ink); }
+
+ul.host-sources { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--ink-muted); }
+ul.host-sources a { color: var(--ink); }
+.host-service { color: var(--ink); font-weight: 500; }
+.host-confirmation { font-size: 13px; }
+.host-confirmation q { quotes: "\201C" "\201D"; }
+
+.host-decided { border-top: 1px solid var(--line); }
+.host-decided > h3 { font-size: 14px; font-weight: 600; padding: var(--space-3) var(--space-4) 0; }
+details.host-mentioned > summary { font-weight: 500; }
+.unclaimed-alt { padding: var(--space-2) var(--space-4) var(--space-3); border-top: 1px solid var(--line); }

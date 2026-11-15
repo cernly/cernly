@@ -10,12 +10,40 @@ import { compare, tooLarge, view, type Changes as ChangesData, type View } from 
 import { Changes } from "./Changes";
 import { Open } from "./Open";
 import { Overview } from "./Overview";
+import { AI, Data, Dependencies, Modules, Routes } from "./Views";
 
 // The theme follows the system; the brand tokens read data-theme on <html>.
 const dark = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
 const setTheme = () => { document.documentElement.dataset.theme = dark?.matches ? "dark" : "light"; };
 setTheme();
 dark?.addEventListener("change", setTheme);
+
+// The views of one scan, in the app's order; with two scans What changed
+// follows Overview.
+const TABS = [
+  ["overview", "Overview", Overview],
+  ["ai", "AI tooling", AI],
+  ["routes", "Routes", Routes],
+  ["data", "Data", Data],
+  ["dependencies", "Dependencies", Dependencies],
+  ["modules", "Modules", Modules],
+] as const;
+type Tab = (typeof TABS)[number][0] | "changes";
+
+function Tabs({ tab, two, onTab }: { tab: Tab; two: boolean; onTab: (t: Tab) => void }) {
+  const all: [Tab, string][] = TABS.map(([id, label]) => [id, label]);
+  if (two) all.splice(1, 0, ["changes", "What changed"]);
+  return (
+    <nav className="seg tabs" aria-label="View">
+      {all.map(([id, label]) => <button key={id} type="button" className="btn" aria-pressed={tab === id} onClick={() => onTab(id)}>{label}</button>)}
+    </nav>
+  );
+}
+
+function One({ v, tab }: { v: View; tab: Tab }) {
+  const T = TABS.find(([id]) => id === tab)?.[2] ?? Overview;
+  return <T v={v} />;
+}
 
 type State =
   | { at: "open" }
@@ -59,7 +87,7 @@ class Guard extends Component<{ children: ReactNode; onFiles: (files: File[]) =>
 
 function App() {
   const [state, setState] = useState<State>({ at: "open" });
-  const [tab, setTab] = useState<"overview" | "changes">("overview");
+  const [tab, setTab] = useState<Tab>("overview");
   const [files, setFiles] = useState<File[] | null>(null);
   const [loads, setLoads] = useState(0);
   useEffect(() => {
@@ -91,16 +119,9 @@ function App() {
         </>
       )}
       <Guard key={loads} onFiles={setFiles}>
-        {state.at === "one" && <Overview v={state.v} />}
-        {state.at === "two" && (
-          <>
-            <div className="seg" role="group" aria-label="View">
-              <button type="button" className="btn" aria-pressed={tab === "overview"} onClick={() => setTab("overview")}>Overview</button>
-              <button type="button" className="btn" aria-pressed={tab === "changes"} onClick={() => setTab("changes")}>Changes</button>
-            </div>
-            {tab === "overview" ? <Overview v={state.c.to} /> : <Changes c={state.c} />}
-          </>
-        )}
+        {(state.at === "one" || state.at === "two") && <Tabs tab={tab} two={state.at === "two"} onTab={(t) => { setTab(t); globalThis.scrollTo?.(0, 0); }} />}
+        {state.at === "one" && <One v={state.v} tab={tab} />}
+        {state.at === "two" && (tab === "changes" ? <Changes c={state.c} /> : <One v={state.c.to} tab={tab} />)}
       </Guard>
     </main>
   );
