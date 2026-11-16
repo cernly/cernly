@@ -5,6 +5,11 @@ output, so it changes whenever that component's output changes. Newest first.
 
 ## Extractor (pipeline)
 
+- 0.4.2: the release version of the binary. The extractor finds the same facts
+  as 0.4.1, except that a scan of the working tree named `.` with no git origin
+  now gets its origin id from the folder's name (`local/<folder>`) instead of
+  `local/.`. Only the version in the scan, and the hashes that follow from it,
+  change otherwise. The release adds the GitHub Action and attested releases.
 - 0.4.1: the release version of the binary. The extractor finds the same facts
   as 0.4.0; only the version in the scan, and the hashes that follow from it,
   change. The rules (0.17.2), the dockerfile plugin and the local viewer carry
