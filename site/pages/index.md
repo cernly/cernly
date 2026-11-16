@@ -26,4 +26,4 @@ cernly mcp .                        # the same, for your AI agent
 - [Block a risky change in CI](/use/gate/).
 - Every page is also plain Markdown: add `index.md` to its URL. [llms.txt](/llms.txt) lists them all.
 
-Apache-2.0. Source on [GitHub](https://github.com/cernly/cernly).
+Apache-2.0. Source on [GitHub](https://github.com/cernly/cernly). The hosted product, with history across commits, several repositories and evidence reports, is at [cernly.eu](https://cernly.eu).
