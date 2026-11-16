@@ -368,26 +368,74 @@ func TestChangedAndLineEnds(t *testing.T) {
 			t.Errorf("Changed = %q, Dirty = %v", got, d)
 		}
 	})
-	t.Run("autocrlf", func(t *testing.T) {
+	// Each case against git itself: a size that differs from the index is
+	// always a change; line ends are converted only when a file of the
+	// index's size is hashed again, and only for a file whose attributes (or
+	// core.autocrlf) say so.
+	gitDirty := func(g *gitfstest.Repo) bool {
+		return g.Git("--no-optional-locks", "status", "--porcelain", "--untracked-files=no", "--ignore-submodules=all") != ""
+	}
+	// checkedOutCRLF leaves a.txt in the work tree with CRLF line ends and the
+	// index recording that size, as a checkout with eol=crlf writes it, then
+	// sets the attributes and core.autocrlf of the case and touches the file.
+	checkedOutCRLF := func(t *testing.T, attrs, autocrlf string) (*gitfstest.Repo, string) {
+		g := gitfstest.New(t, "")
+		commitFiles(g, map[string]string{"a.txt": "one\ntwo\n", "b.txt": "b\n"})
+		g.Write(".gitattributes", "*.txt eol=crlf\n")
+		if err := os.Remove(filepath.Join(g.Dir, "a.txt")); err != nil {
+			t.Fatal(err)
+		}
+		g.Git("checkout", "--", "a.txt")
+		if data, _ := os.ReadFile(filepath.Join(g.Dir, "a.txt")); string(data) != "one\r\ntwo\r\n" {
+			t.Fatalf("checkout wrote %q", data)
+		}
+		if attrs == "" {
+			if err := os.Remove(filepath.Join(g.Dir, ".gitattributes")); err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			g.Write(".gitattributes", attrs)
+		}
+		if autocrlf != "" {
+			g.Git("config", "core.autocrlf", autocrlf)
+		}
+		g.Touch("a.txt", 2*time.Hour)
+		return g, g.Dir
+	}
+	for _, c := range []struct {
+		name, attrs, autocrlf string
+		dirty                 bool
+	}{
+		{"same size, no conversion", "", "", true},
+		{"same size, autocrlf true", "", "true", false},
+		{"same size, autocrlf input", "", "input", false},
+		{"same size, *.txt text", "*.txt text\n", "", false},
+		{"same size, a pattern that does not match", "*.md text\n", "", true},
+		{"same size, the last line wins", "* text=auto\n*.txt -text\n", "", true},
+		{"same size, **/a.txt eol=lf", "**/a.txt eol=lf\n", "", false},
+		{"same size, a path pattern", "/a.txt text\n", "", false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			g, dir := checkedOutCRLF(t, c.attrs, c.autocrlf)
+			got, d := changed(t, dir, 10)
+			if want := gitDirty(g); want != c.dirty {
+				t.Fatalf("git says dirty %v, the case expects %v", want, c.dirty)
+			}
+			if d != c.dirty || (len(got) > 0) != c.dirty {
+				t.Errorf("Changed = %q, Dirty = %v, git: %v", got, d, c.dirty)
+			}
+		})
+	}
+	t.Run("a different size is a change whatever the settings", func(t *testing.T) {
 		g, dir := setup(t)
 		g.Git("config", "core.autocrlf", "input")
-		if got, d := changed(t, dir, 10); len(got) != 0 || d {
+		g.Write(".gitattributes", "* text=auto\n")
+		got, d := changed(t, dir, 10)
+		if !gitDirty(g) {
+			t.Fatal("git says clean")
+		}
+		if !slices.Equal(got, []string{"a.txt"}) || !d {
 			t.Errorf("Changed = %q, Dirty = %v", got, d)
-		}
-		g.Write("a.txt", "one\r\nTWO\r\n") // a real change still shows
-		if got, d := changed(t, dir, 10); !slices.Equal(got, []string{"a.txt"}) || !d {
-			t.Errorf("real change: Changed = %q, Dirty = %v", got, d)
-		}
-	})
-	t.Run("gitattributes", func(t *testing.T) {
-		g, dir := setup(t)
-		g.Write(".gitattributes", "# eol\n*.txt text=auto\n")
-		if got, d := changed(t, dir, 10); len(got) != 0 || d {
-			t.Errorf("text=auto: Changed = %q, Dirty = %v", got, d)
-		}
-		g.Write(".gitattributes", "*.txt -text\n")
-		if got, d := changed(t, dir, 10); !slices.Equal(got, []string{"a.txt"}) || !d {
-			t.Errorf("-text: Changed = %q, Dirty = %v", got, d)
 		}
 	})
 	t.Run("max and order", func(t *testing.T) {

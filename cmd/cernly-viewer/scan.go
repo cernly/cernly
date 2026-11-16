@@ -36,9 +36,12 @@ const (
 	NoCommitAt = "1970-01-01T00:00:00Z"
 )
 
-// Scanned is one browser scan: the facts file, byte for byte what
-// `cernly scan` writes for the same checkout, the warnings it prints, and
-// the scan's view. A scan the page cannot show (past localview.MaxBytes, or
+// Scanned is one browser scan: the facts file `cernly scan` writes for the
+// same checkout, the warnings it prints, and the scan's view. One limit: the
+// dirty mark comes from a git-free check (gitfs.Repo.Dirty) that does not run
+// git's ident, working-tree-encoding or clean filters, nor read nested
+// .gitattributes or .git/info/attributes, so for a file those touch it can
+// differ from the CLI's. A scan the page cannot show (past localview.MaxBytes, or
 // a view that fails) keeps its facts, with ViewError instead of View, so
 // the reader can still save them.
 type Scanned struct {
