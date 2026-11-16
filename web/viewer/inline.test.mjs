@@ -117,17 +117,20 @@ test("calls go to the worker and folder reads are answered by the page", async (
   const { ctx, events, sent } = await boot((w) => {
     w.onsend = (m) => {
       if (m.type === "call" && m.op === "view") w.onmessage({ data: { type: "result", id: m.id, ok: true, value: { map: 1 } } });
+      if (m.type === "call" && m.op === "redact") w.onmessage({ data: { type: "result", id: m.id, ok: true, value: { facts: m.args[0] + "!", map: "{}\n", counts: {} } } });
       if (m.type === "call" && m.op === "scan") w.onmessage({ data: { type: "fs", id: 7, method: "stat", args: [".git"] } });
       if (m.type === "fs-result") w.onmessage({ data: { type: "result", id: 2, ok: true, value: { seen: m.value } } });
     };
-    w.onmessage({ data: { type: "ready", maxBytes: 5, maxFiles: 6 } });
+    w.onmessage({ data: { type: "ready", maxBytes: 5, maxFiles: 6, version: "9.9.9" } });
   });
   assert.deepEqual(events, ["cernly-ready"]);
   assert.equal(ctx.cernly.maxFiles, 6);
   assert.equal(ctx.cernly.hash, "ab");
+  assert.equal(ctx.cernly.version, "9.9.9");
   assert.deepEqual(await ctx.cernly.view("{}"), { map: 1 });
   const folder = { stat: async (p) => ({ dir: p === ".git", size: 0, mtime: 0 }) };
   assert.deepEqual(await ctx.cernly.scan(folder, "acme"), { seen: { dir: true, size: 0, mtime: 0 } });
+  assert.deepEqual(await ctx.cernly.redact("{}"), { facts: "{}!", map: "{}\n", counts: {} });
   const init = sent.find((m) => m.type === "init");
   assert.ok(init && init.wasm);
 });

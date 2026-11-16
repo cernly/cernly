@@ -74,6 +74,10 @@ browser scan reads at most 40 000 files and 2 GB. Safari's folder input leaves o
 drop the folder instead. `npm run test:browser` in `web` checks the page in Chromium, Firefox and WebKit against the
 CLI (build it first with `CERNLY_VIEWER_TEST_PLUGINS=1 web/viewer/build.sh`).
 
+With one scan open, "Prepare an upload" shows what an upload file would hold and saves it: paths, names, hosts and
+the repo id become tokens (`redact`), unless you switch that off, and the token list is a second file that stays with
+you. The page still sends nothing; see [the viewer page](https://cernly.dev/use/viewer/) for what the policy proves.
+
 ## Documentation
 
 - [`.cernly.yml` reference](https://cernly.dev/use/config/): every key, precedence, recipes, errors.

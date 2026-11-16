@@ -19,3 +19,15 @@
 .notes { display: flex; flex-direction: column; gap: 4px; padding-left: 18px; font-size: 13px; }
 .drop .seg { flex-wrap: wrap; justify-content: center; }
 .drop .seg label.btn:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.upload { display: flex; flex-direction: column; }
+.upload-body { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
+.upload .check { display: inline-flex; align-items: center; gap: 10px; font-weight: 500; }
+.upload .check input { width: 18px; height: 18px; accent-color: var(--brand); }
+.upload .check input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.upload .preview { margin: 0; padding: 8px 10px; max-height: 320px; overflow: auto; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; font-size: 12px; line-height: 1.5; white-space: pre; }
+.upload .preview:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.upload .seg { flex-wrap: wrap; }
+.upload .readable summary { cursor: pointer; font-weight: 500; }
+.upload .readable summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.upload .readable ul { margin: 6px 0 0; padding: 8px 10px 8px 28px; max-height: 200px; overflow: auto; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.build { font-size: 12px; overflow-wrap: anywhere; }

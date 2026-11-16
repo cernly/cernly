@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -209,5 +210,31 @@ func TestViewDependencies(t *testing.T) {
 	}
 	if n := v.Dependencies.Counts["direct"] + v.Dependencies.Counts["transitive"]; n == 0 {
 		t.Error("the example scan's dependency is not listed")
+	}
+}
+
+func TestRedact(t *testing.T) {
+	raw := example(t)
+	out, err := Redact(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var up Upload
+	if err := json.Unmarshal(out, &up); err != nil {
+		t.Fatal(err)
+	}
+	var s fact.Scan
+	_ = json.Unmarshal(raw, &s)
+	if strings.Contains(up.Facts, s.Repo) || !strings.HasSuffix(up.Facts, "}\n") || !strings.HasSuffix(up.Map, "}\n") {
+		t.Errorf("facts file: %.200s", up.Facts)
+	}
+	if !strings.Contains(up.Map, s.Repo) || up.Counts["repo"] != 1 {
+		t.Errorf("map %.200s, counts %v", up.Map, up.Counts)
+	}
+	if len(up.Readable) == 0 || slices.Contains(up.Readable, s.Repo) {
+		t.Errorf("readable %v", up.Readable)
+	}
+	if _, err := Redact([]byte("x")); err == nil {
+		t.Error("a file that is not a scan was redacted")
 	}
 }
