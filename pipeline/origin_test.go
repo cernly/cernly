@@ -1,6 +1,10 @@
 package pipeline
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestRemoteID(t *testing.T) {
 	for u, want := range map[string]string{
@@ -18,5 +22,17 @@ func TestRemoteID(t *testing.T) {
 		if got := remoteID(u); got != want {
 			t.Errorf("remoteID(%q) = %q, want %q", u, got, want)
 		}
+	}
+}
+
+// Without an origin the id is the folder's name, also when the folder is ".".
+func TestOriginIDOfDot(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "shop")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+	if got := OriginID("."); got != "local/shop" {
+		t.Errorf("OriginID(.) = %q", got)
 	}
 }

@@ -25,7 +25,7 @@ import (
 
 // Version is the extractor version every scan records. Bump on any output
 // change; see CHANGELOG.md.
-const Version = "0.4.1"
+const Version = "0.4.2"
 
 // ScanOptions says what Scan reads and how. An empty Commit scans the working
 // tree, labelled with HEAD; an empty RepoID is taken from the origin remote.
@@ -288,6 +288,9 @@ func OriginID(dir string) string {
 		if id := remoteID(strings.TrimSpace(string(out))); id != "" {
 			return id
 		}
+	}
+	if abs, err := filepath.Abs(dir); err == nil {
+		dir = abs // "." names the folder, as a scan of the working tree does
 	}
 	return "local/" + filepath.Base(dir)
 }

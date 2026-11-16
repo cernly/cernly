@@ -29,7 +29,8 @@ go install github.com/cernly/cernly/cmd/cernly@latest
 
 From a checkout: `go build ./cmd/cernly` (Go 1.26.8 or newer, as `go.mod` says).
 
-Or a binary from [releases](https://github.com/cernly/cernly/releases), or Docker:
+Or a binary from [releases](https://github.com/cernly/cernly/releases) (reproducible, with build provenance:
+`gh attestation verify <file> --repo cernly/cernly`), or Docker:
 `docker run --rm -v "$PWD:/repo:ro" ghcr.io/cernly/cernly scan /repo`.
 
 ## Use
