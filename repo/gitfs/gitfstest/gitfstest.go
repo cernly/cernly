@@ -377,3 +377,8 @@ func firstPack(g *Repo) string {
 	}
 	return m[0]
 }
+
+// HiddenChange names the cases with a changed file git does not look at
+// (skip-worktree, assume-unchanged): git status calls them clean, the
+// git-free check dirty, because it refuses any file that is not its blob.
+var HiddenChange = map[string]bool{"index-v3-skip-worktree": true, "assume-unchanged": true}

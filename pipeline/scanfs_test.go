@@ -25,10 +25,17 @@ func canon(t *testing.T, s *fact.Scan) []byte {
 
 // scanBoth scans dir with git and without, and wants the same bytes, or an
 // error from both.
-func scanBoth(t *testing.T, dir string, o ScanOptions) {
+func scanBoth(t *testing.T, dir string, o ScanOptions) { scanBothHidden(t, dir, o, false) }
+
+// scanBothHidden is scanBoth for a checkout with a changed file git does not
+// look at (gitfstest.HiddenChange): ScanFS calls it dirty where Scan does not.
+func scanBothHidden(t *testing.T, dir string, o ScanOptions, hidden bool) {
 	t.Helper()
 	o.Plugins = plugin.All()
 	want, _, werr := Scan(dir, o)
+	if werr == nil && hidden {
+		want.Commit.Dirty = true
+	}
 	got, _, gerr := ScanFS(os.DirFS(dir), filepath.Base(dir), o)
 	if (werr == nil) != (gerr == nil) {
 		t.Fatalf("Scan error %v, ScanFS error %v", werr, gerr)
@@ -47,7 +54,7 @@ func TestScanFSMatchesScan(t *testing.T) {
 			t.Run(c.Name, func(t *testing.T) {
 				g := gitfstest.New(t, format)
 				c.Setup(g)
-				scanBoth(t, g.Dir, ScanOptions{})
+				scanBothHidden(t, g.Dir, ScanOptions{}, gitfstest.HiddenChange[c.Name])
 			})
 		}
 	}

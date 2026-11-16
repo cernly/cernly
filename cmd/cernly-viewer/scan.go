@@ -37,11 +37,13 @@ const (
 )
 
 // Scanned is one browser scan: the facts file `cernly scan` writes for the
-// same checkout, the warnings it prints, and the scan's view. One limit: the
-// dirty mark comes from a git-free check (gitfs.Repo.Dirty) that does not run
-// git's ident, working-tree-encoding or clean filters, nor read nested
-// .gitattributes or .git/info/attributes, so for a file those touch it can
-// differ from the CLI's. A scan the page cannot show (past localview.MaxBytes, or
+// same checkout, the warnings it prints, and the scan's view, with two
+// limits. A tracked file whose bytes are not its committed blob is not read
+// (gitfs.NotCommittedError): the browser cannot tell a file from a symbolic
+// link, so an edit is left out where the CLI reads it, and the scan is dirty.
+// And the git-free check (gitfs.Repo.Dirty) does not run git's ident,
+// working-tree-encoding or clean filters, nor read nested .gitattributes or
+// .git/info/attributes, so a file those touch counts as changed. A scan the page cannot show (past localview.MaxBytes, or
 // a view that fails) keeps its facts, with ViewError instead of View, so
 // the reader can still save them.
 type Scanned struct {
@@ -52,8 +54,7 @@ type Scanned struct {
 	ViewError string          `json:"view_error,omitempty"`
 	Git       bool            `json:"git"`
 	// Changed is the tracked files that differ from the index, after a dirty
-	// scan (at most MaxChanged): the browser cannot tell a file from a
-	// symbolic link, so the reader checks these are their own edits.
+	// scan (at most MaxChanged): none of them was read.
 	Changed []string `json:"changed,omitempty"`
 }
 

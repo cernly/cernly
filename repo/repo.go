@@ -261,7 +261,16 @@ func (r *Repo) read(rel string) ([]byte, error) {
 		return data, err
 	}
 	if r.fsys != nil {
-		return readFS(r.fsys, rel, max)
+		data, err := readFS(r.fsys, rel, max)
+		if err == nil && r.git != nil {
+			// The folder source cannot show a symbolic link: a tracked file
+			// is read only when its bytes are the committed blob's.
+			err = r.git.Verify(r.fsys, rel, data)
+		}
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
 	}
 	// A tracked file may have been replaced by a symlink in the working
 	// tree, or one of its folders: only regular files under real folders
