@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"path"
 	"strings"
 )
 
@@ -21,10 +22,11 @@ const (
 // or its modification time (to the millisecond) differs from the index, or when
 // it is as new as the index file, to the second (racy git, as a default git
 // build counts it); a symlink is not looked at. When core.autocrlf is true or
-// input, or the root .gitattributes has a text or eol attribute, a file that
-// differs only in CRLF line ends counts as clean. That is an approximation of
-// git's filters: ident, working-tree-encoding, nested .gitattributes,
-// .git/info/attributes and a clean filter are not applied.
+// input, or the root .gitattributes gives the file a text or eol attribute, a
+// file that differs only in CRLF line ends counts as clean. That is an
+// approximation of git's filters: ident, working-tree-encoding, nested
+// .gitattributes, .git/info/attributes and a clean filter are not applied, so
+// for a file they touch the answer can differ from git's.
 func (r *Repo) Dirty(fsys fs.FS) (bool, error) {
 	ix, err := r.Index()
 	if err != nil {
@@ -83,7 +85,7 @@ func (r *Repo) changed(fsys fs.FS, ix *Index, max int) ([]string, error) {
 		return nil, err
 	}
 	indexSec := fi.ModTime().Unix()
-	eol := r.normalizesEOL(fsys)
+	eol := r.eolRules(fsys)
 	var out []string
 	for _, e := range ix.Entries {
 		if len(out) >= max {
@@ -95,7 +97,7 @@ func (r *Repo) changed(fsys fs.FS, ix *Index, max int) ([]string, error) {
 		if len(out) > 0 && out[len(out)-1] == e.Path {
 			continue
 		}
-		dirty, err := r.fileDirty(fsys, e, indexSec, eol)
+		dirty, err := r.fileDirty(fsys, e, indexSec, eol.normalizes(e.Path))
 		if err != nil {
 			return nil, err
 		}
@@ -106,29 +108,89 @@ func (r *Repo) changed(fsys fs.FS, ix *Index, max int) ([]string, error) {
 	return out, nil
 }
 
-// normalizesEOL reports whether git would turn CRLF into LF when it hashes a
-// work-tree file: core.autocrlf is true or input, or the root .gitattributes
-// has a text, text=... or eol=... attribute.
-func (r *Repo) normalizesEOL(fsys fs.FS) bool {
+// eolRule is one line of the root .gitattributes that sets or unsets line-end
+// conversion: on for text, text=... and eol=..., off for -text, !text and
+// binary.
+type eolRule struct {
+	pattern string
+	on      bool
+}
+
+// eolRules says, per file, whether git would turn CRLF into LF when it hashes
+// the work-tree file: always when core.autocrlf is true or input, otherwise by
+// the root .gitattributes lines whose pattern matches the file's path.
+type eolRules struct {
+	all   bool
+	rules []eolRule
+}
+
+func (r *Repo) eolRules(fsys fs.FS) eolRules {
 	if v, ok := r.cfg.get("core.autocrlf"); ok && (isTrue(v) || strings.EqualFold(v, "input")) {
-		return true
+		return eolRules{all: true}
 	}
 	data, err := readCapped(fsys, ".gitattributes", 1<<20)
 	if err != nil {
-		return false
+		return eolRules{}
 	}
+	var out eolRules
 	for _, l := range strings.Split(string(data), "\n") {
 		f := strings.Fields(l)
 		if len(f) < 2 || strings.HasPrefix(f[0], "#") || strings.HasPrefix(f[0], "[attr]") {
 			continue
 		}
 		for _, a := range f[1:] {
-			if a == "text" || strings.HasPrefix(a, "text=") || strings.HasPrefix(a, "eol=") {
-				return true
+			switch {
+			case a == "text" || strings.HasPrefix(a, "text=") || strings.HasPrefix(a, "eol="):
+				out.rules = append(out.rules, eolRule{f[0], true})
+			case a == "-text" || a == "!text" || a == "binary":
+				out.rules = append(out.rules, eolRule{f[0], false})
 			}
 		}
 	}
-	return false
+	return out
+}
+
+// normalizes reports the conversion for p; the last matching line wins, as
+// in git.
+func (e eolRules) normalizes(p string) bool {
+	if e.all {
+		return true
+	}
+	on := false
+	for _, r := range e.rules {
+		if attrMatch(r.pattern, p) {
+			on = r.on
+		}
+	}
+	return on
+}
+
+// attrMatch matches a .gitattributes pattern against a slash-separated path
+// from the root: a pattern without a slash matches the base name at any depth,
+// one with a slash the whole path from the root; a leading "**/" matches at any
+// depth and a trailing "/**" everything below. Other uses of "**" do not match.
+func attrMatch(pattern, p string) bool {
+	if rest, ok := strings.CutPrefix(pattern, "**/"); ok {
+		parts := strings.Split(p, "/")
+		for i := range parts {
+			if attrMatch("/"+rest, strings.Join(parts[i:], "/")) {
+				return true
+			}
+		}
+		return false
+	}
+	if dir, ok := strings.CutSuffix(pattern, "/**"); ok {
+		return strings.HasPrefix(p, strings.TrimPrefix(dir, "/")+"/")
+	}
+	if strings.Contains(pattern, "**") {
+		return false
+	}
+	if !strings.Contains(pattern, "/") {
+		ok, _ := path.Match(pattern, path.Base(p))
+		return ok
+	}
+	ok, _ := path.Match(strings.TrimPrefix(pattern, "/"), p)
+	return ok
 }
 
 func readCapped(fsys fs.FS, name string, max int64) ([]byte, error) {
@@ -164,8 +226,10 @@ func (r *Repo) fileDirty(fsys fs.FS, e IndexEntry, indexSec int64, eol bool) (bo
 	if !fi.Mode().IsRegular() {
 		return true, nil
 	}
+	// As git: a size other than the index's is a change, whatever the line
+	// ends; only a file of that size is hashed again (with conversion).
 	sameSize := uint32(fi.Size()) == e.Size
-	if !sameSize && !eol { // with line-end conversion the size may differ from the blob's
+	if !sameSize {
 		return true, nil
 	}
 	mtimeMs := fi.ModTime().UnixMilli()
