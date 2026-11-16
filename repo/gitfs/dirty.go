@@ -18,10 +18,11 @@ const (
 // Dirty reports what `git status --porcelain --untracked-files=no
 // --ignore-submodules=all` would: a staged difference from HEAD, an unmerged or
 // intent-to-add entry, or a tracked regular file that differs from the index.
-// fsys is the work tree. A file is hashed (without filters) only when its size
-// or its modification time (to the millisecond) differs from the index, or when
-// it is as new as the index file, to the second (racy git, as a default git
-// build counts it); a symlink is not looked at. When core.autocrlf is true or
+// fsys is the work tree. Every tracked regular file of the index's size is
+// hashed, whatever its modification time: unlike git, which trusts an unchanged
+// time, this check is for a folder source that cannot show a symbolic link, so
+// a link read through to another file of the same size and time must not pass
+// as clean (Glenn, 16 Nov 2026); a symlink is not looked at. When core.autocrlf is true or
 // input, or the root .gitattributes gives the file a text or eol attribute, a
 // file that differs only in CRLF line ends counts as clean. That is an
 // approximation of git's filters: ident, working-tree-encoding, nested
@@ -80,24 +81,26 @@ func (r *Repo) Changed(fsys fs.FS, max int) ([]string, error) {
 }
 
 func (r *Repo) changed(fsys fs.FS, ix *Index, max int) ([]string, error) {
-	fi, err := fs.Stat(fsys, ".git/index")
-	if err != nil {
-		return nil, err
-	}
-	indexSec := fi.ModTime().Unix()
 	eol := r.eolRules(fsys)
 	var out []string
 	for _, e := range ix.Entries {
 		if len(out) >= max {
 			break
 		}
-		if e.Mode != 0o100644 && e.Mode != 0o100755 || e.SkipWorktree || e.AssumeValid {
+		if e.Mode != 0o100644 && e.Mode != 0o100755 {
 			continue
+		}
+		if e.SkipWorktree || e.AssumeValid {
+			// git does not look at these; a file that is there must still be
+			// its blob, or Verify refuses it, so it counts as a change.
+			if _, err := fs.Stat(fsys, e.Path); err != nil {
+				continue
+			}
 		}
 		if len(out) > 0 && out[len(out)-1] == e.Path {
 			continue
 		}
-		dirty, err := r.fileDirty(fsys, e, indexSec, eol.normalizes(e.Path))
+		dirty, err := r.fileDirty(fsys, e, eol.normalizes(e.Path))
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +212,7 @@ func readCapped(fsys fs.FS, name string, max int64) ([]byte, error) {
 	return data, nil
 }
 
-func (r *Repo) fileDirty(fsys fs.FS, e IndexEntry, indexSec int64, eol bool) (bool, error) {
+func (r *Repo) fileDirty(fsys fs.FS, e IndexEntry, eol bool) (bool, error) {
 	var fi fs.FileInfo
 	var err error
 	if l, ok := fsys.(fs.ReadLinkFS); ok {
@@ -231,11 +234,6 @@ func (r *Repo) fileDirty(fsys fs.FS, e IndexEntry, indexSec int64, eol bool) (bo
 	sameSize := uint32(fi.Size()) == e.Size
 	if !sameSize {
 		return true, nil
-	}
-	mtimeMs := fi.ModTime().UnixMilli()
-	entryMs := int64(e.MtimeSec)*1000 + int64(e.MtimeNsec)/1_000_000
-	if sameSize && mtimeMs == entryMs && fi.ModTime().Unix() < indexSec {
-		return false, nil
 	}
 	f, err := fsys.Open(e.Path)
 	if err != nil {

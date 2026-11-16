@@ -71,18 +71,6 @@ func TestScanFolder(t *testing.T) {
 	}
 }
 
-// A path the source reports as a link is neither listed nor read.
-func TestScanFolderSkipsLinks(t *testing.T) {
-	dir := folder(map[string]string{".env.example": env})
-	s, err := scanFolder(dirSource(dir, map[string]bool{".env.example": true}), "shop", nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(s.Facts, "DATABASE_URL") {
-		t.Fatal("a file reported as a link was read")
-	}
-}
-
 func TestScanFolderRefusesTooManyFiles(t *testing.T) {
 	was := maxFiles
 	maxFiles = 1

@@ -155,7 +155,7 @@ func compare(t *testing.T, g *gitfstest.Repo, r *gitfs.Repo, dirty bool) {
 		t.Fatal(err)
 	}
 	st, _ := g.TryGit("status", "--porcelain", "-z", "--untracked-files=no", "--ignore-submodules=all", "--", ".")
-	if d != (st != "") {
+	if want := st != "" || gitfstest.HiddenChange[caseName(t)]; d != want {
 		t.Errorf("Dirty = %v, git status says %q", d, st)
 	}
 }
@@ -267,4 +267,11 @@ func TestUnbornHead(t *testing.T) {
 	if _, err := r.Head(); err == nil || !strings.Contains(err.Error(), "no commits") {
 		t.Errorf("Head error = %v", err)
 	}
+}
+
+// caseName is the catalogue case a subtest runs, without a /no-readerat
+// variant.
+func caseName(t *testing.T) string {
+	parts := strings.Split(strings.TrimSuffix(t.Name(), "/no-readerat"), "/")
+	return parts[len(parts)-1]
 }
