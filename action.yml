@@ -1,0 +1,90 @@
+# The Cernly scan as a GitHub Action: builds cernly from this commit of the
+# action's own source (the Go toolchain and modules that go.mod and go.sum
+# pin) and runs `cernly scan` on the checked-out commit. Nothing is sent to
+# Cernly: the facts file stays in the workspace and, only with keep-artifact,
+# in a workflow artifact of the repository's own run. Pin it by commit:
+#
+#   - uses: actions/checkout@<sha>
+#   - uses: cernly/cernly@<sha> # vX.Y.Z
+name: Cernly scan
+description: Builds cernly from the action's pinned source (setup-go downloads the Go toolchain go.mod names; go build downloads the modules go.sum pins, from proxy.golang.org) and scans the checked-out commit. Nothing is sent to Cernly; the facts file stays in the workspace and, if kept, in your own run's artifacts.
+author: Cernly
+branding:
+  icon: layers
+  color: gray-dark
+inputs:
+  path:
+    description: The checkout to scan, relative to the workspace. The scan reads its HEAD commit from git, not the working tree.
+    default: "."
+  output:
+    description: Where the facts file is written, relative to the workspace.
+    default: cernly.facts.json
+  keep-artifact:
+    description: Keep the facts file as a workflow artifact ("true" or "false"). The artifact is the unredacted scan (paths, names, hosts); anyone with read access to the repository can download it.
+    default: "false"
+  artifact-name:
+    description: The artifact's name; it must be unique in the workflow run, so give each use its own.
+    default: cernly-facts
+outputs:
+  facts:
+    description: The path of the facts file.
+    value: ${{ steps.scan.outputs.facts }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+        cache: false
+    # The job's environment does not reach the build: no GOFLAGS (toolexec,
+    # overlay), no go.work, no config file, no other proxy or checksum database,
+    # and only the toolchain setup-go installed.
+    - name: build cernly
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GOFLAGS: ""
+        GOENV: "off"
+        GOWORK: "off"
+        GOTOOLCHAIN: local
+        GOPROXY: https://proxy.golang.org
+        GOSUMDB: sum.golang.org
+        GONOSUMDB: ""
+        GONOSUMCHECK: ""
+        GONOPROXY: ""
+        GOPRIVATE: ""
+        GOINSECURE: ""
+        GOEXPERIMENT: ""
+        CGO_ENABLED: "0"
+      run: |
+        want="$(sed -n 's/^toolchain //p' go.mod)"
+        test "$(go env GOVERSION)" = "$want" || { echo "setup-go gave $(go env GOVERSION), go.mod names $want" >&2; exit 1; }
+        mkdir -p "$RUNNER_TEMP/cernly-action"
+        go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/cernly-action/cernly$(go env GOEXE)" ./cmd/cernly
+    - id: scan
+      name: cernly scan
+      shell: bash
+      env:
+        SCAN_PATH: ${{ inputs.path }}
+        SCAN_OUT: ${{ inputs.output }}
+      run: |
+        nl=$'\n' cr=$'\r'
+        for v in "$SCAN_PATH" "$SCAN_OUT"; do
+          case "$v" in
+            "" | /* | \\* | [A-Za-z]:* | *"$nl"* | *"$cr"*) echo "path and output must be relative paths on one line: $v" >&2; exit 1 ;;
+          esac
+          case "/${v//\\//}/" in
+            */../*) echo "path and output must stay in the workspace: $v" >&2; exit 1 ;;
+          esac
+        done
+        commit="$(git -C "$SCAN_PATH" rev-parse --verify HEAD)"
+        mkdir -p "$(dirname "$SCAN_OUT")"
+        "$RUNNER_TEMP/cernly-action/cernly" scan --commit "$commit" --out "$SCAN_OUT" -- "$SCAN_PATH"
+        delim="cernly_$(od -An -tx1 -N16 /dev/urandom | tr -d ' \n')"
+        printf 'facts<<%s\n%s\n%s\n' "$delim" "$SCAN_OUT" "$delim" >> "$GITHUB_OUTPUT"
+    - if: inputs.keep-artifact == 'true'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.scan.outputs.facts }}
+        if-no-files-found: error
