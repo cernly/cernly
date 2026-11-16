@@ -40,6 +40,13 @@ for dir in wasmplugins/*/; do
 		want=$(jq -r .manifest.sha256 "$bundle")
 		got=$(shasum -a 256 "$tmp/$name.wasm" | cut -d' ' -f1)
 		[ "$want" = "$got" ] || { echo "$bundle signs module $want, but this build gives $got: sign the new module" >&2; exit 1; }
+		# The signature too, against Cernly's keys only: a bundle signed with
+		# the test key would build and then be refused by every scan.
+		mkdir -p "$tmp/verify/$name"
+		cp "$bundle" "$tmp/verify/$name/$name.plugin.json"
+		cp "$tmp/$name.wasm" "$tmp/verify/$name/$name.wasm"
+		go run ./cmd/cernly plugin verify "$tmp/verify/$name" > /dev/null ||
+			{ echo "$bundle is not signed with a Cernly key: sign it with cernly-plugins-2026" >&2; exit 1; }
 	else
 		echo "no signed bundle for $name ($dir$name.plugin.json): the page has no $name plugin" >&2
 		continue

@@ -81,3 +81,24 @@ func TestScanFolderRefusesTooManyFiles(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+// A bundled plugin the page cannot trust is left out with a warning; the
+// built-in plugins still run.
+func TestPluginsSkipsUntrustedBundle(t *testing.T) {
+	bundle := []byte(`{"manifest":{"name":"example","sha256":"00"},"signature":{"key":"none","sig":""}}`)
+	ps, skipped, err := plugins([]Bundled{{Bundle: bundle, Module: []byte("\x00asm")}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(skipped) != 1 || !strings.Contains(skipped[0], "bundled plugin example was not run") {
+		t.Fatalf("skipped = %q", skipped)
+	}
+	for _, p := range ps {
+		if p.Name() == "example" {
+			t.Fatal("the untrusted plugin was loaded")
+		}
+	}
+	if len(ps) == 0 {
+		t.Fatal("no built-in plugins")
+	}
+}

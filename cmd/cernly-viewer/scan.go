@@ -53,6 +53,9 @@ type Scanned struct {
 	View      json.RawMessage `json:"view,omitempty"`
 	ViewError string          `json:"view_error,omitempty"`
 	Git       bool            `json:"git"`
+	// Dirty is the scan's commit.dirty: staged changes included, which
+	// Changed (the work tree against the index) does not list.
+	Dirty bool `json:"dirty"`
 	// Changed is the tracked files that differ from the index, after a dirty
 	// scan (at most MaxChanged): none of them was read.
 	Changed []string `json:"changed,omitempty"`
@@ -83,7 +86,7 @@ func scanFolder(src js.Value, name string, bundled []Bundled, trustPEM [][]byte)
 	}
 	defer r.Close()
 	_, gitErr := fsys.Stat(".git")
-	ps, err := plugins(bundled, trustPEM)
+	ps, skipped, err := plugins(bundled, trustPEM)
 	if err != nil {
 		return nil, err
 	}
@@ -94,10 +97,11 @@ func scanFolder(src js.Value, name string, bundled []Bundled, trustPEM [][]byte)
 		o.Commit, o.CommittedAt = NoCommit, NoCommitAt
 	}
 	s, warnings, err := pipeline.ScanOpenedFS(r, name, o)
+	warnings = append(skipped, warnings...)
 	if err != nil {
 		return nil, err
 	}
-	out := &Scanned{Repo: s.Repo, Git: gitErr == nil}
+	out := &Scanned{Repo: s.Repo, Git: gitErr == nil, Dirty: s.Commit.Dirty}
 	if g := r.GitFS(); g != nil {
 		for _, u := range g.Unread() {
 			warnings = append(warnings, fmt.Sprintf("git setting %s is outside this folder and was not read; the repo id may differ from the CLI's", u))
@@ -126,34 +130,39 @@ func scanFolder(src js.Value, name string, bundled []Bundled, trustPEM [][]byte)
 	return out, nil
 }
 
-func plugins(bundled []Bundled, trustPEM [][]byte) ([]plugin.Plugin, error) {
+// plugins is the built-in set plus the bundled ones; a bundled plugin whose
+// signature this page does not trust is left out, with a warning, instead of
+// failing every scan.
+func plugins(bundled []Bundled, trustPEM [][]byte) ([]plugin.Plugin, []string, error) {
 	ps := plugin.All()
 	if len(bundled) == 0 {
-		return ps, nil
+		return ps, nil, nil
 	}
 	trust, err := wasm.NewTrust(trustPEM...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	var skipped []string
 	for _, b := range bundled {
 		var bundle wasm.Bundle
 		if err := json.Unmarshal(b.Bundle, &bundle); err != nil {
-			return nil, fmt.Errorf("bundled plugin: %w", err)
+			return nil, nil, fmt.Errorf("bundled plugin: %w", err)
 		}
 		p, err := wasm.New(bundle, b.Module, trust, wasm.Limits{})
 		if err != nil {
-			return nil, err
+			skipped = append(skipped, fmt.Sprintf("bundled plugin %s was not run: %v", bundle.Manifest.Name, err))
+			continue
 		}
 		for _, q := range ps {
 			if q.Name() == p.Name() {
-				return nil, fmt.Errorf("plugin %s: the name is taken", p.Name())
+				return nil, nil, fmt.Errorf("plugin %s: the name is taken", p.Name())
 			}
 		}
 		ps = append(ps, p)
 	}
 	// Sorted by name, as cli.LoadPlugins: the run order is the CLI's.
 	sort.Slice(ps, func(i, j int) bool { return ps[i].Name() < ps[j].Name() })
-	return ps, nil
+	return ps, skipped, nil
 }
 
 // promise runs work on a goroutine (it may wait on the page's promises) and

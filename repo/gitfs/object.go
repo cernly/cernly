@@ -19,7 +19,7 @@ const (
 	maxObject     = 64 << 20  // largest commit or tree read
 	maxDeltaChain = 4095      // longest chain of deltas followed (git's deepest)
 	maxWhole      = 256 << 20 // largest file read whole when the FS has no ReadAt
-	cacheLimit    = 32 << 20  // bytes of decoded pack objects kept per pack
+	cacheLimit    = 32 << 20  // bytes of decoded pack objects kept, all packs together
 )
 
 // maxWork bounds the bytes inflated or produced to resolve one packed object.
@@ -191,6 +191,14 @@ type pack struct {
 	n                 uint32
 	cache             map[int64]cached
 	cacheBytes        int
+	budget            *cacheBudget
+}
+
+// cacheBudget is the decode cache all packs of one repository share, so the
+// number of packs does not multiply cacheLimit.
+type cacheBudget struct {
+	used  int
+	packs []*pack
 }
 
 type cached struct {
@@ -219,6 +227,11 @@ func (r *Repo) loadPacks() error {
 		if err != nil {
 			return err
 		}
+		if r.cache == nil {
+			r.cache = &cacheBudget{}
+		}
+		p.budget = r.cache
+		r.cache.packs = append(r.cache.packs, p)
 		r.packs = append(r.packs, p)
 	}
 	return nil
@@ -418,16 +431,26 @@ func typeNumber(name string) int {
 	return map[string]int{"commit": 1, "tree": 2, "blob": 3, "tag": 4}[name]
 }
 
-// put keeps a decoded object for later reads, within cacheLimit per pack.
+// put keeps a decoded object for later reads, within cacheLimit for all the
+// repository's packs together: past it every pack's cache is emptied.
 func (p *pack) put(off int64, typ int, data []byte) {
 	if len(data) > cacheLimit {
 		return
 	}
-	if p.cacheBytes+len(data) > cacheLimit {
-		p.cache, p.cacheBytes = map[int64]cached{}, 0
+	b := p.budget
+	if b == nil { // a pack opened on its own, as in tests
+		b = &cacheBudget{packs: []*pack{p}}
+		p.budget = b
+	}
+	if b.used+len(data) > cacheLimit {
+		for _, q := range b.packs {
+			q.cache, q.cacheBytes = map[int64]cached{}, 0
+		}
+		b.used = 0
 	}
 	p.cache[off] = cached{typ, data}
 	p.cacheBytes += len(data)
+	b.used += len(data)
 }
 
 // read decodes the object at off, resolving deltas without recursion. It first

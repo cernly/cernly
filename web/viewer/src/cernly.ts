@@ -26,7 +26,7 @@ export type Changes = {
 };
 // A browser scan: the facts file as `cernly scan` writes it, its warnings and
 // its view.
-export type Scanned = { facts: string; repo: string; warnings: string[]; view?: View; view_error?: string; git: boolean; changed?: string[] };
+export type Scanned = { facts: string; repo: string; warnings: string[]; view?: View; view_error?: string; git: boolean; dirty: boolean; changed?: string[] };
 
 const raw = () => (globalThis as unknown as { cernly?: Raw }).cernly;
 
