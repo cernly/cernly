@@ -7,7 +7,7 @@ import type { Metrics, ModuleGraph } from "./metrics";
 export type Evidence = { path: string; line: number; end_line?: number; unit?: string };
 export type Fact = { kind: string; key: string; attrs: Record<string, any>; plugin: string; evidence: Evidence[] };
 export type PluginRun = { name: string; version: string; status: string };
-export type Scan = { repo: string; commit: { sha: string; committed_at: string }; plugins?: PluginRun[]; facts: Fact[] };
+export type Scan = { repo: string; commit: { sha: string; committed_at: string; dirty?: boolean }; plugins?: PluginRun[]; facts: Fact[] };
 
 export type StackRole = { stack: string; name?: string; role: string; derived_role?: string; declared?: { by: string; line?: number }; confirmed?: ConfirmRef; manual: boolean; reasons: { workflow: string; job: string; role: string; detail: string; test_job?: { by: string; match: string; line: number } }[] };
 export type Link = { service: string; recipe: string; sources: string[]; contexts: string[] };

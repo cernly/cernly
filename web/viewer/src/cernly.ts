@@ -1,10 +1,20 @@
 import type { DependencySummary } from "@cernly/views/deps-model";
 import type { DriftChange, DriftGroup, Explain, MapDoc, Scan } from "@cernly/views/types";
+import type { Folder } from "./folder";
 
-// The WebAssembly module (core/cmd/cernly-viewer) puts `cernly` on globalThis
-// and fires "cernly-ready". Both calls take and return JSON text. When the
-// module did not start, the page's loader sets `failed` instead.
-type Raw = { view(facts: string): string; compare(a: string, b: string): string; maxBytes?: number; failed?: string };
+// boot.js starts the WebAssembly module (core/cmd/cernly-viewer) in a Worker,
+// puts `cernly` on globalThis and fires "cernly-ready". Every call is a
+// promise. When the module did not start, `failed` says why.
+type Raw = {
+  view(facts: string): Promise<View>;
+  compare(a: string, b: string): Promise<Changes>;
+  scan(source: Folder, name: string): Promise<Scanned>;
+  maxBytes?: number;
+  maxFiles?: number;
+  hash?: string;
+  plugins?: string[];
+  failed?: string;
+};
 
 export type View = { scan: Scan; map: MapDoc; explain: Explain[]; stack_labels: Record<string, string>; dependencies: DependencySummary };
 export type Changes = {
@@ -14,11 +24,14 @@ export type Changes = {
   map_groups: DriftGroup[];
   drift: { facts: DriftChange[]; map: DriftChange[] };
 };
+// A browser scan: the facts file as `cernly scan` writes it, its warnings and
+// its view.
+export type Scanned = { facts: string; repo: string; warnings: string[]; view?: View; view_error?: string; git: boolean; changed?: string[] };
 
 const raw = () => (globalThis as unknown as { cernly?: Raw }).cernly;
 
 let loaded: Promise<Raw> | undefined;
-function ready(): Promise<Raw> {
+export function ready(): Promise<Raw> {
   loaded ??= new Promise((resolve, reject) => {
     const settle = (r: Raw) => (r.failed ? reject(new Error(r.failed)) : resolve(r));
     const now = raw();
@@ -36,11 +49,6 @@ export async function tooLarge(files: { name: string; size: number }[]): Promise
   return big && `${big.name} is ${Math.ceil(big.size / 2 ** 20)} MB, more than the ${max! / 2 ** 20} MB this viewer reads.`;
 }
 
-function parse<T>(text: string): T {
-  const out = JSON.parse(text) as T | { error: string };
-  if (out && typeof out === "object" && "error" in out && typeof out.error === "string") throw new Error(out.error);
-  return out as T;
-}
-
-export const view = async (facts: string) => parse<View>((await ready()).view(facts));
-export const compare = async (a: string, b: string) => parse<Changes>((await ready()).compare(a, b));
+export const view = async (facts: string) => (await ready()).view(facts);
+export const compare = async (a: string, b: string) => (await ready()).compare(a, b);
+export const scan = async (f: Folder) => (await ready()).scan(f, f.name);

@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/cernly/cernly/defaults"
+	"github.com/cernly/cernly/repo/gitfs"
 )
 
 // skipped reports a folder name never scanned, even when tracked (vendored
@@ -38,7 +39,9 @@ type Repo struct {
 	cat   *catFile
 	max   int64 // largest file Read returns; 0 is the shipped max_file_bytes
 	tree  bool  // a checkout inside a git work tree (Open), not a walk
-	memo  memo  // per-scan results shared by plugins, see Memo
+	fsys  fs.FS // OpenFS: the work tree, read without git
+	git   *gitfs.Repo
+	memo  memo // per-scan results shared by plugins, see Memo
 }
 
 func (r *Repo) maxBytes() int64 {
@@ -125,6 +128,12 @@ func Open(root string) (*Repo, error) {
 // Root: the working tree Read sees then differs from HEAD. A commit view or
 // a folder outside git is never dirty. Submodules are ignored, as in Open.
 func (r *Repo) Dirty() (bool, error) {
+	if r.fsys != nil {
+		if r.git == nil {
+			return false, nil
+		}
+		return r.git.Dirty(r.fsys)
+	}
 	if !r.tree || r.blobs != nil {
 		return false, nil
 	}
@@ -250,6 +259,18 @@ func (r *Repo) read(rel string) ([]byte, error) {
 			return nil, tooLarge(rel, max)
 		}
 		return data, err
+	}
+	if r.fsys != nil {
+		data, err := readFS(r.fsys, rel, max)
+		if err == nil && r.git != nil {
+			// The folder source cannot show a symbolic link: a tracked file
+			// is read only when its bytes are the committed blob's.
+			err = r.git.Verify(r.fsys, rel, data)
+		}
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
 	}
 	// A tracked file may have been replaced by a symlink in the working
 	// tree, or one of its folders: only regular files under real folders

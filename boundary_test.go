@@ -125,7 +125,8 @@ func isAllowed(p string) bool {
 }
 
 // The web packages under core/web hold to the same boundary: relative imports
-// stay inside core/, bare ones name only React, the open packages and node.
+// stay inside core/, bare ones name only React, the open packages, node and
+// Playwright (the browser tests only).
 // Import and export declarations and import() count, read by webImports: a
 // "from" or "import" in a string, a comment or the page's prose is not one.
 
@@ -142,12 +143,12 @@ func webImportProblem(rel, spec string) string {
 	if strings.HasPrefix(spec, "node:") {
 		return ""
 	}
-	for _, ok := range []string{"react", "react-dom", "react/jsx-runtime", "react-dom/client", "vite", "@cernly/views", "@cernly/brand"} {
+	for _, ok := range []string{"react", "react-dom", "react/jsx-runtime", "react-dom/client", "vite", "@cernly/views", "@cernly/brand", "@playwright/test"} {
 		if spec == ok || strings.HasPrefix(spec, ok+"/") && strings.HasPrefix(ok, "@") {
 			return ""
 		}
 	}
-	return "a package the open core does not allow (react, react-dom, vite, @cernly/views, @cernly/brand, node:*)"
+	return "a package the open core does not allow (react, react-dom, vite, @cernly/views, @cernly/brand, @playwright/test, node:*)"
 }
 
 func TestWebImportsStayInCore(t *testing.T) {

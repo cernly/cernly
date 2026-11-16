@@ -38,7 +38,7 @@ func fixture(t *testing.T, mode string) *repo.Repo {
 			t.Fatal(err)
 		}
 	}
-	r, err := repo.Open(dir)
+	r, err := repo.OpenFS(os.DirFS(dir), filepath.Base(dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,6 +112,20 @@ func TestSandbox(t *testing.T) {
 	}
 	if len(res.Facts) > 0 {
 		t.Fatalf("sandbox let through: %v", names(res.Facts))
+	}
+}
+
+// Counts of iovecs and subscriptions far past memory are refused with EFAULT
+// (21) before the host allocates anything for them, by wazero and by the
+// browser's WASI shim alike.
+func TestHugeCountsAreRefused(t *testing.T) {
+	p := plugintest.Load(t, probe, manifest())
+	res := p.Run(fixture(t, "counts"))
+	if res.Failed {
+		t.Fatalf("failed: %v", res.Errors)
+	}
+	if got := names(res.Facts); len(got) != 2 || got[0] != "env_var:FD_WRITE_21" || got[1] != "env_var:POLL_ONEOFF_21" {
+		t.Fatalf("got %v", got)
 	}
 }
 

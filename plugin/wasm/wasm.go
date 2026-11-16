@@ -1,5 +1,6 @@
 // Package wasm runs outside plugins: WebAssembly modules, signed with
-// ed25519, loaded through wazero (pure Go, no cgo).
+// ed25519, run by wazero (pure Go, no cgo) or, in the browser build, by the
+// browser's own engine through a WASI shim (web/viewer/wasi.js).
 //
 // A module runs with WASI preview 1 and nothing else: no preopened
 // directories, no sockets, an empty environment, a fixed clock and a fixed
@@ -12,7 +13,6 @@ package wasm
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,9 +26,6 @@ import (
 	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
-	"github.com/tetratelabs/wazero"
-	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
-	"github.com/tetratelabs/wazero/sys"
 
 	"github.com/cernly/cernly/fact"
 	"github.com/cernly/cernly/plugin"
@@ -69,10 +66,7 @@ type Plugin struct {
 	signer string
 	limits Limits
 
-	once     sync.Once
-	rt       wazero.Runtime
-	compiled wazero.CompiledModule
-	initErr  error
+	engine // how the module runs: wazero, or the browser's engine under js
 }
 
 // consumer is a Plugin whose manifest names consumed kinds (phase 2).
@@ -250,57 +244,12 @@ func (p *Plugin) filter(in []fact.Fact) []fact.Fact {
 	return out
 }
 
-// cache holds compiled modules by hash for the life of the process, so a
-// caller that scans many commits compiles each module once.
-var cache = wazero.NewCompilationCache()
-
-func (p *Plugin) init() error {
-	p.once.Do(func() {
-		ctx := context.Background()
-		cfg := wazero.NewRuntimeConfig().
-			WithCompilationCache(cache).
-			WithMemoryLimitPages(p.limits.MemoryPages).
-			WithCloseOnContextDone(true)
-		p.rt = wazero.NewRuntimeWithConfig(ctx, cfg)
-		if _, err := wasi_snapshot_preview1.Instantiate(ctx, p.rt); err != nil {
-			p.initErr = err
-			return
-		}
-		p.compiled, p.initErr = p.rt.CompileModule(ctx, p.module)
-		if p.initErr == nil {
-			if imp := p.foreignImports(); imp != "" {
-				p.initErr = fmt.Errorf("imports %s; only wasi_snapshot_preview1 is provided", imp)
-			}
-		}
-	})
-	return p.initErr
-}
-
-// foreignImports names the first import outside WASI preview 1.
-func (p *Plugin) foreignImports() string {
-	for _, f := range p.compiled.ImportedFunctions() {
-		mod, name, _ := f.Import()
-		if mod != wasi_snapshot_preview1.ModuleName {
-			return mod + "." + name
-		}
-	}
-	return ""
-}
-
-// Close releases the compiled module.
-func (p *Plugin) Close() error {
-	if p.rt != nil {
-		return p.rt.Close(context.Background())
-	}
-	return nil
-}
-
 func failed(msg string) plugin.Result {
 	return plugin.Result{Failed: true, Errors: []fact.LocationError{{Path: ".", Message: msg}}}
 }
 
 func (p *Plugin) run(r *repo.Repo, in []fact.Fact) plugin.Result {
-	if err := p.init(); err != nil {
+	if err := p.load(); err != nil {
 		return failed("load: " + err.Error())
 	}
 	input := sdk.Input{PluginAPI: sdk.API, Repo: sdk.Repo{Files: []sdk.File{}}, Facts: in}
@@ -336,39 +285,27 @@ func (p *Plugin) run(r *repo.Repo, in []fact.Fact) plugin.Result {
 	if err != nil {
 		return failed(err.Error())
 	}
-	stdout := &capped{max: p.limits.Output}
-	stderr := &capped{max: 4096}
-	ctx, cancel := context.WithTimeout(context.Background(), p.limits.Timeout)
-	defer cancel()
-	// No WithFS, no WithEnv, no WithSysWalltime/Nanotime, no WithRandSource:
-	// wazero's defaults are no files, no environment, a fake clock and a
-	// fixed random source.
-	cfg := wazero.NewModuleConfig().
-		WithName("").
-		WithArgs(p.m.Name).
-		WithStdin(bytes.NewReader(stdin)).
-		WithStdout(stdout).
-		WithStderr(stderr)
-	mod, err := p.rt.InstantiateModule(ctx, p.compiled, cfg)
-	if mod != nil {
-		_ = mod.Close(context.Background())
-	}
-	if err != nil {
-		var exit *sys.ExitError
-		switch {
-		case ctx.Err() != nil:
-			return failed(fmt.Sprintf("time limit %s exceeded", p.limits.Timeout))
-		case errors.As(err, &exit) && exit.ExitCode() == 0:
-		case errors.As(err, &exit):
-			return failed(fmt.Sprintf("exit code %d: %s", exit.ExitCode(), firstLine(stderr.String())))
-		default:
-			return failed(err.Error())
-		}
-	}
-	if stdout.over {
+	o := p.exec(stdin)
+	switch {
+	case o.timedOut:
+		return failed(fmt.Sprintf("time limit %s exceeded", p.limits.Timeout))
+	case o.err != nil:
+		return failed(o.err.Error())
+	case o.exit != 0:
+		return failed(fmt.Sprintf("exit code %d: %s", o.exit, firstLine(string(o.stderr))))
+	case o.overOut:
 		return failed(fmt.Sprintf("output over %d bytes", p.limits.Output))
 	}
-	return p.check(stdout.Bytes(), sent)
+	return p.check(o.stdout, sent)
+}
+
+// runOut is one run of a module.
+type runOut struct {
+	stdout, stderr []byte
+	exit           int  // the code passed to proc_exit; 0 when it returned
+	overOut        bool // stdout passed Limits.Output
+	timedOut       bool
+	err            error // a trap or a load failure
 }
 
 // check decodes and validates the output: schema, kinds, evidence.

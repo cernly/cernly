@@ -13,3 +13,9 @@
 .seg .btn[aria-pressed="true"] { --edge: var(--brand); color: var(--ink); font-weight: 600; }
 .stack-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .tabs { flex-wrap: wrap; }
+.confirm, .scanned { display: flex; flex-direction: column; gap: 12px; }
+.confirm { padding: 20px 24px; }
+.confirm h2 { font: var(--display-weight) 22px/28px var(--font-display); }
+.notes { display: flex; flex-direction: column; gap: 4px; padding-left: 18px; font-size: 13px; }
+.drop .seg { flex-wrap: wrap; justify-content: center; }
+.drop .seg label.btn:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }

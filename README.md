@@ -63,6 +63,17 @@ code, compiled to WebAssembly. The page makes no requests: its Content-Security-
 in it is listed by hash. The build is reproducible (Go 1.26.10, `-trimpath`, the committed lockfile): build it
 yourself and compare with `dist/viewer/SHA256SUMS`, or with the hash we publish.
 
+The same page scans a repository: pick or drop its folder and the scanner, compiled to WebAssembly, reads it in a
+Worker in the page, with no git and no request. It reads the files git tracks from `.git/index` (versions 2 to 4,
+split index, SHA-1 and SHA-256), the commit from the refs and objects (loose or packed), and gives the same
+`facts.json` as `cernly scan` of the same checkout; "Save facts.json" keeps it. Outside plugins run in the browser's
+own WebAssembly engine through a WASI shim with wazero's sandbox (`web/viewer/wasi.js`); the page carries a plugin
+only with a signed bundle committed beside it (`wasmplugins/<name>/<name>.plugin.json`). Limits: the picked folder
+must be the repository's root (a linked worktree or a submodule points outside it), a sparse index is refused, and a
+browser scan reads at most 40 000 files and 2 GB. Safari's folder input leaves out hidden files, `.git` included:
+drop the folder instead. `npm run test:browser` in `web` checks the page in Chromium, Firefox and WebKit against the
+CLI (build it first with `CERNLY_VIEWER_TEST_PLUGINS=1 web/viewer/build.sh`).
+
 ## Documentation
 
 - [`.cernly.yml` reference](https://cernly.dev/use/config/): every key, precedence, recipes, errors.
