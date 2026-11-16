@@ -37,6 +37,7 @@ type Repo struct {
 	maxEntries  int      // SetMaxEntries
 	unread      []string // config includes that could not be followed
 	verify      verifier // Verify
+	cache       *cacheBudget
 }
 
 // SetMaxEntries limits the entries of the index (and, doubled, of a tree

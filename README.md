@@ -16,8 +16,10 @@ routes) per service, with size and the Go import graph's coupling as context.
 
 - **Deterministic:** same commit, same binary, same flags, byte-identical output.
 - **Evidence:** every fact names the file and line it came from.
-- **Safe:** it never runs, builds or installs anything from the repository it reads. Only git-tracked files;
-  symlinks and submodules are never followed.
+- **Safe:** it never runs, builds or installs anything from the repository it reads. Only git-tracked files.
+  The CLI and the browser scan of a folder with `.git` never follow symlinks or submodules; the browser
+  scan of a folder without `.git` cannot see a link and reads the file it points to
+  ([#15](https://github.com/cernly/cernly/issues/15)).
 
 Docs: https://cernly.dev (for agents: [AGENTS.md](AGENTS.md) and https://cernly.dev/llms.txt)
 

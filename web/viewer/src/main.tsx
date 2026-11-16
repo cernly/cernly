@@ -158,7 +158,7 @@ function App() {
       )}
       <Guard key={loads} onFiles={setFiles} onFolder={onFolder}>
         {state.at === "one" && state.scanned && <Scanned name={state.name} repo={state.scanned.repo} facts={state.scanned.facts} warnings={state.scanned.warnings} dirty={state.v.scan.commit.dirty === true} changed={state.scanned.changed} />}
-        {state.at === "kept" && <Scanned name={state.name} repo={state.scanned.repo} facts={state.scanned.facts} warnings={state.scanned.warnings} dirty={(state.scanned.changed?.length ?? 0) > 0} changed={state.scanned.changed} viewError={state.scanned.view_error} />}
+        {state.at === "kept" && <Scanned name={state.name} repo={state.scanned.repo} facts={state.scanned.facts} warnings={state.scanned.warnings} dirty={state.scanned.dirty} changed={state.scanned.changed} viewError={state.scanned.view_error} />}
         {(state.at === "one" || state.at === "two") && <Tabs tab={tab} two={state.at === "two"} onTab={(t) => { setTab(t); globalThis.scrollTo?.(0, 0); }} />}
         {state.at === "one" && <One v={state.v} tab={tab} />}
         {state.at === "two" && (tab === "changes" ? <Changes c={state.c} /> : <One v={state.c.to} tab={tab} />)}

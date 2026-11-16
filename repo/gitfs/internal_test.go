@@ -262,3 +262,29 @@ func TestCorruptIndexNoPanic(t *testing.T) {
 		}
 	}
 }
+
+// The decode cache is one budget for all of a repository's packs: many packs
+// must not each keep cacheLimit bytes.
+func TestPackCacheBudgetShared(t *testing.T) {
+	b := &cacheBudget{}
+	var packs []*pack
+	for range 8 {
+		p := &pack{cache: map[int64]cached{}, budget: b}
+		b.packs = append(b.packs, p)
+		packs = append(packs, p)
+	}
+	chunk := make([]byte, cacheLimit/4)
+	for i, p := range packs {
+		p.put(int64(i), 3, chunk)
+		p.put(int64(i+100), 3, chunk)
+	}
+	total := 0
+	for _, p := range packs {
+		for _, c := range p.cache {
+			total += len(c.data)
+		}
+	}
+	if total > cacheLimit || b.used != total {
+		t.Fatalf("cached %d bytes over all packs, budget says %d, limit %d", total, b.used, cacheLimit)
+	}
+}
