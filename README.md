@@ -1,5 +1,7 @@
 # Cernly
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/cernly-cernly-f8a80q?v=859abf84bd90ae3e20f8bfc67d9dc34f)](https://m8ven.ai/mcp/cernly-cernly-f8a80q?s=readme)
+
 Architecture facts from a git repository, with file and line evidence for every one of them.
 
 `cernly scan` reads the git-tracked files of one commit (Compose files, Kubernetes manifests, Kustomize overlays and
