@@ -23,6 +23,8 @@ routes) per service, with size and the Go import graph's coupling as context.
 
 Docs: https://cernly.dev (for agents: [AGENTS.md](AGENTS.md) and https://cernly.dev/llms.txt)
 
+Hosted product: https://cernly.eu, with history across commits, several repositories and evidence reports.
+
 ## Install
 
 ```
